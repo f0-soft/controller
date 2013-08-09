@@ -1,7 +1,8 @@
 Controller
 =====
 ## Инсталяция:
-
+* один раз выполнить настройки Linux указанный по ссылке https://github.com/f0-soft/wiki/wiki/Npm-install-from-private-github
+* запустить команду: npm f0.controller install
 
 ## Тестирование:
 * включить mock view и flexo (изменить в файле config/config.js значения объекта mock на {flexo:true, view:true}, для отключения необходимо эти значения поменять на false)

@@ -59,13 +59,13 @@ function init( mock, redisConfig, flexoConfig, viewConfig, objGlobalViewsConfig,
 	if(mock.flexo){
 		var Flexo = require('./flexo_mock.js');
 	} else {
-		var Flexo = require('flexo');
+		var Flexo = require('f0.flexo');
 	}
 
 	if(mock.view){
 		var View = require( './view_mock.js' );
 	} else {
-		var View = require( 'view' );
+		var View = require( 'f0.view' );
 	}
 
 	//ToDo: проверка наличия входных параметров

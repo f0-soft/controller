@@ -19,6 +19,8 @@
 		"redis": "",
 		"crypto": "",
 		"async": "",
-		"underscore": ""
+		"underscore": "",
+		"f0.flexo": "git+ssh://git@github.com:f0-soft/flexo.git",
+		"f0.view": "git+ssh://git@github.com:f0-soft/view.git"
 	}
 }
