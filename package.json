@@ -1,0 +1,24 @@
+{
+	"name": "f0.controller",
+	"version": "0.0.1",
+	"description": "Controller",
+	"license": "BSD",
+	"author": {
+		"name": "Alexander Razygraev",
+		"email": "alexander@f0-soft.ru",
+		"url": "http://f0-soft.ru"
+	},
+
+	"private": true,
+	"main": "index.js",
+	"scripts": {
+		"test": "test.js"
+	},
+
+	"dependencies": {
+		"redis": "",
+		"crypto": "",
+		"async": "",
+		"underscore": ""
+	}
+}
