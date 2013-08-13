@@ -8,6 +8,8 @@ var crypto = require('crypto');
 
 var controller;
 var flexo;
+var configForController = {};
+configForController.redisConfig = redisConfig;
 //Имитация глобальной переменной с информацией из конфига views
 //сигнатура {viewName:[flexoSchemesNames]}
 var globalViewsConfig = {
@@ -35,58 +37,181 @@ var globalFlexoSchemes = {
 	}
 };
 
+configForController.flexoSchemes = globalFlexoSchemes;
+
+var menuConfig = {
+	main:{
+		sTitle:'Главная',
+		div:'main'
+	},
+	sales:{
+		sTitle:'Продажи',
+		submenu:{
+			customers:{
+				sTitle:'Клиенты',
+				div:'customer'
+			},
+			orders:{
+				sTitle:'Заказы',
+				submenu:{
+					contracts:{
+						sTitle:'Договора',
+						div:'contracts'
+					},
+					accounts:{
+						sTitle:'Счета',
+						div:'accounts',
+						submenu:{
+							addaccounts:{
+								sTitle:'Выставить счет',
+								div:'addaccounts'
+							},
+							removeaccounts:{
+								sTitle:'Аннулировать счет',
+								div:'addaccounts'
+							}
+						}
+					},
+					payments:{
+						sTitle:'Оплаты',
+						div:'payments'
+					}
+				}
+			}
+		}
+	},
+	about:{
+		sTitle:'Справка',
+		div:'about'
+	}
+};
+
+configForController.menuConfig = menuConfig;
+
 if( mock.flexo ){
 	var flexoConfig = {};
+	var Flexo = require('./flexo_mock.js');
 } else {
 	var flexoConfig = require('./config/flexoConfig.js').flexoConfig;
+	var Flexo = require('f0.flexo');
 }
 
 if(mock.view ){
 	var viewConfig = {};
+	var View = require( './view_mock.js' );
 } else {
 	var viewConfig = require('./config/viewConfig.js').viewConfig;
+	var View = require( 'f0.view' );
 }
 
 var counter = 0;
 
 //Инициализация контроллера
-Controller.init(mock, redisConfig, flexoConfig, viewConfig, globalViewsConfig, globalFlexoSchemes ,
-	function( err ) {
-	if( err ) {
-		console.log( err );
+Flexo.init(flexoConfig, function(err){
+	if(err){
+		console.log('Error. Ошибка инициализации Flexo');
 	} else {
-		//Создаем экземпляр контроллера
-		controller = new Controller.create();
-
-		//Сброс всех прав и информации о пользователях из redis
-		var client = redis.createClient();
-
-		client.SMEMBERS( setAllAccess(), function( err, replies ) {
-			if ( err ) {
-				console.log( err );
+		configForController.flexo = Flexo;
+		View.init(viewConfig, function( err ){
+			if(err){
+				console.log('Error. Ошибка инициализации View');
 			} else {
-				//Формируем команды на удаление всех ключей о пользователях и правах на доступ
-				var multi = client.multi();
-				for ( var i = 0; i < replies.length; i++ ) {
-					multi.DEL( replies[i] );
-				}
+				configForController.view = View;
+				configForController.formConfig = {};
+				Controller.init(configForController, function( err ) {
+						if( err ) {
+							console.log( err );
+						} else {
+							//Создаем экземпляр контроллера
+							controller = new Controller.create();
 
-				multi.EXEC( function( err, reply ) {
-					if ( err ) {
-						console.log( err );
-					} else {
-						//Удаление завершено запускаем тесты
+							//Сброс всех прав и информации о пользователях из redis
+							var client = redis.createClient();
 
-						//Создание, чтение и модификация данных о пользователе
-						test1();
-					}
-				});
+							client.SMEMBERS( setAllAccess(), function( err, replies ) {
+								if ( err ) {
+									console.log( err );
+								} else {
+									//Формируем команды на удаление всех ключей о пользователях и правах на доступ
+									var multi = client.multi();
+									for ( var i = 0; i < replies.length; i++ ) {
+										multi.DEL( replies[i] );
+									}
 
+									multi.EXEC( function( err, reply ) {
+										if ( err ) {
+											console.log( err );
+										} else {
+											//Удаление завершено запускаем тесты
+
+											//Создание, чтение и модификация данных о пользователе
+											test0();
+										}
+									});
+
+								}
+
+							} );
+						}
+					});
 			}
-
-		} );
+		});
 	}
 });
+
+
+function test0(){
+	var globalViewsConfig = {
+		'viewCustomers': { 'customers':['name', 'inn', 'managerName', 'tsCreate'] },
+		'viewOrdersServices':{
+			'orders':['number', 'comments', 'services'],
+			'services':['name', 'price']
+		}
+	};
+
+	//Запрос на создание данных о view
+	var query = {
+		access: {
+			viewName:'viewCustomers',
+			objAccess:globalViewsConfig['viewCustomers']
+		}
+	};
+
+	controller.create(query, function( err, reply ) {
+		if( err ) {
+			console.log( 'Error: Тест 0.1 Сохранение общих данных о view в redis: ' +  err.message );
+		} else {
+			if (reply) {
+				console.log( '✓ Тест 0.1 Сохранение общих данных о view в redis.' );
+				counter++;
+				//Запрос на создание данных о view
+				var query = {
+					access: {
+						viewName:'viewOrdersServices',
+						objAccess:globalViewsConfig['viewOrdersServices']
+					}
+				};
+
+				controller.create(query, function( err, reply ) {
+					if( err ) {
+						console.log( 'Error: Тест 0.2 Сохранение общих данных о view в redis: ' +  err.message );
+					} else {
+						if (reply) {
+							console.log( '✓ Тест 0.2 Сохранение общих данных о view в redis.' );
+							counter++;
+							test1();
+						} else {
+							console.log( '× Тест 0.2 Сохранение общих данных о view в redis.' );
+						}
+					}
+				});
+			} else {
+				console.log( '× Тест 0.1 Сохранение общих данных о view в redis.' );
+			}
+		}
+	});
+
+}
 
 
 //Тестовые запросы для контролера
@@ -2590,13 +2715,16 @@ function test8_3(socket, viewName, reply, idDeleted){
 								console.log( '✓ Тест 8.9 Запрос на чтение по корневой схеме ' +
 									'удаленного документа из view c двумя flexo схемами.');
 								counter++;
-								if( mock.flexo ){
+
+								test9();
+
+								/*if( mock.flexo ){
 									console.log('Всего тестов 62, из них выполнено: ' + counter);
 								} else {
 									console.log('Всего тестов 70, из них выполнено: ' + counter);
 								}
 
-								process.kill();
+								process.kill();*/
 
 							} else {
 								console.log( '× Тест 8.9 Запрос на чтение по корневой схеме ' +
@@ -2616,6 +2744,147 @@ function test8_3(socket, viewName, reply, idDeleted){
 			}
 		} );
 }
+
+function test9(){
+	objMenu = {
+		role:{
+			'main':1,
+			'sales':1,
+			'sales/customers':1,
+			'sales/orders':1,
+			'sales/orders/contracts':1,
+			'sales/orders/accounts':1,
+			'sales/orders/accounts/addaccounts':1,
+			'sales/orders/accounts/removeaccounts':1,
+			'sales/orders/payments':1,
+			'about':1
+		},
+		user:{
+			'(all)':1,
+			'sales/orders/accounts':0
+		}
+	};
+
+	var query = {
+		access:{
+			menuName:'root',
+			role:'admin',
+			objAccess: objMenu.role
+		}
+	};
+
+	//Запрос на вставку данных о меню с правами по роли
+	controller.create(query, function( err, reply ) {
+		if ( err ) {
+			console.log( 'Error: Тест 9.0 Запрос на создание прав к меню по роли:' +
+				err.message );
+		} else {
+			if(reply){
+				console.log( '✓ Тест 9.0 Запрос на создание прав к меню по роли.');
+				counter++;
+
+				var query2 = {
+					access:{
+						menuName:'root',
+						login:'sasha',
+						objAccess: objMenu.user
+					}
+				};
+
+				//Запрос на вставку данных о меню с правами по роли
+				controller.create(query2, function( err, reply ) {
+					if ( err ) {
+						console.log( 'Error: Тест 9.1 Запрос на создание прав к меню по пользователю:' +
+							err.message );
+					} else {
+						if(reply){
+							console.log( '✓ Тест 9.1 Запрос на создание прав к меню по пользователю.');
+							counter++;
+
+							var query3 = {
+								access:{
+									menuName:'root',
+									login:'sasha'
+								}
+							};
+
+							//Запрос на вставку данных о меню с правами по роли
+							controller.find(query3, function( err, reply ) {
+								if ( err ) {
+									console.log( 'Error: Тест 9.2 Запрос на чтение прав меню по пользователю:' +
+										err.message );
+								} else {
+									if(reply){
+										console.log( '✓ Тест 9.2 Запрос на чтение прав меню по пользователю.', reply);
+										counter++;
+
+										var query4 = {
+											access:{
+												menuName:'root',
+												role:'admin'
+											}
+										};
+
+										//Запрос на вставку данных о меню с правами по роли
+										controller.find(query4, function( err, reply ) {
+											if ( err ) {
+												console.log( 'Error: Тест 9.3 Запрос на чтение прав меню по роли:' +
+													err.message );
+											} else {
+												if(reply){
+													console.log( '✓ Тест 9.3 Запрос на чтение прав меню по роли.', reply);
+													counter++;
+
+													//Запрос шаблона меню (временно прав)
+													var type = 'menu';
+													var name = '';
+													var user = 'sasha';
+													var role = 'admin'
+													var socket = {};
+
+													controller.getTemplate(type, name, user, role, socket,function( err, reply ) {
+														if ( err ) {
+															console.log( 'Error: Тест 9.4 Запрос шаблона меню:' +
+																err.message );
+														} else {
+															if(reply){
+																console.log( '✓ Тест 9.4 Запрос шаблона меню.', reply);
+																counter++;
+
+
+
+															} else {
+																console.log( '× Тест 9.4 шаблона меню.');
+															}
+														}
+													});
+
+
+												} else {
+													console.log( '× Тест 9.3 Запрос на чтение прав меню по роли.');
+												}
+											}
+										} );
+
+									} else {
+										console.log( '× Тест 9.2 Запрос на чтение прав меню по пользователю.');
+									}
+								}
+							} );
+
+						} else {
+							console.log( '× Тест 9.1 Запрос на создание прав к меню по пользователю.');
+						}
+					}
+				} );
+
+			} else {
+				console.log( '× Тест 9.0 Запрос на создание прав к меню по роли.');
+			}
+		}
+	} );
+}
+
 
 //Формирование ключа Redis (SET) для множества всех ключей с правами и пользователями
 function setAllAccess(){

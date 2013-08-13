@@ -1,4 +1,5 @@
 var underscore = require('underscore');
+var ModelView = require('./model_view.js');
 
 module.exports = AccessModelRoleView;
 
@@ -148,58 +149,65 @@ AccessModelRoleView.prototype.delete = function remove(listFlexoSchemesNames, ca
 /**
  * Возвращаем подготовленный объект с правами на view для будущего определения пересечения прав
  *
- * @param globalFlexoSchemes - объект с данными из схем flexo коллекций
  * @returns {{}} - объект с подготовленными данными
  */
-AccessModelRoleView.prototype.accessDataPreparation = function accessDataPreparation(globalFlexoSchemes) {
+AccessModelRoleView.prototype.accessDataPreparation = function accessDataPreparation(callback) {
 	//Формируем объект со справочниками из полей для будущего определения пересечения прав
 	var schemes = this.listFlexoSchemesNames;
+	var self = this;
+	//ToDo: сущность взята из model_view (Всё надо объединить в одну модель)
+	var model = new ModelView(this.client);
+	model.find(this.viewName, function( err, flexoSchemesWithFields ) {
+		if( err ) {
+			callback( err );
+		} else {
+			if ( schemes.length !== 0 ) {
+				var objAccessForRole = {};
 
-	if ( schemes.length !== 0 ) {
-		var objAccessForRole = {};
+
+				for ( var i = 0; i < schemes.length; i++){
+					objAccessForRole[schemes[i]] = {};
+
+					//Чтение
+					var readFields = accessDataPreparationForMethod('read', schemes[i], self.objAccess,
+						flexoSchemesWithFields[schemes[i]]);
+
+					if( readFields.length !== 0 ){
+						objAccessForRole[schemes[i]]['read'] = readFields;
+					}
+
+					//Модификация
+					var modifyFields = accessDataPreparationForMethod('modify', schemes[i], self.objAccess,
+						flexoSchemesWithFields[schemes[i]]);
+
+					if( modifyFields.length !== 0 ){
+						objAccessForRole[schemes[i]]['modify'] = modifyFields;
+					}
+
+					//Создание
+					var modifyFields = accessDataPreparationForMethod('create', schemes[i], self.objAccess,
+						flexoSchemesWithFields[schemes[i]]);
+
+					if( modifyFields.length !== 0 ){
+						objAccessForRole[schemes[i]]['create'] = modifyFields;
+					}
+
+					//Удаление
+					if(self.objAccess[schemes[i]]['delete']){
+						objAccessForRole[schemes[i]]['delete'] = 1;
+					} else {
+						objAccessForRole[schemes[i]]['delete'] = 0;
+					}
 
 
-		for ( var i = 0; i < schemes.length; i++){
-			objAccessForRole[schemes[i]] = {};
-
-			//Чтение
-			var readFields = accessDataPreparationForMethod('read', schemes[i], this.objAccess,
-				globalFlexoSchemes[schemes[i]]['read']);
-
-			if( readFields.length !== 0 ){
-				objAccessForRole[schemes[i]]['read'] = readFields;
-			}
-
-			//Модификация
-			var modifyFields = accessDataPreparationForMethod('modify', schemes[i], this.objAccess,
-				globalFlexoSchemes[schemes[i]]['modify']);
-
-			if( modifyFields.length !== 0 ){
-				objAccessForRole[schemes[i]]['modify'] = modifyFields;
-			}
-
-			//Создание
-			var modifyFields = accessDataPreparationForMethod('create', schemes[i], this.objAccess,
-				globalFlexoSchemes[schemes[i]]['modify']);
-
-			if( modifyFields.length !== 0 ){
-				objAccessForRole[schemes[i]]['create'] = modifyFields;
-			}
-
-			//Удаление
-			if(this.objAccess[schemes[i]]['delete']){
-				objAccessForRole[schemes[i]]['delete'] = 1;
+				}
+				//Возвращаем объект с правами на роль
+				callback(null, objAccessForRole);
 			} else {
-				objAccessForRole[schemes[i]]['delete'] = 0;
+				callback(null, {});
 			}
-
-
 		}
-		//Возвращаем объект с правами на роль
-		return objAccessForRole;
-	} else {
-		return {};
-	}
+	});
 };
 
 /**
@@ -260,7 +268,10 @@ function accessDataPreparationForMethod(method, scheme, objAccess, fieldsGlobalF
 	return permissionFields;
 }
 
-
+//Формирование строки ключа Redis (STRING) для хранения массива полей относящихся к данной flexo и view
+function setViewToFlexoSchemes( viewName, flexoSchemeName ) {
+	return 'view:fieldsFromflexoScheme' + viewName + ':' +  flexoSchemeName;
+}
 
 //Формирование строки ключа Redis (STRING) для прав относящиеся к view для заданной схемы и роли
 function strViewAccessRoleFlexoScheme( viewName, role, flexoSchemeName ) {

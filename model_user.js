@@ -227,7 +227,7 @@ ModelUser.prototype.modify = function modify(objNewData, callback){
 				}
 
 				//Сохраняем измененные кеш с данными о пользователе
-				multi.SET( strUserCache( self._id ), JSON.stringify( cache ))
+				multi.SET( strUserCache( self._id ), JSON.stringify( cache ));
 				multi.EXEC( function( err ){
 						if ( err ){
 							callback( err );
@@ -245,7 +245,6 @@ ModelUser.prototype.modify = function modify(objNewData, callback){
 		throw new Error( 'Not set _id in modify query. ' );
 	}
 };
-
 
 //Формирование строки ключа Redis (STRING) для хранения соответствия логина и _id пользователя
 function strLoginToId( login ) {

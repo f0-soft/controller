@@ -1,4 +1,5 @@
 var underscore = require('underscore');
+var ModelView = require('./model_view.js');
 
 module.exports = AccessModelUserView;
 
@@ -148,58 +149,65 @@ AccessModelUserView.prototype.delete = function remove(listFlexoSchemesNames, ca
 /**
  * Возвращаем подготовленный объект с правами на view для будущего определения пересечения прав
  *
- * @param globalFlexoSchemes - объект с данными из схем flexo коллекций
  * @returns {{}} - объект с подготовленными данными
  */
-AccessModelUserView.prototype.accessDataPreparation = function accessDataPreparation(globalFlexoSchemes) {
+AccessModelUserView.prototype.accessDataPreparation = function accessDataPreparation(callback) {
 	//Формируем объект со справочниками из полей для будущего определения пересечения прав
 	var schemes = this.listFlexoSchemesNames;
+	var self = this;
+	//ToDo: сущность взята из model_view (Всё надо объединить в одну модель)
+	var model = new ModelView(this.client);
+	model.find(this.viewName, function( err, flexoSchemesWithFields ) {
+		if( err ) {
+			callback( err );
+		} else {
+			if ( schemes.length !== 0 ) {
+				var objAccessForUser = {};
 
-	if ( schemes.length !== 0 ) {
-		var objAccessForUser = {};
+
+				for ( var i = 0; i < schemes.length; i++){
+					objAccessForUser[schemes[i]] = {};
+
+					//Чтение
+					var readFields = accessDataPreparationForMethod('read', schemes[i], self.objAccess,
+						flexoSchemesWithFields[schemes[i]]);
+
+					if( readFields.length !== 0 ){
+						objAccessForUser[schemes[i]]['read'] = readFields;
+					}
+
+					//Модификация
+					var modifyFields = accessDataPreparationForMethod('modify', schemes[i], self.objAccess,
+						flexoSchemesWithFields[schemes[i]]);
+
+					if( modifyFields.length !== 0 ){
+						objAccessForUser[schemes[i]]['modify'] = modifyFields;
+					}
+
+					//Создание
+					var modifyFields = accessDataPreparationForMethod('create', schemes[i], self.objAccess,
+						flexoSchemesWithFields[schemes[i]]);
+
+					if( modifyFields.length !== 0 ){
+						objAccessForUser[schemes[i]]['create'] = modifyFields;
+					}
+
+					//Удаление
+					if(self.objAccess[schemes[i]]['delete']){
+						objAccessForUser[schemes[i]]['delete'] = 1;
+					} else {
+						objAccessForUser[schemes[i]]['delete'] = 0;
+					}
 
 
-		for ( var i = 0; i < schemes.length; i++){
-			objAccessForUser[schemes[i]] = {};
-
-			//Чтение
-			var readFields = accessDataPreparationForMethod('read', schemes[i], this.objAccess,
-				globalFlexoSchemes[schemes[i]]['read']);
-
-			if( readFields.length !== 0 ){
-				objAccessForUser[schemes[i]]['read'] = readFields;
-			}
-
-			//Модификация
-			var modifyFields = accessDataPreparationForMethod('modify', schemes[i], this.objAccess,
-				globalFlexoSchemes[schemes[i]]['modify']);
-
-			if( modifyFields.length !== 0 ){
-				objAccessForUser[schemes[i]]['modify'] = modifyFields;
-			}
-
-			//Создание
-			var modifyFields = accessDataPreparationForMethod('create', schemes[i], this.objAccess,
-				globalFlexoSchemes[schemes[i]]['modify']);
-
-			if( modifyFields.length !== 0 ){
-				objAccessForUser[schemes[i]]['create'] = modifyFields;
-			}
-
-			//Удаление
-			if(this.objAccess[schemes[i]]['delete']){
-				objAccessForUser[schemes[i]]['delete'] = 1;
+				}
+				//Возвращаем объект с правами на пользователя
+				callback(null, objAccessForUser);
 			} else {
-				objAccessForUser[schemes[i]]['delete'] = 0;
+				callback(null, {});
 			}
-
-
 		}
-		//Возвращаем объект с правами на пользователя
-		return objAccessForUser;
-	} else {
-		return {};
-	}
+	});
 };
 
 /**
