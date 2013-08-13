@@ -2,7 +2,8 @@ Controller
 =====
 ## Инсталяция:
 * один раз выполнить настройки Linux указанный по ссылке https://github.com/f0-soft/wiki/wiki/Npm-install-from-private-github
-* запустить команду: npm f0.controller install
+* запустить команду: npm install git+ssh://git@github.com:f0-soft/controller.git
+* контроллер будет находится в node_modules/f0.controller
 
 ## Тестирование:
 * включить mock view и flexo (изменить в файле config/config.js значения объекта mock на {flexo:true, view:true}, для отключения необходимо эти значения поменять на false)
@@ -13,28 +14,26 @@ Controller
 ## Подключение:
 var Controller = require('controller');
 
-## init( mock, redisConfig, flexoConfig, viewConfig, globalViewsConfig, globalFlexoSchemes, globalSectionSchemes, callback )
+## init( config, callback )
 Запускает инициализацию контроллера:
 * создание клиента redis
 * сохранение ссылки на инициализированную библиотеку flexo или на её mock
 * сохранение ссылки на инициализированную view или на её mock
-* сохранение ссылки на объект с данными из конфигов views
 * сохранение ссылки на объект с данными из схем flexo коллекций
-* сохранение ссылки на объект с данными из схем разделов
+* сохранение ссылки на объект с данными схемы меню
+* сохранение ссылки на объект с данными схемы form
 
 Параметры:
-* mock - объект настройки подключеения mock
-    * flexo: логический, если истина подключаем mock flexo
-    * view: логический, если истина подключаем mock view
-* [redisConfig] — объект хранящий в себе параметры подключения к Redis
-     * config.port — число, порт Redis
-     * config.host — строка, хост Redis
-     * [config.max_attempts] — число, количество попыток подключения
-* flexoConfig — объект параметров необходимый для инициализирования библиотеки flexo
-* viewConfig — объект параметров необходимый для инициализирования view
-* globalViewsConfig - ссылка на объект с данными из конфигов views
-* globalFlexoSchemes - ссылка на объект с данными из схем flexo коллекций
-* globalSectionSchemes - ссылка на объект с данными из схем разделов
+* config - объект с параметрами
+    * [redisConfig] — объект хранящий в себе параметры подключения к Redis
+        * config.port — число, порт Redis
+        * config.host — строка, хост Redis
+        * [config.max_attempts] — число, количество попыток подключения
+    * flexo - ссылка на конструктор flexo
+    * view - ccылка на объект view
+    * flexoSchemes - объект с описанием flexo схем в виде {nameFlexoScheme:{read:[], modify:[]}}
+    * menuConfig - объект со схемой меню
+    * formConfig - объект со схемой формы
 * callback (err) — функция обратного вызова
     * err — ошибка подключения к Redis от node_redis
 
@@ -68,7 +67,7 @@ var Controller = require('controller');
             * [nocache] - логическое, предотвращает сохранение учет документов как ранее переданных
             * [fields] - массив, содержит названия полей, с которыми надо вернуть документы
     * [access] - объект содержащий параметры поиска прав доступа
-        * [flexoSchemeName]/[viewName]/[sectionName] - строка, название flexo схемы или view, или section (раздела)
+        * [flexoSchemeName]/[viewName]/[sectionName]/[menuName] - строка, название flexo схемы или view, или section (раздела), или меню
         * [role]/[login] - строка, роль или логин пользователя искомого объекта прав
 * callback(err, reply) — функция обратного вызова
     * err - ...
@@ -111,7 +110,7 @@ var Controller = require('controller');
 * query - объект запрос
     * [user] - объект содержащий параметры создания пользователя в виде {fieldName:value}
     * [access] - объект содержащий параметры создания прав доступа
-        * [flexoSchemeName]/[viewName]/[sectionName] - строка, название flexo схемы или view, или section (раздела)
+        * [flexoSchemeName]/[viewName]/[sectionName]/[menuName] - строка, название flexo схемы или view, или section (раздела), или меню
         * [role]/[login] - строка, роль или логин пользователя создаваемого объекта прав
         * objAccess - объект с описание прав доступа
 * callback(err, reply) — функция обратного вызова
@@ -133,8 +132,9 @@ var Controller = require('controller');
 Параметры:
 * query - объект запрос
     * [user] - объект запрос на изменение данных о пользователе
-        * [selector] - объект содержащий _id пользователя
-        * [properties] - объект содержащий только измененные данные о пользователе в виде {fieldName:value}
+        * [query] - объект запрос
+            * [selector] - объект содержащий _id пользователя
+            * [properties] - объект содержащий только измененные данные о пользователе в виде {fieldName:value}
     * [access] - объект содержащий параметры модификации прав доступа
         * [flexoSchemeName]/[viewName]/[sectionName] - строка, название flexo схемы или view, или section (раздела)
         * [role]/[login] - строка, роль или логин пользователя модифицируемого объекта прав
@@ -145,6 +145,9 @@ var Controller = require('controller');
 
 ## getTemplate ( type, name, user, role, socket, callback )
 Обрабатываем запрос на получение шаблона раздела или view:
+* для получения шаблона меню:
+    * формируется модель меню
+    * ...
 * для получения шаблона раздела:
     * формируем модель раздела
     * загружаем в неё данные из редис
@@ -164,8 +167,8 @@ var Controller = require('controller');
     * передаем необходимые данные во view
 
 Параметры:
-* type - строка, определяющая тип запроса на шаблон раздела ('section') или шаблон view ('view')
-* name - строка, имя view или раздела section
+* type - строка, определяющая тип запроса на шаблон раздела ('section') или шаблон view ('view'), или шаблон menu ('menu')
+* [name] - строка, имя view или раздела section, или меню menu
 * user - строка, логин пользователя
 * role - строка, роль искомого объекта прав
 * socket - объект сокета
