@@ -314,8 +314,8 @@ Controller.prototype.find = function find( query, callback ) {
 					}
 				} );
 			} else {
-				callback( new Error( 'Not set  role or login in query: '
-					+ JSON.stringify( query ) ) );
+				var model = new ModelView(client);
+				model.find(query.access.viewName, callback);
 			}
 		} else if ( query.access.flexoSchemeName ) {
 			if ( query.access.role ) {

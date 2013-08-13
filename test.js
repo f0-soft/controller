@@ -179,34 +179,75 @@ function test0(){
 
 	controller.create(query, function( err, reply ) {
 		if( err ) {
-			console.log( 'Error: Тест 0.1 Сохранение общих данных о view в redis: ' +  err.message );
+			console.log( 'Error: Тест 0.1 Сохранение общих данных о viewCustomers в redis: ' +  err.message );
 		} else {
 			if (reply) {
-				console.log( '✓ Тест 0.1 Сохранение общих данных о view в redis.' );
+				console.log( '✓ Тест 0.1 Сохранение общих данных о viewCustomers в redis.' );
 				counter++;
 				//Запрос на создание данных о view
-				var query = {
+				var query2 = {
 					access: {
 						viewName:'viewOrdersServices',
 						objAccess:globalViewsConfig['viewOrdersServices']
 					}
 				};
 
-				controller.create(query, function( err, reply ) {
+				controller.create(query2, function( err, reply ) {
 					if( err ) {
-						console.log( 'Error: Тест 0.2 Сохранение общих данных о view в redis: ' +  err.message );
+						console.log( 'Error: Тест 0.2 Сохранение общих данных о viewOrdersServices в redis: ' +  err.message );
 					} else {
 						if (reply) {
-							console.log( '✓ Тест 0.2 Сохранение общих данных о view в redis.' );
+							console.log( '✓ Тест 0.2 Сохранение общих данных о viewOrdersServices в redis.' );
 							counter++;
-							test1();
+
+							var query3 = {
+								access: {
+									viewName:'viewOrdersServices',
+									objAccess:globalViewsConfig['viewOrdersServices']
+								}
+							};
+
+							controller.find(query3, function( err, reply ) {
+								if( err ) {
+									console.log( 'Error: Тест 0.3 Чтение общих данных о viewOrdersServices в redis: ' +  err.message );
+								} else {
+									if (reply.orders.length !== 0) {
+										console.log( '✓ Тест 0.3 Чтение общих данных о viewOrdersServices в redis.' );
+										counter++;
+
+										var query4 = {
+											access: {
+												viewName:'viewCustomers',
+												objAccess:globalViewsConfig['viewCustomers']
+											}
+										};
+
+										controller.find(query4, function( err, reply ) {
+											if( err ) {
+												console.log( 'Error: Тест 0.4 Чтение общих данных о viewCustomers в redis: ' +  err.message );
+											} else {
+												if (reply.customers.length !== 0) {
+													console.log( '✓ Тест 0.4 Чтение общих данных о viewCustomers в redis.' );
+													counter++;
+													test1();
+												} else {
+													console.log( '× Тест 0.4 Чтение общих данных о viewCustomers в redis.' );
+												}
+											}
+										});
+
+									} else {
+										console.log( '× Тест 0.3 Чтение общих данных о viewOrdersServices в redis.' );
+									}
+								}
+							});
 						} else {
-							console.log( '× Тест 0.2 Сохранение общих данных о view в redis.' );
+							console.log( '× Тест 0.2 Сохранение общих данных о viewOrdersServices в redis.' );
 						}
 					}
 				});
 			} else {
-				console.log( '× Тест 0.1 Сохранение общих данных о view в redis.' );
+				console.log( '× Тест 0.1 Сохранение общих данных о viewCustomers в redis.' );
 			}
 		}
 	});
@@ -2718,14 +2759,6 @@ function test8_3(socket, viewName, reply, idDeleted){
 
 								test9();
 
-								/*if( mock.flexo ){
-									console.log('Всего тестов 62, из них выполнено: ' + counter);
-								} else {
-									console.log('Всего тестов 70, из них выполнено: ' + counter);
-								}
-
-								process.kill();*/
-
 							} else {
 								console.log( '× Тест 8.9 Запрос на чтение по корневой схеме ' +
 									'удаленного документа из view c двумя flexo схемами.');
@@ -2850,7 +2883,13 @@ function test9(){
 															if(reply){
 																console.log( '✓ Тест 9.4 Запрос шаблона меню.', reply);
 																counter++;
+																if( mock.flexo ){
+																 console.log('Всего тестов 71, из них выполнено: ' + counter);
+																 } else {
+																 console.log('Всего тестов 79, из них выполнено: ' + counter);
+																 }
 
+																 process.kill();
 
 
 															} else {

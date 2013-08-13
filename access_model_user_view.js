@@ -198,8 +198,6 @@ AccessModelUserView.prototype.accessDataPreparation = function accessDataPrepara
 					} else {
 						objAccessForUser[schemes[i]]['delete'] = 0;
 					}
-
-
 				}
 				//Возвращаем объект с правами на пользователя
 				callback(null, objAccessForUser);
