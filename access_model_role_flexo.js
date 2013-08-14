@@ -128,6 +128,91 @@ AccessModelRoleFlexo.prototype.findReadAccesses = function findReadAccesses( glo
 	} );
 };
 
+AccessModelRoleFlexo.prototype.accessDataPreparation = function accessDataPreparation( globalFlexoSchemes, flexoSchemesName, callback ) {
+	var multi = this.client.multi();
+	//Формируем команды для получения объектов прав по указанным схемам
+	for( var i = 0; i < flexoSchemesName.length; i++ ) {
+		multi.GET( strFlexoAccessRoleScheme( this.role, flexoSchemesName[i] ) );
+	}
+
+	multi.EXEC( function ( err, replies ) {
+		if ( err ) {
+			callback ( err );
+		} else {
+			//Формируем объект прав
+			var objAccessForOneScheme;
+			var objAccess = {};
+
+			for( var i = 0; i < replies.length; i++) {
+				if( replies[i] ){
+					objAccessForOneScheme = JSON.parse( replies[i] );
+					//ToDo: доделать проверку на создание схемы если нет никаких прав
+					objAccess[flexoSchemesName[i]] = {};
+
+					//Права на чтение
+					var readFields = accessDataPreparationForMethod('read', objAccessForOneScheme,
+							globalFlexoSchemes[flexoSchemesName[i]]['read']);
+					//Проверяем целостность прав на чтение
+					//Права на flexo не должны по полям превышать глобальных прав
+					var differenceRead = underscore.difference(readFields,
+						globalFlexoSchemes[flexoSchemesName[i]]['read']);
+					if( differenceRead.length !== 0 ){
+						//ToDo: доделать сигнализацию о нарушении целостности
+						//Присутствует нарушение целостности, обрезаем права
+						readFields = underscore.difference(readFields, differenceRead);
+					}
+					//Сохраняем права на чтение
+					if(readFields.length !== 0){
+						objAccess[flexoSchemesName[i]]['read'] = readFields;
+					}
+
+					//Права на модификацию
+					var modifyFields = accessDataPreparationForMethod('modify', objAccessForOneScheme,
+						globalFlexoSchemes[flexoSchemesName[i]]['modify']);
+					//Проверяем целостность прав на модификацию
+					//Права на flexo не должны по полям превышать глобальных прав
+					var differenceModify = underscore.difference(modifyFields,
+						globalFlexoSchemes[flexoSchemesName[i]]['modify']);
+					if( differenceModify.length !== 0 ){
+						//ToDo: доделать сигнализацию о нарушении целостности
+						//Присутствует нарушение целостности, обрезаем права
+						modifyFields = underscore.difference(modifyFields, differenceModify);
+					}
+					//Сохраняем права на модификацию
+					if(modifyFields.length !== 0){
+						objAccess[flexoSchemesName[i]]['modify'] = modifyFields;
+					}
+
+					//Права на создание
+					var createFields = accessDataPreparationForMethod('create', objAccessForOneScheme,
+						globalFlexoSchemes[flexoSchemesName[i]]['modify']);
+					//Проверяем целостность прав на создание
+					//Права на flexo не должны по полям превышать глобальных прав
+					var differenceCreate = underscore.difference(createFields,
+						globalFlexoSchemes[flexoSchemesName[i]]['modify']);
+					if( differenceCreate.length !== 0 ){
+						//ToDo: доделать сигнализацию о нарушении целостности
+						//Присутствует нарушение целостности, обрезаем права
+						createFields = underscore.difference(createFields, differenceCreate);
+					}
+					//Сохраняем права на создание
+					if(createFields.length !== 0){
+						objAccess[flexoSchemesName[i]]['create'] = createFields;
+					}
+
+					//Удаление
+					if(objAccessForOneScheme['delete']){
+						objAccess[flexoSchemesName[i]]['delete'] = 1;
+					} else {
+						objAccess[flexoSchemesName[i]]['delete'] = 0;
+					}
+				}
+			}
+			callback(null, objAccess)
+		}
+	} );
+};
+
 /**
  * Возвращает массив разрешенных полей для выполнения указанной операции с БД, для указанной flexo
  * схемы
