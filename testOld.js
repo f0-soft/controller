@@ -2,20 +2,22 @@ var redis = require('redis');
 var redisConfig = require('./config/config.js').redisConfig;
 var mock = require('./config/config.js').mock;
 var Controller = require('./index.js');
-var Flexo = require('./flexo_mock.js');
-var View = require( './view_mock.js' );
 var crypto = require('crypto');
 
 var controller;
-var flexo;
 var configForController = {};
 configForController.redisConfig = redisConfig;
+
 //Имитация глобальной переменной с информацией из конфига views
-//сигнатура {viewName:[flexoSchemesNames]}
 var globalViewsConfig = {
-	'viewCustomers': ['customers'],
-	'viewOrdersServices':['orders', 'services']
+	'viewCustomers': { 'customers':['name', 'inn', 'managerName', 'tsCreate'] },
+	'viewOrdersServices':{
+		'orders':['number', 'comments', 'services'],
+		'services':['name', 'price']
+	},
+	'viewUsers':{users:['login', 'role', 'name', 'lastname', 'position', 'company', 'hash', 'salt']}
 };
+configForController.viewConfig = globalViewsConfig;
 //Имитация глобальной переменной с информацией из flexo схем
 //сигнатура {schemeName:{read:[fieldsNames], modify:[fieldsNames]}
 var globalFlexoSchemes = {
@@ -88,16 +90,8 @@ var menuConfig = {
 
 configForController.menuConfig = menuConfig;
 
-if( mock.flexo ){
-	var flexoConfig = {};
-	var Flexo = require('./flexo_mock.js');
-} else {
-	var flexoConfig = require('./config/flexoConfig.js').flexoConfig;
-	var Flexo = require('f0.flexo');
-}
-
 if(mock.view ){
-	var viewConfig = {};
+	var viewConfig = {dependent:'services'};
 	var View = require( './view_mock.js' );
 } else {
 	var viewConfig = require('./config/viewConfig.js').viewConfig;
@@ -106,169 +100,74 @@ if(mock.view ){
 
 var counter = 0;
 
-//Инициализация контроллера
-Flexo.init(flexoConfig, function(err){
+//Инициализация view и контроллера
+View.init(viewConfig, function( err ){
 	if(err){
-		console.log('Error. Ошибка инициализации Flexo');
+		console.log('Error. Ошибка инициализации View');
 	} else {
-		configForController.flexo = Flexo;
-		View.init(viewConfig, function( err ){
-			if(err){
-				console.log('Error. Ошибка инициализации View');
-			} else {
-				configForController.view = View;
-				configForController.formConfig = {};
-				Controller.init(configForController, function( err ) {
-						if( err ) {
+		if( mock.view ){
+			configForController.view = View.view_mock;
+		} else {
+			configForController.view = View;
+		}
+		configForController.formConfig = {};
+		Controller.init(configForController, function( err ) {
+				if( err ) {
+					console.log( err );
+				} else {
+					//Создаем экземпляр контроллера
+					controller = new Controller.create();
+
+					//Сброс всех прав и информации о пользователях из redis
+					var client = redis.createClient();
+
+					client.SMEMBERS( setAllAccess(), function( err, replies ) {
+						if ( err ) {
 							console.log( err );
 						} else {
-							//Создаем экземпляр контроллера
-							controller = new Controller.create();
+							//Формируем команды на удаление всех ключей о пользователях и правах на доступ
+							var multi = client.multi();
+							for ( var i = 0; i < replies.length; i++ ) {
+								multi.DEL( replies[i] );
+							}
 
-							//Сброс всех прав и информации о пользователях из redis
-							var client = redis.createClient();
-
-							client.SMEMBERS( setAllAccess(), function( err, replies ) {
+							multi.EXEC( function( err, reply ) {
 								if ( err ) {
 									console.log( err );
 								} else {
-									//Формируем команды на удаление всех ключей о пользователях и правах на доступ
-									var multi = client.multi();
-									for ( var i = 0; i < replies.length; i++ ) {
-										multi.DEL( replies[i] );
-									}
+									//Удаление завершено запускаем тесты
 
-									multi.EXEC( function( err, reply ) {
-										if ( err ) {
-											console.log( err );
-										} else {
-											//Удаление завершено запускаем тесты
-
-											//Создание, чтение и модификация данных о пользователе
-											test0();
-										}
-									});
-
-								}
-
-							} );
-						}
-					});
-			}
-		});
-	}
-});
-
-
-function test0(){
-	var globalViewsConfig = {
-		'testViewCustomers': { 'testCustomers':['name', 'inn', 'managerName', 'tsCreate'] },
-		'testViewOrdersServices':{
-			'orders':['number', 'comments', 'services'],
-			'services':['name', 'price']
-		}
-	};
-
-	//Запрос на создание данных о view
-	var query = {
-		access: {
-			viewName:'viewCustomers',
-			objAccess:globalViewsConfig['viewCustomers']
-		}
-	};
-
-	controller.create(query, function( err, reply ) {
-		if( err ) {
-			console.log( 'Error: Тест 0.1 Сохранение общих данных о viewCustomers в redis: ' +  err.message );
-		} else {
-			if (reply) {
-				console.log( '✓ Тест 0.1 Сохранение общих данных о viewCustomers в redis.' );
-				counter++;
-				//Запрос на создание данных о view
-				var query2 = {
-					access: {
-						viewName:'viewOrdersServices',
-						objAccess:globalViewsConfig['viewOrdersServices']
-					}
-				};
-
-				controller.create(query2, function( err, reply ) {
-					if( err ) {
-						console.log( 'Error: Тест 0.2 Сохранение общих данных о viewOrdersServices в redis: ' +  err.message );
-					} else {
-						if (reply) {
-							console.log( '✓ Тест 0.2 Сохранение общих данных о viewOrdersServices в redis.' );
-							counter++;
-
-							var query3 = {
-								access: {
-									viewName:'viewOrdersServices',
-									objAccess:globalViewsConfig['viewOrdersServices']
-								}
-							};
-
-							controller.find(query3, function( err, reply ) {
-								if( err ) {
-									console.log( 'Error: Тест 0.3 Чтение общих данных о viewOrdersServices в redis: ' +  err.message );
-								} else {
-									if (reply.orders.length !== 0) {
-										console.log( '✓ Тест 0.3 Чтение общих данных о viewOrdersServices в redis.' );
-										counter++;
-
-										var query4 = {
-											access: {
-												viewName:'viewCustomers',
-												objAccess:globalViewsConfig['viewCustomers']
-											}
-										};
-
-										controller.find(query4, function( err, reply ) {
-											if( err ) {
-												console.log( 'Error: Тест 0.4 Чтение общих данных о viewCustomers в redis: ' +  err.message );
-											} else {
-												if (reply.customers.length !== 0) {
-													console.log( '✓ Тест 0.4 Чтение общих данных о viewCustomers в redis.' );
-													counter++;
-													test1();
-												} else {
-													console.log( '× Тест 0.4 Чтение общих данных о viewCustomers в redis.' );
-												}
-											}
-										});
-
-									} else {
-										console.log( '× Тест 0.3 Чтение общих данных о viewOrdersServices в redis.' );
-									}
+									//Создание, чтение и модификация данных о пользователе
+									test1();
 								}
 							});
-						} else {
-							console.log( '× Тест 0.2 Сохранение общих данных о viewOrdersServices в redis.' );
+
 						}
-					}
-				});
-			} else {
-				console.log( '× Тест 0.1 Сохранение общих данных о viewCustomers в redis.' );
-			}
-		}
-	});
 
-}
-
+					} );
+				}
+			});
+	}
+});
 
 //Тестовые запросы для контролера
 function test1(){
 	//Тест на сохранение информации о пользователе
 	var query = {
-		user: {
-			login:'guest',
-			pass:getHash('1234567890', '1234567890'),
-			role:'admin',
-			name:'Alexander',
-			lastname:'Razygraev',
-			position:'...',
-			company:'f0',
-			hash:'...',
-			salt:'1234567890'
+		user:{
+			queries:{
+				'users':{
+					login:'guest',
+					pass:getHash('1234567890', '1234567890'),
+					role:'admin',
+					name:'Alexander',
+					lastname:'Razygraev',
+					position:'...',
+					company:'f0',
+					hash:'...',
+					salt:'1234567890'
+				}
+			}
 		}
 	};
 
@@ -294,7 +193,7 @@ function test1(){
 					console.log( 'Error: Тест 1.1 Поиск данных о пользователе по логину:' +
 						err.message );
 				} else {
-					if (reply.name) {
+					if (reply['users'][0].name) {
 						console.log( '✓ Тест 1.1 Поиск данных о пользователе по логину.' );
 						counter++;
 					} else {
@@ -303,7 +202,7 @@ function test1(){
 					//Чтение сохраненных данных о пользователе по id
 					var query3 = {
 						user:{
-							_id:reply._id
+							_id:reply['users'][0]._id
 						}
 					};
 
@@ -312,7 +211,7 @@ function test1(){
 							console.log( 'Error: Тест 1.2 Поиск данных о пользователе по _id: ' +
 								err.message );
 						} else {
-							if (reply.name) {
+							if (reply['users'][0].name) {
 								console.log( '✓ Тест 1.2 Поиск данных о пользователе по _id.' );
 								counter++;
 							} else {
@@ -322,13 +221,15 @@ function test1(){
 							//Запрос на модификацию сохраненных данных
 							var query4 = {
 								user:{
-									query:{
-										selector:{
-											_id:reply._id
-										},
-										properties:{
-											login:'guest',
-											name:'Alex'
+									queries:{
+										'users':{
+											selector:{
+												_id:reply['users'][0]._id
+											},
+											properties:{
+												login:'guest',
+												name:'Alex'
+											}
 										}
 
 									}
@@ -359,7 +260,7 @@ function test1(){
 											console.log( 'Error: Тест 1.4 Поиск измененных данных ' +
 												'о пользователе по логину: ' +  err.message );
 										} else {
-											if (reply.name === 'Alex') {
+											if (reply['users'][0].name === 'Alex') {
 												console.log( '✓ Тест 1.4 Поиск измененных данных ' +
 													'о пользователе по логину.' );
 												counter++;
@@ -391,16 +292,20 @@ function test1_2(){
 	var rand = getHash('1234567890', '1234567890');
 
 	var query = {
-		user: {
-			login:'sasha',
-			pass:getHash('1234567890', '1234567890'),
-			role:'admin',
-			name:'Alexander',
-			lastname:'Razygraev',
-			position:'...',
-			company:'f0',
-			hash: rand,
-			salt:'1234567890'
+		user:{
+			queries:{
+				'users':{
+					login:'sasha',
+					pass:getHash('1234567890', '1234567890'),
+					role:'admin',
+					name:'Alexander',
+					lastname:'Razygraev',
+					position:'...',
+					company:'f0',
+					hash: rand,
+					salt:'1234567890'
+				}
+			}
 		}
 	};
 
@@ -408,16 +313,18 @@ function test1_2(){
 		if( err ) {
 			console.log( 'Error: Тест 1.5 Сохранение данных о пользователе ' + err.message );
 		} else {
-			if (reply){
+			if (reply['users'][0]._id){
 				console.log( '✓ Тест 1.5 Сохранение данных о пользователе.' );
 				counter++;
 
 				//Проверяем сложный поиск
 				var query2 = {
 					user:{
-						query:{
-							selector:{
-								_id: reply[0]._id
+						queries:{
+							'users':{
+								selector:{
+									_id: reply['users'][0]._id
+								}
 							}
 						}
 					}
@@ -425,22 +332,24 @@ function test1_2(){
 
 				controller.find( query2, function( err, reply ) {
 					if( err ) {
-						console.log( 'Error: Тест 1.6 Сложный поиск данных о пользователе по полю hash:' +
+						console.log( 'Error: Тест 1.6 Сложный поиск данных о пользователе по полю _id:' +
 							err.message );
 					} else {
-						if (reply.length === 1) {
-							console.log( '✓ Тест 1.6 Сложный поиск о пользователе по полю hash.' );
+						if (reply['users'][0].login === 'sasha') {
+							console.log( '✓ Тест 1.6 Сложный поиск о пользователе по полю _id.' );
 							counter++;
 
 							//Проверяем модификацию
 							var query3 = {
 								user:{
-									query:{
-										selector:{
-											_id:reply[0]._id
-										},
-										properties:{
-											position:'IT department'
+									queries:{
+										'users':{
+											selector:{
+												_id:reply['users'][0]._id
+											},
+											properties:{
+												position:'IT department'
+											}
 										}
 									}
 								}
@@ -451,7 +360,7 @@ function test1_2(){
 									console.log( 'Error: Тест 1.7 Модификация данных о пользователе:' +
 										err.message );
 								} else {
-									if (reply[0]._id) {
+									if (reply['users'][0]._id) {
 										console.log( '✓ Тест 1.7 Модификация данных о ' +
 											'пользователе.' );
 										counter++;
@@ -459,13 +368,12 @@ function test1_2(){
 										//Проверка модификации данных
 										var query4 = {
 											user:{
-												query:{
-													selector:{
-														_id:reply[0]._id
+												queries:{
+													'users':{
+														selector:{
+															_id:reply['users'][0]._id
+														}
 													}
-												},
-												options:{
-													fields:['position']
 												}
 											}
 										};
@@ -476,11 +384,12 @@ function test1_2(){
 													'модифицированных данных из flexo:' +
 													err.message );
 											} else {
-												if (reply[0].position === 'IT department') {
+												if (reply['users'][0].position ===
+													'IT department') {
 													console.log( '✓ Тест 1.8 Чтение ' +
 														'модифицированных данных из flexo.' );
 													counter++;
-													test1_3(reply[0]._id);
+													test1_3(reply['users'][0]._id);
 												} else {
 													console.log( '× Тест 1.8 Чтение ' +
 														'модифицированных данных из flexo.' );
@@ -496,7 +405,7 @@ function test1_2(){
 
 
 						} else {
-							console.log( '× Тест 1.6 Сложный поиск о пользователе по названию компании.' );
+							console.log( '× Тест 1.6 Сложный поиск о пользователе по _id.' );
 						}
 					}
 				});
@@ -524,7 +433,7 @@ function test1_3(_id){
 				'модифицированных данных из redis:' +
 				err.message );
 		} else {
-			if (reply.position === 'IT department') {
+			if (reply['users'][0].position === 'IT department') {
 				console.log( '✓ Тест 1.9 Чтение ' +
 					'модифицированных данных из redis.' );
 				counter++;
@@ -532,13 +441,15 @@ function test1_3(_id){
 				//Удаление
 				var query2 = {
 					user:{
-						query:{
-							selector:{
-								_id:reply._id
+						queries:{
+							'users':{
+								selector:{
+									_id:reply['users'][0]._id
+								}
 							}
 						}
 					}
-				}
+				};
 
 				controller.delete(query2, function( err, reply){
 					if( err ) {
@@ -546,23 +457,22 @@ function test1_3(_id){
 							'модифицированных данных из redis и mongo:' +
 							err.message );
 					} else {
-						if (reply[0]._id) {
+						if (reply['users'][0]._id) {
 							console.log( '✓ Тест 1.10 Удаление ' +
 								'модифицированных данных из redis и mongo.' );
 							counter++;
 
 							//Проверка модификации данных
-							var _id2 = reply[0]._id;
+							var _id2 = reply['users'][0];
 
 							var query3 = {
 								user:{
-									query:{
-										selector:{
-											_id:_id2
+									queries:{
+										'users':{
+											selector:{
+												_id:_id2
+											}
 										}
-									},
-									options:{
-										fields:['position']
 									}
 								}
 							};
@@ -573,7 +483,7 @@ function test1_3(_id){
 										'удаленных данных из flexo:' +
 										err.message );
 								} else {
-									if (reply.length === 0) {
+									if (reply['users'].length === 0) {
 										console.log( '✓ Тест 1.11 Чтение ' +
 											'удаленных данных из flexo.' );
 										counter++;

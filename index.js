@@ -8,7 +8,6 @@ var AccessModelUserView = require('./access_model_user_view.js');
 var AccessModelRoleFlexo = require('./access_model_role_flexo.js');
 var AccessModelUserFlexo = require('./access_model_user_flexo.js');
 
-var ModelView = require('./model_view.js');
 var ModelUser = require('./model_user.js');
 var ModelMenu = require('./model_menu.js');
 
@@ -16,8 +15,9 @@ var client;
 var globalMenusConfig;
 var globalFlexoSchemes;
 var globalFormConfig;
+var globalViewConfig;
 var flexo;
-var view;
+var View;
 
 module.exports = {
 	init: init,
@@ -31,55 +31,75 @@ module.exports = {
  * @param callback
  */
 function init( config, callback ) {
-	if ( config.redisConfig ) {
-		if ( config.redisConfig.max_attempts ) {
-			client = redis.createClient( config.redisConfig.port, config.redisConfig.host,
-				{ max_attempts: config.redisConfig.max_attempts } );
-
-			client.on( "error", function (err) {
-				sys.log( err + ' ' + __filename );
-				callback( err );
-			});
-		} else {
-			client = redis.createClient( config.redisConfig.port, config.redisConfig.host );
-			client.on( "error", function ( err ) {
-				sys.log( err + ' ' + __filename );
-				callback( err );
-			});
-		}
-	} else {
-		client = redis.createClient();
-		client.on( "error", function ( err ) {
-			sys.log( err + ' ' + __filename );
-			callback( err );
-		});
-	}
-
 	if ( config.view ) {
-		view = config.view;
+		View = config.view;
 	} else {
 		callback( new Error( 'Parameter view is not specified in the config object' ) );
+		return;
+	}
+
+	if ( config.viewConfig ) {
+		globalViewConfig = config.viewConfig;
+	} else {
+		callback( new Error( 'Parameter viewConfig is not specified in the config object' ) );
+		return;
 	}
 
 	if ( config.flexoSchemes ) {
 		globalFlexoSchemes = config.flexoSchemes;
 	} else {
 		callback( new Error( 'Parameter flexoSchemes is not specified in the config object' ) );
+		return;
 	}
 
 	if ( config.menuConfig ) {
 		globalMenusConfig = config.menuConfig;
 	} else {
 		callback( new Error( 'Parameter menuConfig is not specified in the config object' ) );
+		return;
 	}
 
 	if ( config.formConfig ) {
 		globalMenusConfig = config.formConfig;
 	} else {
 		callback( new Error( 'Parameter formConfig is not specified in the config object' ) );
+		return;
 	}
 
-	callback(null, true);
+	if ( config.redisConfig ) {
+		if ( config.redisConfig.max_attempts ) {
+			client = redis.createClient( config.redisConfig.port, config.redisConfig.host,
+				{ max_attempts: config.redisConfig.max_attempts } );
+
+			client.on( "error", function (err) {
+				callback( err );
+			});
+
+			client.on( "ready", function (err) {
+				callback( null, true );
+			});
+		} else {
+			client = redis.createClient( config.redisConfig.port, config.redisConfig.host );
+
+			client.on( "error", function (err) {
+				callback( err );
+			});
+
+			client.on( "ready", function (err) {
+				callback( null, true );
+			});
+		}
+	} else {
+		client = redis.createClient();
+
+		client.on( "error", function (err) {
+			callback( err );
+		});
+
+		client.on( "ready", function (err) {
+			callback( null, true );
+		});
+	}
 }
 
 /**
@@ -100,33 +120,39 @@ Controller.prototype.create = function create( query, callback ) {
 		//Создаем модель пользователя
 		model = new ModelUser( client );
 		//Проверяем уникальность создаваемого пользователя
-
-		model.checkUnique( query.user.login, function ( err ) {
+		var viewName = 'viewUsers';
+		var flexoSchemeName = 'users';
+		model.checkUnique( query.user.queries[flexoSchemeName].login, function ( err ) {
 			if ( err ) {
 				callback ( err );
 			} else {
-				//Создаем flexo модель
-				if ( globalFlexoSchemes['users'].read ) {
-					var flexoModelUsers = new flexo( {
-						scheme:'users' ,
-						fields:globalFlexoSchemes['users'].read
-					} );
+				//Создаем view
+				//ToDo: передавать имя view и flexo
+				//ToDo: передавать на socket???
+				//ToDo: валидация запроса
+				if ( globalViewConfig[viewName] ) {
+					var dbAccess = {};
+					dbAccess['insert'] = globalViewConfig[viewName];
+
+					var viewModelUsers = new View(viewName, dbAccess, {});
 
 					var document = underscore.clone( query.user );
 					//Удаляем пороль из сохраняемго в flexo документа
-					if ( document.pass ){
-						delete document.pass;
+					if ( document.queries && document.queries[flexoSchemeName] &&
+						document.queries[flexoSchemeName].pass ){
+						delete document.queries[flexoSchemeName].pass;
 					}
 
-					//Сохраняем документ в redis
-					flexoModelUsers.insert( document, {}, function( err, result ) {
+					//Сохраняем документ вo view
+					viewModelUsers.insert( document, function( err, result ) {
 						if ( err ) {
 							callback ( err );
 						} else {
 
-							query.user._id = result[0]._id;
-
-							model.create( query.user, function( err ){
+							query.user.queries[flexoSchemeName]._id =
+								result[flexoSchemeName][0]._id;
+							//Сохраняем документ в redis
+							model.create( query.user.queries[flexoSchemeName], function( err ){
 								if(err){
 									callback( err );
 								} else {
@@ -136,7 +162,8 @@ Controller.prototype.create = function create( query, callback ) {
 						}
 					});
 				} else {
-					callback( new Error( 'No description in global object flexo with name: user' ) );
+					callback( new Error( 'No description in global object view with name:' +
+						viewName) );
 				}
 			}
 		});
@@ -166,8 +193,8 @@ Controller.prototype.create = function create( query, callback ) {
 					model.save( callback );
 				}
 			} else {
-				model = new ModelView(client);
-				model.create( query.access.viewName, query.access.objAccess, callback );
+				callback( new Error( 'Not set role or login in query: '
+					+ JSON.stringify( query ) ) )
 			}
 		} else if ( query.access.flexoSchemeName ) {
 			if ( query.access.role ) {
@@ -225,47 +252,47 @@ Controller.prototype.create = function create( query, callback ) {
 Controller.prototype.find = function find( query, callback ) {
 	var model;
 	if ( query.user ) {
+		var flexoSchemeName = 'users';
 		if( query.user.login || query.user._id ){
 		    //Простой поиск одного пользователя
 			var login = query.user.login || null;
 			var _id = query.user._id || null;
 			//Создаем модель пользователя
 			model = new ModelUser( client, login, _id );
-			model.find( callback );
-		} else if (query.user.query){
-			//Сложный поиск
-			//Создаем flexo модель
-			if ( globalFlexoSchemes['users'].read ) {
-				var flexoModelUsers = new flexo({
-					scheme:'users' ,
-					fields:globalFlexoSchemes['users'].read
-				});
-
-				//Флаг сигнализирующей необходим ли пароль в выходных данных
-				var triggerNeedPass = false;
-				if( !query.user.options ){
-					query.user.options = {}
-				} else if ( query.user.options.fields &&
-					( underscore.indexOf( query.user.options.fields, 'pass' ) + 1 ) ) {
-					triggerNeedPass = true;
+			model.find( function(err, reply){
+				if ( err ){
+					callback( err );
+				} else {
+					var obj = {};
+					obj[flexoSchemeName] = [reply];
+					callback(null, obj);
 				}
+			} );
+		} else if (query.user.queries){
+			//Сложный поиск
+			var viewName = 'viewUsers';
+			var flexoSchemeName = 'users';
+			//Создаем view модель
+			if ( globalViewConfig[viewName] ) {
+				var dbAccess = {};
+				dbAccess['read'] = globalViewConfig[viewName];
 
-				flexoModelUsers.find( query.user.query, query.user.options,
-					function( err, listDocuments ) {
+				var viewModelUsers = new View(viewName, dbAccess, {});
+
+				viewModelUsers.find( query.user, function( err, listDocuments ) {
 					if ( err ) {
 						callback ( err );
 					} else {
-						if( triggerNeedPass && listDocuments.length !== 0){
+						if( listDocuments.length !== 0){
 							//Создаем модель пользователя
 							var model = new ModelUser(client);
 							model.findsPass( listDocuments, callback );
-						} else {
-							callback( null, listDocuments );
 						}
 					}
 				} );
 			} else {
-				callback( new Error( 'No description in global object flexo with name: user' ) );
+				callback( new Error( 'No description in global object view with name:' +
+					viewName) );
 			}
 		} else {
 			callback( new Error( 'Unknown type of query: ' + JSON.stringify( query ) ) );
@@ -273,7 +300,6 @@ Controller.prototype.find = function find( query, callback ) {
 	} else if ( query.access ) {
 		//Запроса на чтение прав
 		if ( query.access.viewName ) {
-			var modelView;
 			//Запрос на чтение прав view
 			if ( query.access.role ) {
 				//Запрос на чтение прав view по роли
@@ -283,19 +309,13 @@ Controller.prototype.find = function find( query, callback ) {
 					query.access.role );
 
 				//Запрашиваемый искомый объект прав
-				modelView = new ModelView( client );
-				modelView.findViewFlexoShemes( query.access.viewName, function( err, flexoSchemes ){
-					if( err ) {
-						callback ( err );
-					} else {
-						if ( flexoSchemes.length !== 0 ) {
-							model.find( flexoSchemes, callback );
-						} else {
-							callback( new Error( 'No description in redis view with name: '
-								+ JSON.stringify( query.access.viewName ) ) );
-						}
-					}
-				} );
+				if ( globalViewConfig[query.access.viewName] ) {
+					var flexoSchemes = Object.keys(globalViewConfig[query.access.viewName]);
+					model.find( flexoSchemes, callback );
+				} else {
+					callback( new Error( 'No description in global object view with name: '
+						+ query.access.viewName ) );
+				}
 			} else if ( query.access.login ) {
 				//Запрос на чтение прав view по пользователю
 
@@ -304,22 +324,16 @@ Controller.prototype.find = function find( query, callback ) {
 					query.access.login );
 
 				//Запрашиваемый искомый объект прав
-				modelView = new ModelView( client );
-				modelView.findViewFlexoShemes( query.access.viewName, function( err, flexoSchemes ){
-					if( err ) {
-						callback ( err );
-					} else {
-						if ( flexoSchemes.length !== 0 ){
-							model.find( flexoSchemes, callback );
-						} else {
-							callback( new Error( 'No description in redis view with name: '
-								+ JSON.stringify( query.access.viewName ) ) );
-						}
-					}
-				} );
+				if ( globalViewConfig[query.access.viewName] ) {
+					var flexoSchemes = Object.keys(globalViewConfig[query.access.viewName]);
+					model.find( flexoSchemes, callback );
+				} else {
+					callback( new Error( 'No description in global object view with name: '
+						+ query.access.viewName ) );
+				}
 			} else {
-				model = new ModelView( client );
-				model.find( query.access.viewName, callback );
+				callback( new Error( 'Not set role or login in query: '
+					+ JSON.stringify( query ) ) )
 			}
 		} else if ( query.access.flexoSchemeName ) {
 			if ( query.access.role ) {
@@ -375,23 +389,35 @@ Controller.prototype.find = function find( query, callback ) {
 Controller.prototype.delete = function del( query, callback ) {
 	var model;
 	if ( query.user ) {
-		if( query.user.query && query.user.query.selector && query.user.query.selector._id ){
-			//Создаем flexo модель
-			if ( globalFlexoSchemes['users'].read ) {
-				var flexoModelUsers = new flexo({ scheme:'users' ,
-					fields:globalFlexoSchemes['users'].read});
+		var viewName = 'viewUsers';
+		var flexoSchemeName = 'users';
 
-				flexoModelUsers.find( query.user.query, {}, function( err ){
+		if( query.user.queries && query.user.queries[flexoSchemeName] &&
+			query.user.queries[flexoSchemeName].selector &&
+			query.user.queries[flexoSchemeName].selector._id ){
+
+			//Создаем view
+			if ( globalViewConfig[viewName] ) {
+				var dbAccess = {};
+				dbAccess['delete'] = {};
+				dbAccess['delete'][viewName] = 1;
+				dbAccess['read'] = globalViewConfig[viewName];
+
+				var viewModelUsers = new View(viewName, dbAccess, {});
+
+				viewModelUsers.find( query.user, function( err ){
 					if ( err ) {
 						callback ( err );
 					} else {
 						//Удаляем документ из mongo
-						flexoModelUsers.delete(query.user.query, {}, function(err, result){
+						viewModelUsers.delete(query.user, function(err, result){
 							if ( err ) {
 								callback ( err );
 							} else {
-								var model = new ModelUser(client, null, result[0]._id);
-								model.delete( function( err, reply ) {
+								var model = new ModelUser(client, null,
+									result[flexoSchemeName][0]._id);
+								//ToDo:множественное удаление пользователей из Redis???
+								model.delete( function( err ) {
 									if ( err ) {
 										callback( err )
 									} else {
@@ -402,6 +428,9 @@ Controller.prototype.delete = function del( query, callback ) {
 						});
 					}
 				});
+			} else {
+				callback( new Error( 'No description in global object view with name:' +
+					viewName) );
 			}
 		} else {
 			callback( new Error( 'Incorrect parameter query.selector in query: '
@@ -410,7 +439,6 @@ Controller.prototype.delete = function del( query, callback ) {
 	} else if ( query.access ) {
 		//Запроса на создание прав
 		if ( query.access.viewName ) {
-			var modelView;
 			//Запрос на удаление прав view
 			if ( query.access.role ) {
 				//Запрос на удаление прав view по роли
@@ -419,19 +447,13 @@ Controller.prototype.delete = function del( query, callback ) {
 				model = new AccessModelRoleView( client, query.access.viewName,
 					query.access.role );
 
-				modelView = new ModelView(client);
-				modelView.findViewFlexoShemes(query.access.viewName, function( err, flexoSchemes ){
-					if( err ) {
-						callback ( err );
-					} else {
-						if ( flexoSchemes.length !== 0 ){
-							model.delete( flexoSchemes, callback );
-						} else {
-							callback( new Error( 'No description in redis view with name: '
-								+ JSON.stringify( query.access.viewName ) ) );
-						}
-					}
-				} );
+				if ( globalViewConfig[query.access.viewName] ) {
+					var flexoSchemes = Object.keys(globalViewConfig[query.access.viewName]);
+					model.delete( flexoSchemes, callback );
+				} else {
+					callback( new Error( 'No description in global object view with name: '
+						+ query.access.viewName ) );
+				}
 			} else if ( query.access.login ) {
 				//Запрос на удаление прав view по пользователю
 
@@ -440,22 +462,16 @@ Controller.prototype.delete = function del( query, callback ) {
 					query.access.login );
 
 				//Удаляем запрашиваемый объект прав
-				modelView = new ModelView(client);
-				modelView.findViewFlexoShemes(query.access.viewName, function( err, flexoSchemes ){
-					if( err ) {
-						callback ( err );
-					} else {
-						if ( flexoSchemes.length !== 0 ){
-							model.delete( flexoSchemes, callback );
-						} else {
-							callback( new Error( 'No description in redis view with name: '
-								+ JSON.stringify( query.access.viewName ) ) );
-						}
-					}
-				} );
+				if ( globalViewConfig[query.access.viewName] ) {
+					var flexoSchemes = Object.keys(globalViewConfig[query.access.viewName]);
+					model.delete( flexoSchemes, callback );
+				} else {
+					callback( new Error( 'No description in global object view with name: '
+						+ query.access.viewName ) );
+				}
 			} else {
-				model = new ModelView( client );
-				model.delete( query.access.viewName, callback )
+				callback( new Error( 'Not set role or login in query: '
+					+ JSON.stringify( query ) ) );
 			}
 		} else if ( query.access.flexoSchemeName ) {
 			if ( query.access.role ) {
@@ -510,51 +526,63 @@ Controller.prototype.delete = function del( query, callback ) {
 
 Controller.prototype.modify = function modify( query, callback ) {
 	if ( query.user ) {
-		if(query.user.query && query.user.query.selector && query.user.query.selector._id) {
+		var viewName = 'viewUsers';
+		var flexoSchemeName = 'users';
+		if(query.user.queries && query.user.queries[flexoSchemeName] &&
+			query.user.queries[flexoSchemeName].selector &&
+			query.user.queries[flexoSchemeName].selector._id) {
 			//Создаем flexo модель
-			if ( globalFlexoSchemes['users'].read ) {
-				var flexoModelUsers = new flexo({ scheme:'users' ,
-					fields:globalFlexoSchemes['users'].read});
+
+			if ( globalViewConfig[viewName] ) {
+				var dbAccess = {};
+				dbAccess['modify'] = globalViewConfig[viewName];
+				dbAccess['read'] = globalViewConfig[viewName];
+
+				var viewModelUsers = new View(viewName, dbAccess, {});
+
 				var pass = null;
-				if (query.user.query.selector.properties &&
-					query.user.query.selector.properties.pass){
-					pass = query.user.query.selector.properties.pass;
-					delete query.user.query.selector.properties.pass;
+				if (query.user.queries[flexoSchemeName].properties &&
+					query.user.queries[flexoSchemeName].properties.pass){
+					pass = query.user.queries[flexoSchemeName].properties.pass;
+					delete query.user.queries[flexoSchemeName].properties.pass;
 				}
 
-				flexoModelUsers.find(query.user.query, {}, function(err, reply){
+				viewModelUsers.find(query.user, function(err, reply){
 					if ( err ) {
 						callback ( err );
 					} else {
-						//Модифицируем документ из mongo
-						flexoModelUsers.modify(query.user.query, {}, function(err, objResult){
+						//Модифицируем документ в mongo
+						viewModelUsers.modify(query.user, function(err, objResult){
 							if ( err ) {
 								callback ( err );
 							} else {
 								if(pass){
-									query.user.query.properties.pass = pass;
+									query.user.queries[flexoSchemeName].properties.pass = pass;
 								}
-									var model = new ModelUser(client, null, reply[0]._id);
-									model.modify(query.user.query.properties, function( err, reply ) {
-										if( err ){
-											callback( err );
-										} else {
-											if( pass ) {
-												objResult[pass] = reply[pass];
-											}
 
-											callback( null, objResult );
-										}
+								var model = new ModelUser(client, null,
+									reply[flexoSchemeName][0]._id);
 
-									});
+								//Модификация в redis
+								model.modify(query.user.queries[flexoSchemeName].properties,
+									function( err ) {
+									if( err ){
+										callback( err );
+									} else {
+										callback( null, objResult );
+									}
 
+								});
 							}
 						});
 					}
 				});
+			} else {
+			callback( new Error( 'No description in global object view with name:' +
+				viewName) );
 			}
 		} else {
-			callback( new Error( 'Incorrect parameter query.selector in query: '
+			callback( new Error( 'Incorrect parameter selector in queries: '
 				+ JSON.stringify( query ) ) );
 		}
 	} else if ( query.access ) {
@@ -584,9 +612,8 @@ Controller.prototype.modify = function modify( query, callback ) {
 					model.save( callback );
 				}
 			} else {
-				var model = new ModelView(client);
-				model.delete(query.access.viewName, callback);
-				model.create(query.access.viewName, query.access.objAccess, callback);
+				callback( new Error( 'Not set role or login in query: '
+					+ JSON.stringify( query ) ) );
 			}
 		} else if ( query.access.flexoSchemeName ) {
 			if ( query.access.role ) {
@@ -865,111 +892,107 @@ function checkDelete( queries, objAccessDelete ) {
 
 function formingFlexoAndView( user, role, viewName, socket, callback ){
 
-	var modelView = new ModelView(client);
-	modelView.findViewFlexoShemes(viewName, function( err, flexoSchemes ){
-		if( err ) {
-			callback ( err );
-		} else {
+	var flexoSchemesWithFields = globalViewConfig[viewName];
+	var flexoSchemes = Object.keys(globalViewConfig[viewName]);
 
-			async.parallel([
-				function(cb){
-					//Подготавливаем объект с правами для view
-					crossingAccessForView(user, role, viewName, flexoSchemes, cb);
-				},
-				function(cb){
-					//Подготавливаем объект с правами для view
-					crossingAccessForFlexo(user, role, viewName, flexoSchemes, cb);
-				}
-			],
-				function(err, replies) {
-					if( err ) {
-						callback ( err )
-					} else {
-						//Проверяем не выходят ли суммарные правила по view за границы правил по flexo
-						//и если выходят, то обрезаем их
-						var viewAccess = replies[0];
-						var flexoAccess = replies[1];
+	async.parallel([
+		function(cb){
+			//Подготавливаем объект с правами для view
+			crossingAccessForView(user, role, viewName, flexoSchemes,
+				flexoSchemesWithFields, cb);
+		},
+		function(cb){
+			//Подготавливаем объект с правами для view
+			crossingAccessForFlexo(user, role, viewName, flexoSchemes, cb);
+		}
+	],
+		function(err, replies) {
+			if( err ) {
+				callback ( err )
+			} else {
+				//Проверяем не выходят ли суммарные правила по view за границы правил по flexo
+				//и если выходят, то обрезаем их
+				var viewAccess = replies[0];
+				var flexoAccess = replies[1];
 
 
-						for(var i=0; i<flexoSchemes; i++){
-							//Сравниваем права на чтение
-							if( viewAccess['read'] && viewAccess['read'][flexoSchemes[i]] ){
-								if(flexoAccess['read'] && flexoAccess['read'][flexoSchemes[i]]){
-									var differenceRead = underscore.difference(
-										viewAccess['read'][flexoSchemes[i]],
-										flexoAccess['read'][flexoSchemes[i]]);
-								} else {
-									var differenceRead = viewAccess['read'][flexoSchemes[i]];
-								}
-
-								if( differenceRead.length !== 0 ){
-									//ToDo: доделать сигнализацию о нарушении целостности
-									//Присутствует нарушение целостности, обрезаем права
-									viewAccess['read'][flexoSchemes[i]] = underscore.difference(
-										viewAccess['read'][flexoSchemes[i]], differenceRead);
-								}
-							}
-
-							//Сравниваем права на создание
-							if( viewAccess['create'] && viewAccess['create'][flexoSchemes[i]] ){
-								if(flexoAccess['create'] && flexoAccess['create'][flexoSchemes[i]]){
-									var differenceCreate = underscore.difference(
-										viewAccess['create'][flexoSchemes[i]],
-										flexoAccess['create'][flexoSchemes[i]]);
-								} else {
-									var differenceCreate = viewAccess['create'][flexoSchemes[i]];
-								}
-
-								if( differenceCreate.length !== 0 ){
-									//ToDo: доделать сигнализацию о нарушении целостности
-									//Присутствует нарушение целостности, обрезаем права
-									viewAccess['create'][flexoSchemes[i]] = underscore.difference(
-										viewAccess['create'][flexoSchemes[i]], differenceCreate);
-								}
-							}
-
-							//Сравнениваем права на модификацию
-							if( viewAccess['modify'] && viewAccess['modify'][flexoSchemes[i]] ){
-								if(flexoAccess['modify'] && flexoAccess['modify'][flexoSchemes[i]]){
-									var differenceModify = underscore.difference(
-										viewAccess['modify'][flexoSchemes[i]],
-										flexoAccess['modify'][flexoSchemes[i]]);
-								} else {
-									var differenceModify = viewAccess['modify'][flexoSchemes[i]];
-								}
-
-								if( differenceModify.length !== 0 ){
-									//ToDo: доделать сигнализацию о нарушении целостности
-									//Присутствует нарушение целостности, обрезаем права
-									viewAccess['modify'][flexoSchemes[i]] = underscore.difference(
-										viewAccess['modify'][flexoSchemes[i]], differenceModify);
-								}
-							}
-
-							//Сравниваем права на удаление
-							if( viewAccess['delete'][flexoSchemes[i]] === 1) {
-								if( flexoAccess['delete'][flexoSchemes[i]] === 0){
-									//ToDo: доделать сигнализацию о нарушении целостности
-									//Присутствует нарушение целостности, обрезаем права
-									viewAccess['delete'][flexoSchemes[i]] = 0;
-								}
-							}
+				for(var i=0; i<flexoSchemes; i++){
+					//Сравниваем права на чтение
+					if( viewAccess['read'] && viewAccess['read'][flexoSchemes[i]] ){
+						if(flexoAccess['read'] && flexoAccess['read'][flexoSchemes[i]]){
+							var differenceRead = underscore.difference(
+								viewAccess['read'][flexoSchemes[i]],
+								flexoAccess['read'][flexoSchemes[i]]);
+						} else {
+							var differenceRead = viewAccess['read'][flexoSchemes[i]];
 						}
 
-						//Создаем объект view который мы привяжем к socket
-						if ( !socket.view ) {
-							socket.view = {}
+						if( differenceRead.length !== 0 ){
+							//ToDo: доделать сигнализацию о нарушении целостности
+							//Присутствует нарушение целостности, обрезаем права
+							viewAccess['read'][flexoSchemes[i]] = underscore.difference(
+								viewAccess['read'][flexoSchemes[i]], differenceRead);
+						}
+					}
+
+					//Сравниваем права на создание
+					if( viewAccess['create'] && viewAccess['create'][flexoSchemes[i]] ){
+						if(flexoAccess['create'] && flexoAccess['create'][flexoSchemes[i]]){
+							var differenceCreate = underscore.difference(
+								viewAccess['create'][flexoSchemes[i]],
+								flexoAccess['create'][flexoSchemes[i]]);
+						} else {
+							var differenceCreate = viewAccess['create'][flexoSchemes[i]];
 						}
 
-						socket.view[viewName] = {};
-						socket.view[viewName]['access'] = viewAccess;
+						if( differenceCreate.length !== 0 ){
+							//ToDo: доделать сигнализацию о нарушении целостности
+							//Присутствует нарушение целостности, обрезаем права
+							viewAccess['create'][flexoSchemes[i]] = underscore.difference(
+								viewAccess['create'][flexoSchemes[i]], differenceCreate);
+						}
+					}
 
-						callback(null, true);
+					//Сравнениваем права на модификацию
+					if( viewAccess['modify'] && viewAccess['modify'][flexoSchemes[i]] ){
+						if(flexoAccess['modify'] && flexoAccess['modify'][flexoSchemes[i]]){
+							var differenceModify = underscore.difference(
+								viewAccess['modify'][flexoSchemes[i]],
+								flexoAccess['modify'][flexoSchemes[i]]);
+						} else {
+							var differenceModify = viewAccess['modify'][flexoSchemes[i]];
+						}
+
+						if( differenceModify.length !== 0 ){
+							//ToDo: доделать сигнализацию о нарушении целостности
+							//Присутствует нарушение целостности, обрезаем права
+							viewAccess['modify'][flexoSchemes[i]] = underscore.difference(
+								viewAccess['modify'][flexoSchemes[i]], differenceModify);
+						}
+					}
+
+					//Сравниваем права на удаление
+					if( viewAccess['delete'][flexoSchemes[i]] === 1) {
+						if( flexoAccess['delete'][flexoSchemes[i]] === 0){
+							//ToDo: доделать сигнализацию о нарушении целостности
+							//Присутствует нарушение целостности, обрезаем права
+							viewAccess['delete'][flexoSchemes[i]] = 0;
+						}
 					}
 				}
-			);
+
+				//Создаем объект view который мы привяжем к socket
+				if ( !socket.view ) {
+					socket.view = {}
+				}
+
+				socket.view[viewName] = {};
+				socket.view[viewName]['access'] = viewAccess;
+
+				callback(null, true);
+			}
 		}
-	} );
+	);
 }
 
 function crossingAccessForFlexo(user, role, viewName, flexoSchemes, callback) {
@@ -1047,7 +1070,8 @@ function crossingAccessForFlexo(user, role, viewName, flexoSchemes, callback) {
 
 }
 
-function crossingAccessForView(user, role, viewName, flexoSchemes, callback ) {
+function crossingAccessForView(user, role, viewName, flexoSchemes, flexoSchemesWithFields,
+							   callback ) {
 	//Создаем модель прав по роли и по пользователю
 	var modelViewRole = new AccessModelRoleView( client, viewName, role );
 	var modelViewUser = new AccessModelUserView( client, viewName, user );
@@ -1060,7 +1084,7 @@ function crossingAccessForView(user, role, viewName, flexoSchemes, callback ) {
 					if (err) {
 						cb( err );
 					} else {
-						modelViewRole.accessDataPreparation(cb);
+						modelViewRole.accessDataPreparation(flexoSchemesWithFields, cb);
 					}
 				} );
 			},
@@ -1069,7 +1093,7 @@ function crossingAccessForView(user, role, viewName, flexoSchemes, callback ) {
 					if (err) {
 						cb( err );
 					} else {
-						modelViewUser.accessDataPreparation(cb);
+						modelViewUser.accessDataPreparation(flexoSchemesWithFields, cb);
 					}
 				} );
 			}

@@ -1,5 +1,4 @@
 var underscore = require('underscore');
-var ModelView = require('./model_view.js');
 
 module.exports = AccessModelRoleView;
 
@@ -151,63 +150,57 @@ AccessModelRoleView.prototype.delete = function remove(listFlexoSchemesNames, ca
  *
  * @returns {{}} - объект с подготовленными данными
  */
-AccessModelRoleView.prototype.accessDataPreparation = function accessDataPreparation(callback) {
+AccessModelRoleView.prototype.accessDataPreparation = function accessDataPreparation(
+	flexoSchemesWithFields, callback) {
 	//Формируем объект со справочниками из полей для будущего определения пересечения прав
 	var schemes = this.listFlexoSchemesNames;
 	var self = this;
-	//ToDo: сущность взята из model_view (Всё надо объединить в одну модель)
-	var model = new ModelView(this.client);
-	model.find(this.viewName, function( err, flexoSchemesWithFields ) {
-		if( err ) {
-			callback( err );
-		} else {
-			if ( schemes.length !== 0 ) {
-				var objAccessForRole = {};
+
+	if ( schemes.length !== 0 ) {
+		var objAccessForRole = {};
 
 
-				for ( var i = 0; i < schemes.length; i++){
-					objAccessForRole[schemes[i]] = {};
+		for ( var i = 0; i < schemes.length; i++){
+			objAccessForRole[schemes[i]] = {};
 
-					//Чтение
-					var readFields = accessDataPreparationForMethod('read', schemes[i], self.objAccess,
-						flexoSchemesWithFields[schemes[i]]);
+			//Чтение
+			var readFields = accessDataPreparationForMethod('read', schemes[i], self.objAccess,
+				flexoSchemesWithFields[schemes[i]]);
 
-					if( readFields.length !== 0 ){
-						objAccessForRole[schemes[i]]['read'] = readFields;
-					}
-
-					//Модификация
-					var modifyFields = accessDataPreparationForMethod('modify', schemes[i], self.objAccess,
-						flexoSchemesWithFields[schemes[i]]);
-
-					if( modifyFields.length !== 0 ){
-						objAccessForRole[schemes[i]]['modify'] = modifyFields;
-					}
-
-					//Создание
-					var modifyFields = accessDataPreparationForMethod('create', schemes[i], self.objAccess,
-						flexoSchemesWithFields[schemes[i]]);
-
-					if( modifyFields.length !== 0 ){
-						objAccessForRole[schemes[i]]['create'] = modifyFields;
-					}
-
-					//Удаление
-					if(self.objAccess[schemes[i]]['delete']){
-						objAccessForRole[schemes[i]]['delete'] = 1;
-					} else {
-						objAccessForRole[schemes[i]]['delete'] = 0;
-					}
-
-
-				}
-				//Возвращаем объект с правами на роль
-				callback(null, objAccessForRole);
-			} else {
-				callback(null, {});
+			if( readFields.length !== 0 ){
+				objAccessForRole[schemes[i]]['read'] = readFields;
 			}
+
+			//Модификация
+			var modifyFields = accessDataPreparationForMethod('modify', schemes[i], self.objAccess,
+				flexoSchemesWithFields[schemes[i]]);
+
+			if( modifyFields.length !== 0 ){
+				objAccessForRole[schemes[i]]['modify'] = modifyFields;
+			}
+
+			//Создание
+			var modifyFields = accessDataPreparationForMethod('create', schemes[i], self.objAccess,
+				flexoSchemesWithFields[schemes[i]]);
+
+			if( modifyFields.length !== 0 ){
+				objAccessForRole[schemes[i]]['create'] = modifyFields;
+			}
+
+			//Удаление
+			if(self.objAccess[schemes[i]]['delete']){
+				objAccessForRole[schemes[i]]['delete'] = 1;
+			} else {
+				objAccessForRole[schemes[i]]['delete'] = 0;
+			}
+
+
 		}
-	});
+		//Возвращаем объект с правами на роль
+		callback(null, objAccessForRole);
+	} else {
+		callback(null, {});
+	}
 };
 
 /**

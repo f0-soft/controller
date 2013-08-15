@@ -7,7 +7,6 @@ module.exports = {
 		max_attempts: 1
 	},
 	mock:{
-		flexo:false,
-		view:false
+		view:true
 	}
 };
