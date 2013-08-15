@@ -29,11 +29,13 @@ var Controller = require('controller');
         * config.host — строка, хост Redis
         * [config.max_attempts] — число, количество попыток подключения
     * view - ccылка на конструктор view
+    * viewCongig - объкт с описание доступных полей во view сгруппированных по flexo схемам {viewName:{flexoSchemeName:[]}}
     * flexoSchemes - объект с описанием flexo схем в виде {nameFlexoScheme:{read:[], modify:[]}}
     * menuConfig - объект со схемой меню
     * formConfig - объект со схемой формы
-* callback (err) — функция обратного вызова
-    * err — ошибка подключения к Redis от node_redis
+* callback (err) - функция обратного вызова
+    * err - ошибка подключения к Redis от node_redis
+    * reply - логическое, возвращается true в случае успешной инициализации контроллера.
 
 
 ## Controller.create()
@@ -101,12 +103,12 @@ var Controller = require('controller');
 * при создании пользователя:
     * создается модель пользователя
     * проверяется уникальность создаваемого пользователя
-    * сохраняются данные (без пароля) в mongo с использованием flexo коллекции
+    * сохраняются данные (без пароля) в mongo с использованием view
     * сохраняются данные в redis
 
 Параметры:
 * query - объект запрос
-    * [user] - объект содержащий параметры создания пользователя в виде {fieldName:value}
+    * [user] - объект содержащий запрос на создание пользователя в виде {queries:{flexoSchemeName:{fieldsName:value}}
     * [access] - объект содержащий параметры создания прав доступа
         * [flexoSchemeName]/[viewName]/[menuName] - строка, название flexo схемы или view, или меню
         * [role]/[login] - строка, роль или логин пользователя создаваемого объекта прав
