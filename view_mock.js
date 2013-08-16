@@ -38,7 +38,7 @@ View_mock.prototype.getFields = function (){
 	return viewDbAccess;
 };
 
-View_mock.prototype.GetTemplate = function ( callback ) {
+View_mock.prototype.getTemplate = function ( callback ) {
 	callback(null, '<table>' + viewName + '</table>', 'javascriptConfigFor' + viewName);
 };
 
