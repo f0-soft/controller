@@ -1,51 +1,20 @@
 var underscore = require( 'underscore' );
 
-module.exports = AccessModelRoleFlexo;
-
-/**
- * Конструктор модели прав по роли для flexo схемы
- *
- * @constructor
- * @param client - объект redis клиент
- * @param strFlexoSchemeName - строка, название flexo схемы
- * @param strRole - строка, роль
- */
-function AccessModelRoleFlexo( client, strFlexoSchemeName, strRole ) {
-	this.client = client;
-	this.strFlexoSchemeName = strFlexoSchemeName;
-	this.role = strRole;
-	this.objAccess = {};
-	return this;
-}
-
-/**
- * Импорт в модель данных о доступе к flexo схеме по роли
- *
- * @param objAccess - объект с правами одной flexo схемы по роли
- * @returns {boolean}
- */
-AccessModelRoleFlexo.prototype.setObjAccess = function setObjAccess( objAccess ) {
-	//ToDo:Продумать проверку объекта доступа
-	if ( typeof objAccess !== 'object' ) { throw new Error( 'objAccess required' ); }
-
-	//ToDo:Доделать возможность добавления данных к уже имеющимся в модели
-	this.objAccess = objAccess;
-
-	return true;
-};
+var AccessModuleRoleFlexo = {};
 
 /**
  * Сохранение модель в redis
  *
+ * @param objAccess - объект прав
+ * @param role - строка роль
+ * @param strFlexoSchemeName - строка, название flexo схемы
+ * @param client - объект, редис клиент
  * @param callback (err, reply)
- * 		err - ошибка от node_redis
- * 		reply - true в случае успешного сохранения
+ *        err - ошибка от node_redis
+ *        reply - true в случае успешного сохранения
  */
-AccessModelRoleFlexo.prototype.save = function save( callback ){
-	var multi = this.client.multi();
-	var strFlexoSchemeName = this.strFlexoSchemeName;
-	var role = this.role;
-	var objAccess = this.objAccess;
+AccessModuleRoleFlexo.save = function save(client, role, strFlexoSchemeName, objAccess, callback ){
+	var multi = client.multi();
 	var key;
 
 	//Сохранение объекта прав в redis
@@ -73,12 +42,10 @@ AccessModelRoleFlexo.prototype.save = function save( callback ){
  * 		err - ошибка от node_redis
  * 		reply - возвращается искомый объект прав
  */
-AccessModelRoleFlexo.prototype.find = function find( flexoSchemeName, callback ) {
-	var role = this.role;
-	var self = this;
+AccessModuleRoleFlexo.find = function find( client, role, flexoSchemeName, callback ) {
 
 	//Получаем объекты прав для заданной flexo схемы и роли
-	this.client.GET(  strFlexoAccessRoleScheme( role, flexoSchemeName ), function( err, reply ) {
+	client.GET(  strFlexoAccessRoleScheme( role, flexoSchemeName ), function( err, reply ) {
 		if ( err ) {
 			callback( err );
 		} else if ( reply ) {
@@ -99,11 +66,13 @@ AccessModelRoleFlexo.prototype.find = function find( flexoSchemeName, callback )
  * @param globalFlexoSchemes - объект с данными из схем flexo коллекций
  * @param callback
  */
-AccessModelRoleFlexo.prototype.findReadAccesses = function findReadAccesses( globalFlexoSchemes, flexoSchemesName, callback ) {
-	var multi = this.client.multi();
+AccessModuleRoleFlexo.findReadAccesses = function findReadAccesses( client, role,
+	globalFlexoSchemes, flexoSchemesName, callback ) {
+
+	var multi = client.multi();
 	//Формируем команды для получения объектов прав по указанным схемам
 	for( var i = 0; i < flexoSchemesName.length; i++ ) {
-		multi.GET( strFlexoAccessRoleScheme( this.role, flexoSchemesName[i] ) );
+		multi.GET( strFlexoAccessRoleScheme( role, flexoSchemesName[i] ) );
 	}
 
 	multi.EXEC( function ( err, replies ) {
@@ -128,11 +97,13 @@ AccessModelRoleFlexo.prototype.findReadAccesses = function findReadAccesses( glo
 	} );
 };
 
-AccessModelRoleFlexo.prototype.accessDataPreparation = function accessDataPreparation( globalFlexoSchemes, flexoSchemesName, callback ) {
-	var multi = this.client.multi();
+AccessModuleRoleFlexo.accessDataPreparation = function accessDataPreparation( client, role,
+	globalFlexoSchemes, flexoSchemesName, callback ) {
+
+	var multi = client.multi();
 	//Формируем команды для получения объектов прав по указанным схемам
 	for( var i = 0; i < flexoSchemesName.length; i++ ) {
-		multi.GET( strFlexoAccessRoleScheme( this.role, flexoSchemesName[i] ) );
+		multi.GET( strFlexoAccessRoleScheme( role, flexoSchemesName[i] ) );
 	}
 
 	multi.EXEC( function ( err, replies ) {
@@ -198,6 +169,13 @@ AccessModelRoleFlexo.prototype.accessDataPreparation = function accessDataPrepar
 					//Сохраняем права на создание
 					if(createFields.length !== 0){
 						objAccess[flexoSchemesName[i]]['create'] = createFields;
+					}
+
+					//Права на создание всего документа
+					if(objAccessForOneScheme['createAll']){
+						objAccess[flexoSchemesName[i]]['createAll'] = 1;
+					} else {
+						objAccess[flexoSchemesName[i]]['createAll'] = 0;
 					}
 
 					//Удаление
@@ -279,9 +257,8 @@ function accessDataPreparationForMethod(method, objAccess, fieldsGlobalFlexoSche
  * 		err - ошибка от node_redis
  * 		reply - - true в случае успешного удаления
  */
-AccessModelRoleFlexo.prototype.delete = function remove( flexoSchemeName, callback ){
-	var multi = this.client.multi();
-	var role = this.role;
+AccessModuleRoleFlexo.delete = function remove( client, role, flexoSchemeName, callback ){
+	var multi = client.multi();
 	var key;
 
 	//Формируем команды на удаление
@@ -308,3 +285,5 @@ function strFlexoAccessRoleScheme( role, flexoSchemeName ) {
 function setAllAccess(){
 	return 'all:access:';
 }
+
+module.exports = AccessModuleRoleFlexo;

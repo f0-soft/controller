@@ -46,50 +46,55 @@ var globalFlexoSchemes = {
 //Переменная для хранения экземпляра контролера
 var controller;
 
-var testDataForTestAdminFunctionForFlexoAccess = {
+//Конфиг
+configForController = {
+	redisConfig: {},
+	view:{},
+	flexoSchemes:globalFlexoSchemes,
+	viewConfig:{},
+};
+
+exports.init = function (test) {
+	test.expect( 6 );
+	Controller.init( configForController, function( err, reply ) {
+		test.ifError(err);
+		test.ok(reply);
+		test.ok(Controller.create);
+		test.ok(Controller.find);
+		test.ok(Controller.delete);
+		test.ok(Controller.modify);
+		controller = Controller;
+		test.done();
+	} );
+};
+
+var testData1 = {
 	testObjAccessFlexo: {
 		read: {
-			'(all)': 1,
-			'name': 0,
-			'inn':0
+			'managerName': getRandom(0,1),
+			'name': getRandom(0,1),
+			'inn':getRandom(0,1)
 		},
 		modify: {
-			'(all)': 1,
-			'name': 0,
-			'inn':0
-		}
+			'managerName': getRandom(0,1),
+			'name': getRandom(0,1),
+			'inn':getRandom(0,1)
+		},
+		create: {},
+		createAll: getRandom(0,1),
+		delete: getRandom(0,1)
 	},
 	userLogin: generatorString(1,10),
 	userRole: generatorString(1,10),
 	flexoSchemeName: generatorString(1,20)
 };
 
-//Конфиг
-configForController = {
-	redisConfig: {},
-	view:{},
-	flexoSchemes:globalFlexoSchemes,
-	menuConfig:{},
-	formConfig:{}
-};
-
-exports.init = function (test) {
-	test.expect( 3 );
-	Controller.init( configForController, function( err, reply ) {
-		test.ifError(err);
-		test.ok(reply);
-		test.ok(Controller.create);
-		controller = new Controller.create();
-		test.done();
-	} );
-};
-
 exports.adminFunctionForFlexoAccess = {
 	saveAccessForUser: function(test){
-		test.expect(5);
-		var objAccess = testDataForTestAdminFunctionForFlexoAccess.testObjAccessFlexo;
-		var login = testDataForTestAdminFunctionForFlexoAccess.userLogin;
-		var flexoSchemeName = testDataForTestAdminFunctionForFlexoAccess.flexoSchemeName;
+		test.expect(13);
+		var objAccess = testData1.testObjAccessFlexo;
+		var login = testData1.userLogin;
+		var flexoSchemeName = testData1.flexoSchemeName;
 
 		//Формируем объект запрос на сохранение
 		var queryForSave = {
@@ -115,8 +120,25 @@ exports.adminFunctionForFlexoAccess = {
 				test.ifError(err);
 				test.ok(reply);
 				var keys = Object.keys(reply);
-				test.strictEqual(keys.length, 2, 'Проверка количества типов прав возвращаемых ' +
+				test.strictEqual(keys.length, 5, 'Проверка количества типов прав возвращаемых ' +
 					'в сохраненных flexo правах на пользователя');
+				test.strictEqual(reply.read.managerName, testData1.testObjAccessFlexo.read.managerName,
+					'Проверка получили ли мы тот же объект, что сохранили');
+				test.strictEqual(reply.read.name, testData1.testObjAccessFlexo.read.name,
+					'Проверка получили ли мы тот же объект, что сохранили');
+				test.strictEqual(reply.read.inn, testData1.testObjAccessFlexo.read.inn,
+					'Проверка получили ли мы тот же объект, что сохранили');
+				test.strictEqual(reply.modify.managerName,
+					testData1.testObjAccessFlexo.modify.managerName,
+					'Проверка получили ли мы тот же объект, что сохранили');
+				test.strictEqual(reply.modify.name, testData1.testObjAccessFlexo.modify.name,
+					'Проверка получили ли мы тот же объект, что сохранили');
+				test.strictEqual(reply.modify.inn, testData1.testObjAccessFlexo.modify.inn,
+					'Проверка получили ли мы тот же объект, что сохранили');
+				test.strictEqual(reply.createAll, testData1.testObjAccessFlexo.createAll,
+					'Проверка получили ли мы тот же объект, что сохранили');
+				test.strictEqual(reply.delete, testData1.testObjAccessFlexo.delete,
+					'Проверка получили ли мы тот же объект, что сохранили');
 				test.done();
 			});
 		});
@@ -124,8 +146,8 @@ exports.adminFunctionForFlexoAccess = {
 	},
 	deleteAccessForUser: function(test){
 		test.expect(3);
-		var login = testDataForTestAdminFunctionForFlexoAccess.userLogin;
-		var flexoSchemeName = testDataForTestAdminFunctionForFlexoAccess.flexoSchemeName;
+		var login = testData1.userLogin;
+		var flexoSchemeName = testData1.flexoSchemeName;
 
 		//Формируем объект запрос на удаление
 		var queryForDelete = {
@@ -154,10 +176,10 @@ exports.adminFunctionForFlexoAccess = {
 		});
 	},
 	saveAccessForRole:function(test){
-		test.expect(5);
-		var objAccess = testDataForTestAdminFunctionForFlexoAccess.testObjAccessFlexo;
-		var role = testDataForTestAdminFunctionForFlexoAccess.userRole;
-		var flexoSchemeName = testDataForTestAdminFunctionForFlexoAccess.flexoSchemeName;
+		test.expect(13);
+		var objAccess = testData1.testObjAccessFlexo;
+		var role = testData1.userRole;
+		var flexoSchemeName = testData1.flexoSchemeName;
 
 		//Формируем объект запрос на сохранение
 		var queryForSave = {
@@ -178,21 +200,38 @@ exports.adminFunctionForFlexoAccess = {
 					role:role
 				}
 			};
-			debugger;
+
 			controller.find(queryForRead, function( err, reply ) {
 				test.ifError(err);
 				test.ok(reply);
 				var keys = Object.keys(reply);
-				test.strictEqual(keys.length, 2, 'Проверка количества типов прав возвращаемых ' +
-					'в сохраненных flexo правах на пользователя');
+				test.strictEqual(keys.length, 5, 'Проверка количества типов прав возвращаемых ' +
+					'в сохраненных flexo правах по пользователя');
+				test.strictEqual(reply.read.managerName, testData1.testObjAccessFlexo.read.managerName,
+					'Проверка получили ли мы тот же объект, что сохранили');
+				test.strictEqual(reply.read.name, testData1.testObjAccessFlexo.read.name,
+					'Проверка получили ли мы тот же объект, что сохранили');
+				test.strictEqual(reply.read.inn, testData1.testObjAccessFlexo.read.inn,
+					'Проверка получили ли мы тот же объект, что сохранили');
+				test.strictEqual(reply.modify.managerName,
+					testData1.testObjAccessFlexo.modify.managerName,
+					'Проверка получили ли мы тот же объект, что сохранили');
+				test.strictEqual(reply.modify.name, testData1.testObjAccessFlexo.modify.name,
+					'Проверка получили ли мы тот же объект, что сохранили');
+				test.strictEqual(reply.modify.inn, testData1.testObjAccessFlexo.modify.inn,
+					'Проверка получили ли мы тот же объект, что сохранили');
+				test.strictEqual(reply.createAll, testData1.testObjAccessFlexo.createAll,
+					'Проверка получили ли мы тот же объект, что сохранили');
+				test.strictEqual(reply.delete, testData1.testObjAccessFlexo.delete,
+					'Проверка получили ли мы тот же объект, что сохранили');
 				test.done();
 			});
 		});
 	},
 	deleteAccessForRole:function(test){
 		test.expect(3);
-		var role = testDataForTestAdminFunctionForFlexoAccess.userRole;
-		var flexoSchemeName = testDataForTestAdminFunctionForFlexoAccess.flexoSchemeName;
+		var role = testData1.userRole;
+		var flexoSchemeName = testData1.flexoSchemeName;
 
 		//Формируем объект запрос на удаление
 		var queryForDelete = {
@@ -221,6 +260,175 @@ exports.adminFunctionForFlexoAccess = {
 		});
 	}
 };
+
+var testData2 = {
+	userLogin: generatorString(1,10),
+	userRole: generatorString(1,10),
+	viewName: generatorString(1,20)
+};
+
+exports.adminFunctionForViewAccess = {
+	saveAccessForUser: function(test){
+		//Генерируем объект прав
+		var objAccess = {};
+		var count = getRandom(1, 100);
+		for( var i = 0; i < count; i++ ) {
+			objAccess[i] = getRandom(0,1);
+		}
+
+		test.expect((count+5));
+
+		var login = testData2.userLogin;
+		var viewName = testData2.viewName;
+
+		//Формируем объект запрос на сохранение
+		var queryForSave = {
+			access:{
+				viewName: viewName,
+				login: login,
+				objAccess: objAccess
+			}
+		};
+
+		controller.create(queryForSave, function( err, reply ) {
+			test.ifError(err);
+			test.ok(reply);
+
+			var queryForRead = {
+				access: {
+					viewName: viewName,
+					login: login
+				}
+			};
+
+			controller.find(queryForRead, function( err, reply ) {
+				test.ifError(err);
+				test.ok(reply);
+				var keys = Object.keys(reply);
+				test.strictEqual(keys.length, count, 'Проверка количества типов прав возвращаемых ' +
+					'в сохраненных flexo правах по пользователя');
+				for( var i = 0; i < count; i++ ) {
+					test.strictEqual(reply[i], objAccess[i],
+						'Проверка получили ли мы тот же объект, что сохранили');
+				}
+				test.done();
+			});
+		});
+
+	},
+	deleteAccessForUser: function(test){
+		test.expect(3);
+		var login = testData2.userLogin;
+		var viewName = testData2.viewName;
+
+		//Формируем объект запрос на удаление
+		var queryForDelete = {
+			access: {
+				viewName:viewName,
+				login:login
+			}
+		};
+
+		controller.delete(queryForDelete, function( err, reply ) {
+			test.ifError(err);
+			test.ok(reply);
+
+			var queryForRead = {
+				access: {
+					viewName:viewName,
+					login:login
+				}
+			};
+
+			controller.find(queryForRead, function( err, reply ) {
+				test.ok(err.message, 'No requested object access (user: ' + login +', ' +
+					'viewName: ' + viewName + ')');
+				test.done();
+			});
+		});
+	},
+	saveAccessForRole: function(test){
+		//Генерируем объект прав
+		var objAccess = {};
+		var count = getRandom(1, 100);
+		for( var i = 0; i < count; i++ ) {
+			objAccess[i] = getRandom(0,1);
+		}
+
+		test.expect((count+5));
+
+		var role = testData2.userRole;
+		var viewName = testData2.viewName;
+
+		//Формируем объект запрос на сохранение
+		var queryForSave = {
+			access:{
+				viewName: viewName,
+				role: role,
+				objAccess: objAccess
+			}
+		};
+
+		controller.create(queryForSave, function( err, reply ) {
+			test.ifError(err);
+			test.ok(reply);
+
+			var queryForRead = {
+				access: {
+					viewName: viewName,
+					role: role
+				}
+			};
+
+			controller.find(queryForRead, function( err, reply ) {
+				test.ifError(err);
+				test.ok(reply);
+				var keys = Object.keys(reply);
+				test.strictEqual(keys.length, count, 'Проверка количества типов прав возвращаемых ' +
+					'в сохраненных flexo правах по пользователя');
+				for( var i = 0; i < count; i++ ) {
+					test.strictEqual(reply[i], objAccess[i],
+						'Проверка получили ли мы тот же объект, что сохранили');
+				}
+				test.done();
+			});
+		});
+
+	},
+	deleteAccessForRole: function(test){
+		test.expect(3);
+		var role = testData2.userRole;
+		var viewName = testData2.viewName;
+
+		//Формируем объект запрос на удаление
+		var queryForDelete = {
+			access: {
+				viewName:viewName,
+				role:role
+			}
+		};
+
+		controller.delete(queryForDelete, function( err, reply ) {
+			test.ifError(err);
+			test.ok(reply);
+
+			var queryForRead = {
+				access: {
+					viewName:viewName,
+					role:role
+				}
+			};
+
+			controller.find(queryForRead, function( err, reply ) {
+				test.ok(err.message, 'No requested object access (role: ' + role +', ' +
+					'viewName: ' + viewName + ')');
+				test.done();
+			});
+		});
+	}
+};
+
+
 
 //Создаем случайное число в заданных пределах
 function getRandom(min, max) {

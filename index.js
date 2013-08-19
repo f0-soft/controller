@@ -3,12 +3,12 @@ var sys = require('sys');
 var async = require('async');
 var underscore = require('underscore');
 
-var AccessModelRoleView = require('./access_model_role_view.js');
-var AccessModelUserView = require('./access_model_user_view.js');
-var AccessModelRoleFlexo = require('./access_model_role_flexo.js');
-var AccessModelUserFlexo = require('./access_model_user_flexo.js');
+var AccessModuleRoleView = require('./modules/access_module_role_view.js');
+var AccessModuleUserView = require('./modules/access_module_user_view.js');
+var AccessModuleRoleFlexo = require('./modules/access_module_role_flexo.js');
+var AccessModuleUserFlexo = require('./modules/access_module_user_flexo.js');
 
-var ModelUser = require('./model_user.js');
+var ModuleUser = require('./modules/module_user.js');
 
 var client;
 var globalFlexoSchemes;
@@ -17,7 +17,13 @@ var flexo;
 var View;
 
 var Controller = {};
+//Константы
 var INITIALIZED = false;
+var CREATE = 'create';
+var READ = 'read';
+var MODIFY = 'modify';
+var DELETE = 'delete';
+
 
 module.exports = Controller;
 
@@ -86,13 +92,11 @@ Controller.init = function init( config, callback ) {
 			callback( null, true );
 		});
 	}
-}
+};
 
 Controller.create = function create( query, callback ) {
 
 	if ( !INITIALIZED ) { throw new Error( 'Flexo initialization required' ); }
-
-	var model;
 
 	/*if ( query.user ) {
 		//Запрос на создание пользователя
@@ -154,18 +158,14 @@ Controller.create = function create( query, callback ) {
 			if ( query.access.role ) {
 				//Запрос на создание прав view по роли
 				//ToDo:проверка на целостность пришедших данных
-				//Создаем модель прав по роли для view
-				model = new AccessModelRoleView( client, query.access.viewName,
-					query.access.role );
-
-                model.save( query.access.objAccess, callback );
+				AccessModuleRoleView.save( client, query.access.role, query.access.viewName,
+					query.access.objAccess, callback );
 			} else if ( query.access.login ) {
 				//Запрос на создание прав view по пользователю
 				//ToDo:проверка на целостность пришедших данных
 				//Создаем модель прав по пользователю для view
-				model = new AccessModelUserView( client, query.access.viewName,	query.access.login );
-
-                model.save( query.access.objAccess, callback );
+				AccessModuleUserView.save( client, query.access.login, query.access.viewName,
+					query.access.objAccess, callback );
 
 			} else {
 				callback( new Error( 'Not set role or login in query: '
@@ -174,26 +174,13 @@ Controller.create = function create( query, callback ) {
 		} else if ( query.access.flexoSchemeName ) {
 			if ( query.access.role ) {
 				//Запрос на создание прав flexo по роли
+				AccessModuleRoleFlexo.save( client, query.access.role, query.access.flexoSchemeName,
+					query.access.objAccess, callback );
 
-				//Создаем модель прав по роли для flexo схемы
-				model = new AccessModelRoleFlexo( client, query.access.flexoSchemeName,
-					query.access.role );
-
-				//Передаем в модель объект прав и в случае успешной передачи сохраняем в redis
-				if ( model.setObjAccess( query.access.objAccess ) ){
-					model.save( callback );
-				}
 			} else if ( query.access.login ) {
 				//Запрос на создание прав view по пользователю
-
-				//Создаем модель прав по пользователю для flexo
-				model = new AccessModelUserFlexo( client, query.access.flexoSchemeName,
-					query.access.login );
-
-				//Передаем в модель объект прав и в случае успешной передачи сохраняем в redis
-				if ( model.setObjAccess( query.access.objAccess ) ){
-					model.save( callback );
-				}
+				AccessModuleUserFlexo.save( client, query.access.login,
+					query.access.flexoSchemeName, query.access.objAccess, callback );
 			} else {
 				callback( new Error( 'Not set role or login in query: '
 					+ JSON.stringify( query ) ) );
@@ -265,21 +252,14 @@ Controller.find = function find( query, callback ) {
 			if ( query.access.role ) {
 				//Запрос на чтение прав view по роли
 
-				//Создаем модель прав по роли для view
-				model = new AccessModelRoleView( client, query.access.viewName,
-					query.access.role );
-
 				//Запрашиваемый искомый объект прав
-				model.find( callback );
+				AccessModuleRoleView.find( client, query.access.role, query.access.viewName,
+					callback );
 			} else if ( query.access.login ) {
 				//Запрос на чтение прав view по пользователю
-
-				//Создаем модель прав по пользователю для view
-				model = new AccessModelUserView( client, query.access.viewName,
-					query.access.login );
-
 				//Запрашиваемый искомый объект прав
-				model.find( flexoSchemes, callback );
+				AccessModuleUserView.find( client, query.access.login, query.access.viewName,
+					callback );
 
 			} else {
 				callback( new Error( 'Not set role or login in query: '
@@ -289,22 +269,14 @@ Controller.find = function find( query, callback ) {
 			if ( query.access.role ) {
 				//Запрос на чтение прав flexo по роли
 
-				//Создаем модель прав по роли для flexo схемы
-				model = new AccessModelRoleFlexo( client, query.access.flexoSchemeName,
-					query.access.role );
-
 				//Запрашиваемый искомый объект прав
-                model.find( query.access.flexoSchemeName, callback );
+				AccessModuleRoleFlexo.find( client, query.access.role, query.access.flexoSchemeName,
+					callback );
 
 			} else if ( query.access.login ) {
 				//Запрос на чтение прав view по пользователю
-
-				//Создаем модель прав по пользователю для view
-				model = new AccessModelUserFlexo( client, query.access.flexoSchemeName,
-					query.access.login );
-
 				//Запрашиваемый искомый объект прав
-				model.find( query.access.flexoSchemeName, callback );
+				AccessModuleUserFlexo.find( client, query.access.login, query.access.flexoSchemeName, callback );
 
 			} else {
 				callback( new Error( 'Not set role or login in query: '
@@ -378,21 +350,14 @@ Controller.delete = function del( query, callback ) {
 			//Запрос на удаление прав view
 			if ( query.access.role ) {
 				//Запрос на удаление прав view по роли
-
 				//Создаем модель прав по роли для view
-				model = new AccessModelRoleView( client, query.access.viewName,
-					query.access.role );
-
-					model.delete( callback );
+				AccessModuleRoleView.delete( client, query.access.role, query.access.viewName,
+					callback );
 			} else if ( query.access.login ) {
 				//Запрос на удаление прав view по пользователю
-
-				//Создаем модель прав по роли для view
-				model = new AccessModelUserView( client, query.access.viewName,
-					query.access.login );
-
 				//Удаляем запрашиваемый объект прав
-				model.delete( flexoSchemes, callback );
+				AccessModuleUserView.delete( client, query.access.login, query.access.viewName,
+					callback );
 			} else {
 				callback( new Error( 'Not set role or login in query: '
 					+ JSON.stringify( query ) ) );
@@ -401,22 +366,16 @@ Controller.delete = function del( query, callback ) {
 			if ( query.access.role ) {
 				//Запрос на удаление прав flexo по роли
 
-				//Создаем модель прав по роли для view
-				model = new AccessModelRoleFlexo( client, query.access.flexoSchemeName,
-					query.access.role );
-
 				//Удаляем запрашиваемый объект прав
-                model.delete( query.access.flexoSchemeName, callback );
+				AccessModuleRoleFlexo.delete( client, query.access.role,
+					query.access.flexoSchemeName, callback );
 
 			} else if ( query.access.login ) {
 				//Запрос на удаление прав flexo по пользователю
 
-				//Создаем модель прав по роли для view
-				model = new AccessModelUserFlexo( client, query.access.flexoSchemeName,
-					query.access.login );
-
 				//Удаляем запрашиваемый объект прав
-				model.delete( query.access.flexoSchemeName, callback );
+				AccessModuleUserFlexo.delete( client, query.access.login,
+					query.access.flexoSchemeName, callback );
 
 			} else {
 				callback( new Error( 'Not set role or login in query: '
@@ -503,24 +462,14 @@ Controller.modify = function modify( query, callback ) {
 				//Запрос на создание прав view по роли
 
 				//Создаем модель прав по роли для view
-				var model = new AccessModelRoleView( client, query.access.viewName,
-					query.access.role );
-
-				//Передаем в модель объект прав и в случае успешной передачи сохраняем в redis
-				if ( model.setObjAccess( query.access.objAccess ) ){
-					model.save( callback );
-				}
+				AccessModuleRoleView.save( client, query.access.role, query.access.viewName,
+					query.access.objAccess, callback );
 			} else if ( query.access.login ) {
 				//Запрос на создание прав view по пользователю
 
 				//Создаем модель прав по пользователю для view
-				var model = new AccessModelUserView( client, query.access.viewName,
-					query.access.login );
-
-				//Передаем в модель объект прав и в случае успешной передачи сохраняем в redis
-				if ( model.setObjAccess( query.access.objAccess ) ){
-					model.save( callback );
-				}
+				AccessModuleUserView.save( client, query.access.login, query.access.viewName,
+					query.access.objAccess, callback );
 			} else {
 				callback( new Error( 'Not set role or login in query: '
 					+ JSON.stringify( query ) ) );
@@ -530,24 +479,12 @@ Controller.modify = function modify( query, callback ) {
 				//Запрос на создание прав flexo по роли
 
 				//Создаем модель прав по роли для flexo схемы
-				var model = new AccessModelRoleFlexo( client, query.access.flexoSchemeName,
-					query.access.role );
-
-				//Передаем в модель объект прав и в случае успешной передачи сохраняем в redis
-				if ( model.setObjAccess( query.access.objAccess ) ){
-					model.save( callback );
-				}
+				AccessModuleRoleFlexo.save( client, query.access.role, query.access.flexoSchemeName,
+					query.access.objAccess, callback );
 			} else if ( query.access.login ) {
 				//Запрос на создание прав view по пользователю
-
-				//Создаем модель прав по пользователю для flexo
-				var model = new AccessModelUserFlexo( client, query.access.flexoSchemeName,
-					query.access.login );
-
-				//Передаем в модель объект прав и в случае успешной передачи сохраняем в redis
-				if ( model.setObjAccess( query.access.objAccess ) ){
-					model.save( callback );
-				}
+				AccessModuleUserFlexo.save( client, query.access.login,
+					query.access.flexoSchemeName, query.access.objAccess, callback );
 			} else {
 				callback( new Error( 'Not set role or login in query: '
 					+ JSON.stringify( query ) ) );
@@ -568,24 +505,48 @@ function getTemplate(name, user, role, socket, callback ) {
 	if ( !INITIALIZED ) { throw new Error( 'Flexo initialization required' ); }
 
 	//Проверяем есть ли уже готовые права для view
-	if( socket.view && socket.view[name] && socket.view[name].access) {
-		//Подготовленные права есть
+	if( socket.view && socket.view[name] ) {
+		//Подготовленный список _vid есть
 		//Запрашиваем шаблон view c необходимыми параметрами
-		view.GetTemplate(name, socket.view[name].access, {}, callback);
+		View.getTemplate(name, socket.view[name], {}, function( err, ids, config, template ){
+			if( err ){
+				callback( err );
+			} else {
+
+				if(socket.view[name].length !== ids.length){
+					//ToDo:логирование ошибки целостности
+					//Перезапись разрешенного списка _vid
+					socket.view[name] = ids;
+				}
+
+				callback(null, config, template);
+			}
+		});
 	} else {
 		//Нет прав подготавливаем права и flexo модели
-		formingFlexoAndView( user, role, name, function ( err, reply ) {
+		formingFlexoAndView( user, role, name, function ( err, listAllowedOf_vid ) {
 			if ( err ){
 				callback( err );
 			} else {
 				//Создаем view
-				var objView = new View(name, socket.view[name].access, {});
-				//Сохраняем view к ыщслуе
-				socket.view[name]['objView'] = objView;
-				//Получаем и сохраняем обрезанные права
-				socket.view[name].access = objView.get
 
-				view.GetTemplate(name, socket.view[name].access, {}, callback);
+				View.getTemplate(name, listAllowedOf_vid, function( err, ids, config, template ){
+					if( err ){
+						callback( err );
+					} else {
+						if (!socket.view){
+							socket.view = {};
+						}
+
+						socket.view[name] = ids;
+
+						if(listAllowedOf_vid.length !== ids.length){
+							//ToDo:логирование ошибки целостности
+						}
+
+						callback(null, config, template);
+					}
+				});
 			}
 
 		} );
@@ -597,135 +558,140 @@ Controller.queryToView = function queryToView( type, request, viewName, socket, 
 
 	if ( !INITIALIZED ) { throw new Error( 'Flexo initialization required' ); }
 
-	if( socket.view && socket.view[viewName]) {
-		//Подготовленные права есть
-		if( type === 'read' ) {
-			if( socket.view[viewName].access.read ) {
-				if(checkRead( request.queries, socket.view[viewName].access.read ) ){
-					//Вызываем view c необходимыми параметрами
-					view.ProcessRequest( viewName, 'find', request, socket.view[viewName].flexo,
-						socket.view[viewName].access['read'], {}, callback );
+	if( socket.view && socket.view[viewName] ) {
+		//Подготовленный список разрешенных _vid есть
+		if( type === READ ) {
 
-				} else {
-					callback(new Error('Requested more fields than allowed to read'));
-				}
+			if(checkRead( viewName, request.queries, socket.view[viewName] ) ){
+				//Вызываем view c необходимыми параметрами
+				View.find( viewName, socket.view[viewName], request, callback );
+
 			} else {
-				callback(new Error('No permission to read in view'));
+				callback(new Error('Requested more fields than allowed to read'));
 			}
-		} else if ( type === 'create' ) {
-			if( socket.view[viewName].access.create ) {
-				if(checkCreate( request.queries, socket.view[viewName].access.create ) ){
-					//Вызываем view c необходимыми параметрами
-					//Вызываем view c необходимыми параметрами
-					view.ProcessRequest( viewName, 'insert', request, socket.view[viewName].flexo,
-						socket.view[viewName].access['create'], {}, callback );
-				} else {
-					callback(new Error('No permission to create in view'));
-				}
+
+		} else if ( type === CREATE ) {
+
+			if(checkCreate( viewName, request.queries, socket.view[viewName] ) ){
+				//Вызываем view c необходимыми параметрами
+				//Вызываем view c необходимыми параметрами
+				View.insert( viewName, socket.view[viewName], request, callback );
 			} else {
 				callback(new Error('No permission to create in view'));
 			}
-		} else if ( type === 'modify' ) {
-			if( socket.view[viewName].access.modify ) {
-				if(checkModify( request.queries, socket.view[viewName].access.modify ) ){
-					//Вызываем view c необходимыми параметрами
-					view.ProcessRequest( viewName, 'modify', request, socket.view[viewName].flexo,
-						socket.view[viewName].access['modify'], {}, callback );
-				} else {
-					callback(new Error('No permission to modify in view'));
-				}
+
+		} else if ( type === MODIFY ) {
+
+			if(checkModify( viewName, request.queries, socket.view[viewName] ) ){
+				//Вызываем view c необходимыми параметрами
+				View.modify( viewName, request, callback );
 			} else {
 				callback(new Error('No permission to modify in view'));
 			}
-		} else if ( type === 'delete' ) {
-			if( socket.view[viewName].access.delete ) {
-				if(checkDelete( request.queries, socket.view[viewName].access.delete ) ){
-					view.ProcessRequest( viewName, 'delete', request, socket.view[viewName].flexo,
-						socket.view[viewName].access['delete'], {}, callback );
-				} else {
-					callback(new Error('No permission to delete in view'));
-				}
+
+		} else if ( type === DELETE ) {
+
+			if(checkDelete( viewName, request.queries, socket.view[viewName] ) ){
+				View.delete( viewName, request, callback );
 			} else {
 				callback(new Error('No permission to delete in view'));
 			}
+
 		}
 
 	} else {
-		formingFlexoAndView( socket.login, socket.role, viewName, function ( err, reply ) {
-			if ( err ){
-				callback( err );
-			} else {
-				queryToView( type, request, viewName, socket, callback )
-			}
-		});
+		callback(new Error('Requested data without requiring a template or config'));
 	}
 };
 
-function checkRead( queries, objAccess ) {
-	//Формируем список запрашиваемых flexo
-	var flexoSchemes = Object.keys(queries);
+function checkRead( viewName, queries, listOfAllowed_vids ) {
 
-	//Проверяем каждый запрос на разрешенные поля
-	for ( var i = 0; i < flexoSchemes.length; i++ ){
+    //Формируем списки запрашиваемых полей на проверку для данной схемы
+	var _vidsFromSelector = [];
+	var _vidsFromSort = [];
 
-		if(objAccess[flexoSchemes[i]] && objAccess[flexoSchemes[i]].length === 0) {
+	if(queries.selector)
+		_vidsFromSelector = Object.keys(queries.selector);
+	if(queries.options && queries.options.sort)
+		_vidsFromSort = Object.keys(queries.options.sort);
+
+	//Объединяем массива для проверок в один
+	var _vidsForCheck = underscore.union(_vidsFromSelector, _vidsFromSort);
+	//Пересекаем с разрешенным списком _vids
+	var unresolvedFields  = underscore.difference(_vidsForCheck, listOfAllowed_vids);
+
+	if (unresolvedFields.length !== 0){
+		return false;
+	}
+
+	//Проверяем имеет ли запрашиваемый _vids доступ на чтение в глобальной переменной
+	for( var i=0; i < _vidsForCheck.length; i++ ) {
+		if ( !( globalViewConfig[viewName][listOfAllowed_vids[i]] &&
+			globalViewConfig[viewName][listOfAllowed_vids[i]].flexo.length !== 0 &&
+			( globalViewConfig[viewName][listOfAllowed_vids[i]].type === READ ||
+				globalViewConfig[viewName][listOfAllowed_vids[i]].type === MODIFY ) ) ) {
 			return false;
 		}
-		//Формируем списки запрашиваемых полей на проверку для данной схемы
-		var fieldsFromSelector = [];
-		var fieldsFromSort = [];
+	}
 
-		if(queries[flexoSchemes[i]].selector)
-			fieldsFromSelector = Object.keys(queries[flexoSchemes[i]].selector);
-		if(queries[flexoSchemes[i]].options && queries[flexoSchemes[i]].options.sort)
-			fieldsFromSort = Object.keys(queries[flexoSchemes[i]].options.sort);
+	return true;
+}
 
-		//Объединяем массива для проверок в один
-		var fieldsForCheck = underscore.union(fieldsFromSelector, fieldsFromSort);
-		//Пересекаем с разрешенным полями
-		var unresolvedFields  = underscore.difference(fieldsForCheck, objAccess[flexoSchemes[i]]);
-		unresolvedFields  = underscore.difference(unresolvedFields, ['_id', 'tsCreate', 'tsUpdate']);
+function checkCreate( viewName, queries, listOfAllowed_vids ) {
+	//Проверяем передан ли массив документов или один документ
+	if ( underscore.isArray( queries ) ) {
+		//Формируем список полей на проверку
+		var _vidsForCheck = [];
+		for( var i = 0; i < queries.length; i++ ) {
+			var _vidsFromOneDocument = [];
+
+			if(!underscore.isEmpty(queries[i])) {
+				_vidsFromOneDocument = Object.keys(queries[i]);
+			}
+			_vidsForCheck = underscore.union(_vidsForCheck, _vidsFromOneDocument);
+		}
+
+		if( _vidsForCheck.length === 0 ) {
+			return false;
+		}
+
+		//Пересекаем с разрешенным списком _vids
+		var unresolvedFields  = underscore.difference(_vidsForCheck, listOfAllowed_vids);
 
 		if (unresolvedFields.length !== 0){
 			return false;
 		}
-	}
 
-	return true;
-}
+		//Проверяем имеет ли запрашиваемый _vids доступ к flexo в глобальной переменной
+		for( var i = 0; i < _vidsForCheck.length; i++ ) {
+			if (!( globalViewConfig[viewName][listOfAllowed_vids[i]] &&
+				globalViewConfig[viewName][listOfAllowed_vids[i]].flexo.length !== 0 &&
+				globalViewConfig[viewName][listOfAllowed_vids[i]].type === CREATE ) ) {
+				return false;
+			}
+		}
 
-function checkCreate( queries, objAccessCreate ) {
-	//Формируем список передаваемых на создание flexo
-	var flexoSchemes = Object.keys(queries);
+	} else {
+		var _vidsForCheck = [];
 
-	//Проверяем каждый запрос на разрешенные поля
-	for ( var i = 0; i < flexoSchemes.length; i++ ){
-
-		if(objAccessCreate[flexoSchemes[i]] && objAccessCreate[flexoSchemes[i]].length === 0) {
+		if(!underscore.isEmpty(queries)) {
+			_vidsForCheck = Object.keys(queries);
+		} else {
 			return false;
 		}
 
-		//Проверяем разрешения на создания
-		if( underscore.isArray( queries[flexoSchemes[i]] ) ) {
-            for( var j = 0; j < queries[flexoSchemes[i]].length ; j++ ){
-				//Формирую список полей на проверку
-				var fields = Object.keys(queries[flexoSchemes[i]][j]);
+		//Пересекаем с разрешенным списком _vids
+		var unresolvedFields  = underscore.difference(_vidsForCheck, listOfAllowed_vids);
 
-				//Пересекаем с разрешенными полями на создание
-				var unresolvedFields  = underscore.difference(fields, objAccessCreate[flexoSchemes[i]]);
+		if (unresolvedFields.length !== 0){
+			return false;
+		}
 
-				if (unresolvedFields.length !== 0){
-					return false;
-				}
-			}
-		} else {
-			//Формирую список полей на проверку
-			var fields = Object.keys(queries[flexoSchemes[i]]);
-
-			//Пересекаем с разрешенными полями на создание
-			var unresolvedFields  = underscore.difference(fields, objAccessCreate[flexoSchemes[i]]);
-
-			if (unresolvedFields.length !== 0){
+		//Проверяем имеет ли запрашиваемый _vids доступ к flexo в глобальной переменной
+		for( var i = 0; i < _vidsForCheck.length; i++ ) {
+			if (!( globalViewConfig[viewName][listOfAllowed_vids[i]] &&
+				globalViewConfig[viewName][listOfAllowed_vids[i]].flexo.length !== 0 &&
+				globalViewConfig[viewName][listOfAllowed_vids[i]].type === CREATE ) ) {
 				return false;
 			}
 		}
@@ -734,38 +700,61 @@ function checkCreate( queries, objAccessCreate ) {
 	return true;
 }
 
-function checkModify( queries, objAccessModify ) {
-	//Формируем список изменяемых flexo
-	var flexoSchemes = Object.keys(queries);
+function checkModify( viewName, queries, listOfAllowed_vids ) {
+	//Проверяем передан ли массив документов или один документ
+	if ( underscore.isArray( queries ) ) {
+		//Формируем список полей на проверку
+		var _vidsForCheck = [];
+		for( var i = 0; i < queries.length; i++ ) {
+			var _vidsFromOneDocument = [];
 
-	//Проверяем каждый запрос на разрешенные поля
-	for ( var i = 0; i < flexoSchemes.length; i++ ){
+			if(!underscore.isEmpty(queries[i].properties)) {
+				_vidsFromOneDocument = Object.keys(queries[i].properties);
+			}
+			_vidsForCheck = underscore.union(_vidsForCheck, _vidsFromOneDocument);
+		}
 
-		if(objAccessModify[flexoSchemes[i]] && objAccessModify[flexoSchemes[i]].length === 0) {
+		if( _vidsForCheck.length === 0 ) {
 			return false;
 		}
 
-		//Проверяем разрешения на создания
-		if( underscore.isArray( queries[flexoSchemes[i]] ) ) {
-			for( var j = 0; j < queries[flexoSchemes[i]].length ; j++ ){
-				//Формирую список полей на проверку
-				var fields = Object.keys(queries[flexoSchemes[i]][j].properties);
+		//Пересекаем с разрешенным списком _vids
+		var unresolvedFields  = underscore.difference(_vidsForCheck, listOfAllowed_vids);
 
-				//Пересекаем с разрешенными полями на изменение
-				var unresolvedFields  = underscore.difference(fields, objAccessModify[flexoSchemes[i]]);
+		if (unresolvedFields.length !== 0){
+			return false;
+		}
 
-				if (unresolvedFields.length !== 0){
-					return false;
-				}
+		//Проверяем имеет ли запрашиваемый _vids доступ к flexo в глобальной переменной
+		for( var i = 0; i < _vidsForCheck.length; i++ ) {
+			if (!( globalViewConfig[viewName][listOfAllowed_vids[i]] &&
+				globalViewConfig[viewName][listOfAllowed_vids[i]].flexo.length !== 0 &&
+				globalViewConfig[viewName][listOfAllowed_vids[i]].type === MODIFY ) ) {
+				return false;
 			}
+		}
+
+	} else {
+		var _vidsForCheck = [];
+
+		if(!underscore.isEmpty(queries.properties)) {
+			_vidsForCheck = Object.keys(queries.properties);
 		} else {
-			//Формирую список полей на проверку
-			var fields = Object.keys(queries[flexoSchemes[i]].properties);
+			return false;
+		}
 
-			//Пересекаем с разрешенными полями на изменение
-			var unresolvedFields  = underscore.difference(fields, objAccessModify[flexoSchemes[i]]);
+		//Пересекаем с разрешенным списком _vids
+		var unresolvedFields  = underscore.difference(_vidsForCheck, listOfAllowed_vids);
 
-			if (unresolvedFields.length !== 0){
+		if (unresolvedFields.length !== 0){
+			return false;
+		}
+
+		//Проверяем имеет ли запрашиваемый _vids доступ к flexo в глобальной переменной
+		for( var i = 0; i < _vidsForCheck.length; i++ ) {
+			if (!( globalViewConfig[viewName][listOfAllowed_vids[i]] &&
+				globalViewConfig[viewName][listOfAllowed_vids[i]].flexo.length !== 0 &&
+				globalViewConfig[viewName][listOfAllowed_vids[i]].type === MODIFY ) ) {
 				return false;
 			}
 		}
@@ -774,14 +763,63 @@ function checkModify( queries, objAccessModify ) {
 	return true;
 }
 
-function checkDelete( queries, objAccessDelete ) {
-	//Формируем список изменяемых flexo
-	var flexoSchemes = Object.keys(queries);
+function checkDelete( viewName, queries, listOfAllowed_vids ) {
+	//Проверяем передан ли массив документов или один документ
+	if ( underscore.isArray( queries ) ) {
+		//Формируем список полей на проверку
+		var _vidsForCheck = [];
+		for( var i = 0; i < queries.length; i++ ) {
+			var _vidsFromOneDocument = [];
 
-	//Проверяем каждый запрос на разрешение удаления
-	for ( var i = 0; i < flexoSchemes.length; i++ ) {
-		if ( objAccessDelete[flexoSchemes[i]] !== 1 ) {
+			if(!underscore.isEmpty(queries[i].selector)) {
+				_vidsFromOneDocument = Object.keys(queries[i].selector);
+			}
+			_vidsForCheck = underscore.union(_vidsForCheck, _vidsFromOneDocument);
+		}
+
+		if( _vidsForCheck.length === 0 ) {
 			return false;
+		}
+
+		//Пересекаем с разрешенным списком _vids
+		var unresolvedFields  = underscore.difference(_vidsForCheck, listOfAllowed_vids);
+
+		if (unresolvedFields.length !== 0){
+			return false;
+		}
+
+		//Проверяем имеет ли запрашиваемый _vids доступ к flexo в глобальной переменной
+		for( var i = 0; i < _vidsForCheck.length; i++ ) {
+			if (!( globalViewConfig[viewName][listOfAllowed_vids[i]] &&
+				globalViewConfig[viewName][listOfAllowed_vids[i]].flexo.length !== 0 &&
+				globalViewConfig[viewName][listOfAllowed_vids[i]].type === DELETE ) ) {
+				return false;
+			}
+		}
+
+	} else {
+		var _vidsForCheck = [];
+
+		if(!underscore.isEmpty(queries.selector)) {
+			_vidsForCheck = Object.keys(queries.selector);
+		} else {
+			return false;
+		}
+
+		//Пересекаем с разрешенным списком _vids
+		var unresolvedFields  = underscore.difference(_vidsForCheck, listOfAllowed_vids);
+
+		if (unresolvedFields.length !== 0){
+			return false;
+		}
+
+		//Проверяем имеет ли запрашиваемый _vids доступ к flexo в глобальной переменной
+		for( var i = 0; i < _vidsForCheck.length; i++ ) {
+			if (!( globalViewConfig[viewName][listOfAllowed_vids[i]] &&
+				globalViewConfig[viewName][listOfAllowed_vids[i]].flexo.length !== 0 &&
+				globalViewConfig[viewName][listOfAllowed_vids[i]].type === DELETE ) ) {
+				return false;
+			}
 		}
 	}
 
@@ -819,7 +857,7 @@ function formingFlexoAndView( user, role, viewName, callback ){
 							listAllowedOf_vid: listAllowedOf_vid[i],
 							schemeName: schemeName,
 							fields: fields,
-							type: access
+							type: type
 						});
 					}
 
@@ -842,30 +880,62 @@ function formingFlexoAndView( user, role, viewName, callback ){
 
 					var list_vidForRemove = [];
 					for( var i = 0; i < list_vidForFlexoCheck.length; i++ ) {
-						if(list_vidForFlexoCheck[i].type === 'read'){
+						if(list_vidForFlexoCheck[i].type === READ){
 
 							var difference = underscore.difference(list_vidForFlexoCheck[i].fields,
-								flexoAccess['read'][list_vidForFlexoCheck[i].schemeName]);
+								flexoAccess[READ][list_vidForFlexoCheck[i].schemeName]);
 
 							if(difference.length !== 0){
 								//Запрашиваются поля которые не разрешены в полях
-								//ToDo: логировать нарушение целостности
+								//ToDo: Возможно: логировать нарушение целостности
 								list_vidForRemove.push(list_vidForFlexoCheck[i].listAllowedOf_vid);
 							}
 
 
-						} else if (list_vidForFlexoCheck[i].type === 'modify'){
+						} else if (list_vidForFlexoCheck[i].type === MODIFY) {
 
 							var difference = underscore.difference(list_vidForFlexoCheck[i].fields,
-								flexoAccess['modify'][list_vidForFlexoCheck[i].schemeName]);
+								flexoAccess[MODIFY][list_vidForFlexoCheck[i].schemeName]);
 
 							if(difference.length !== 0){
 								//Запрашиваются поля которые не разрешены в полях
-								//ToDo: логировать нарушение целостности
+								//ToDo: Возможно: логировать нарушение целостности
 								list_vidForRemove.push(list_vidForFlexoCheck[i].listAllowedOf_vid);
 							}
 
 
+						} else if (list_vidForFlexoCheck[i].type === CREATE) {
+
+							if( list_vidForFlexoCheck[i].fields.length === 0 ) {
+								//Проверяется общее разрешение на создание документа в целом
+								if (flexoAccess['createAll'][list_vidForFlexoCheck[i].schemeName]
+									!== 1){
+									//ToDo: Возможно: логировать нарушение целостности
+									list_vidForRemove.push(
+										list_vidForFlexoCheck[i].listAllowedOf_vid);
+								}
+							} else {
+								//Проверяется частные разрешения на создание документа
+								var difference = underscore.difference(
+									list_vidForFlexoCheck[i].fields,
+									flexoAccess[CREATE][list_vidForFlexoCheck[i].schemeName]);
+
+								if(difference.length !== 0){
+									//Запрашиваются поля которые не разрешены в полях
+									//ToDo: Возможно: логировать нарушение целостности
+									list_vidForRemove.push(list_vidForFlexoCheck[i].listAllowedOf_vid);
+								}
+
+							}
+
+						} else if (list_vidForFlexoCheck[i].type === DELETE) {
+							//Проверяется общее разрешение на удаление документа в целом
+							if (flexoAccess['delete'][list_vidForFlexoCheck[i].schemeName]
+								!== 1){
+								//ToDo: Возможно: логировать нарушение целостности
+								list_vidForRemove.push(
+									list_vidForFlexoCheck[i].listAllowedOf_vid);
+							}
 						}
 					}
 
@@ -880,18 +950,17 @@ function formingFlexoAndView( user, role, viewName, callback ){
 }
 
 function crossingAccessForFlexo(user, role, viewName, flexoSchemes, callback) {
-	//Создаем модель прав по роли и по пользователю для работы с объектами прав flexo схем
-	var modelFlexoRole = new AccessModelRoleFlexo( client, null, role );
-	var modelFlexoUser = new AccessModelUserFlexo( client, null, user );
 
 	//Запрашиваемый данные о правах для определения пересечения
 	if ( flexoSchemes ) {
 		async.parallel([
 			function(cb){
-				modelFlexoRole.accessDataPreparation( globalFlexoSchemes, flexoSchemes, cb);
+				AccessModuleRoleFlexo.accessDataPreparation( client, role, globalFlexoSchemes,
+					flexoSchemes, cb);
 			},
 			function(cb){
-				modelFlexoUser.accessDataPreparation( globalFlexoSchemes, flexoSchemes, cb);
+				AccessModuleUserFlexo.accessDataPreparation( client, user, globalFlexoSchemes,
+					flexoSchemes, cb);
 			}
 		],
 			function(err, replies) {
@@ -919,6 +988,27 @@ function crossingAccessForFlexo(user, role, viewName, flexoSchemes, callback) {
 						//Создание
 						objAccess = crossingAccess( 'create', schemes[i], objAccessRole,
 							objAccessUser, objAccess );
+
+						//Cоздание в целом
+						var createAll = 0;
+
+						if( objAccessRole[schemes[i]] && objAccessRole[schemes[i]]['createAll'] ) {
+							createAll = objAccessRole[schemes[i]['createAll']];
+						}
+
+						if(objAccessUser[schemes[i]]){
+							if( objAccessUser[schemes[i]]['createAll'] === 0) {
+								createAll = 0;
+							} else if ( objAccessUser[schemes[i]]['createAll'] === 1) {
+								createAll = 1;
+							}
+						}
+
+						if ( !objAccess['createAll'] ) {
+							objAccess['createAll'] = {}
+						}
+
+						objAccess['createAll'][schemes[i]] = createAll;
 
 						//Удаление
 						var del = 0;
@@ -955,27 +1045,25 @@ function crossingAccessForFlexo(user, role, viewName, flexoSchemes, callback) {
 }
 
 function crossingAccessForView(user, role, viewName, callback ) {
-	//Создаем модель прав по роли и по пользователю
-	var modelViewRole = new AccessModelRoleView( client, viewName, role );
-	var modelViewUser = new AccessModelUserView( client, viewName, user );
-
 	//Запрашиваемый данные о правах для определения пересечения
 	async.parallel([
 		function(cb){
-			modelViewRole.find( function(err, reply){
+			AccessModuleRoleView.find(client, role, viewName, function(err, objAccess){
 				if (err) {
 					cb( err );
 				} else {
-					modelViewRole.accessPreparation( cb );
+					cb( null, AccessModuleRoleView.accessPreparation( objAccess,
+						globalViewConfig[viewName] ) );
 				}
 			} );
 		},
 		function(cb){
-			modelViewUser.find( function(err, reply){
+			AccessModuleUserView.find(client, user, viewName, function(err, objAccess){
 				if (err) {
 					cb( err );
 				} else {
-					modelViewUser.accessPreparation( cb );
+					cb( null, AccessModuleUserView.accessPreparation( objAccess,
+						globalViewConfig[viewName] ) );
 				}
 			} );
 		}

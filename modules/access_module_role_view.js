@@ -1,22 +1,6 @@
 var underscore = require('underscore');
 
-module.exports = AccessModelRoleView;
-
-/**
- * Конструктор модели прав по роли для view
- *
- * @constructor
- * @param client - объект redis клиент
- * @param strViewName - строка, название view
- * @param strRole - строка, роль
- */
-function AccessModelRoleView( client, strViewName, strRole ) {
-	this.client = client;
-	this.viewName = strViewName;
-	this.role = strRole;
-	this.objAccess = {};
-	return this;
-}
+var AccessModuleRoleView = {};
 
 /**
  * Сохранение модели в redis
@@ -26,10 +10,8 @@ function AccessModelRoleView( client, strViewName, strRole ) {
  * 		err - ошибка от node_redis
  * 		reply - true в случае успешного сохранения
  */
-AccessModelRoleView.prototype.save = function save( objAccess, callback ){
-	var multi = this.client.multi();
-	var viewName = this.viewName;
-	var role = this.role;
+AccessModuleRoleView.save = function save( client, role, viewName, objAccess, callback ){
+	var multi = client.multi();
 	var key; //Формируемый ключ redis
 
 	//Сохранение объекта прав в redis
@@ -57,19 +39,20 @@ AccessModelRoleView.prototype.save = function save( objAccess, callback ){
  * 		err - ошибка от node_redis
  * 		reply - возвращается искомый объект прав
  */
-AccessModelRoleView.prototype.find = function find( callback ) {
-	var viewName = this.viewName;
-	var role = this.role;
-	var self = this;
-	this.client.GET(  strViewAccessRole( viewName, role), function( err, reply ) {
+AccessModuleRoleView.find = function find( client, role, viewName, callback ) {
+
+	client.GET(  strViewAccessRole( viewName, role), function( err, reply ) {
 		if ( err ) {
 			callback( err );
 		} else {
-			//Формируем из массива объект прав:
-			var objAccess  = JSON.parse(reply[i]);
+			if ( reply ) {
+				var objAccess  = JSON.parse(reply);
 
-			self.objAccess = objAccess;
-			callback( null, objAccess );
+				callback( null, objAccess );
+			} else {
+				callback(new Error('No requested object access (role: ' + role +', ' +
+					'viewName: ' + viewName + ')'))
+			}
 		}
 	});
 };
@@ -81,10 +64,8 @@ AccessModelRoleView.prototype.find = function find( callback ) {
  * 		err - ошибка от node_redis
  * 		reply - - true в случае успешного удаления
  */
-AccessModelRoleView.prototype.delete = function remove(callback){
-	var multi = this.client.multi();
-	var viewName = this.viewName;
-	var role = this.role;
+AccessModuleRoleView.delete = function remove(client, role, viewName, callback){
+	var multi = client.multi();
 	var key;
 
 	//Формируем команды на удаление
@@ -107,8 +88,7 @@ AccessModelRoleView.prototype.delete = function remove(callback){
  *
  * @returns - объект с подготовленными данными
  */
-AccessModelRoleView.prototype.accessPreparation = function accessPreparation( viewConfig ) {
-	var objAccess = this.objAccess;
+AccessModuleRoleView.accessPreparation = function accessPreparation( objAccess, viewConfig ) {
 	//Формируем объект со справочниками из полей для будущего определения пересечения прав
     var objReturnAccessForRole = {};
 	objReturnAccessForRole['add'] = [];
@@ -144,4 +124,4 @@ function setAllAccess(){
 	return 'all:access:';
 }
 
-
+module.exports = AccessModuleRoleView;

@@ -1,22 +1,6 @@
 var underscore = require('underscore');
 
-module.exports = AccessModelUserView;
-
-/**
- * Конструктор модели прав по пользователю для view
- *
- * @constructor
- * @param client - объект redis клиент
- * @param strViewName - строка, название view
- * @param strUser - строка, логин пользователя
- */
-function AccessModelUserView( client, strViewName, strUser ) {
-	this.client = client;
-	this.viewName = strViewName;
-	this.user = strUser;
-	this.objAccess = {};
-	return this;
-}
+var AccessModuleUserView = {};
 
 /**
  * Сохранение модели в redis
@@ -25,10 +9,8 @@ function AccessModelUserView( client, strViewName, strUser ) {
  * 		err - ошибка от node_redis
  * 		reply - true в случае успешного сохранения
  */
-AccessModelUserView.prototype.save = function save( callback ){
-	var multi = this.client.multi();
-	var viewName = this.viewName;
-	var user = this.user;
+AccessModuleUserView.save = function save( client, user, viewName, objAccess, callback ){
+	var multi = client.multi();
 	var key; //Формируемый ключ redis
 
 	//Сохранение объекта прав в redis
@@ -56,19 +38,20 @@ AccessModelUserView.prototype.save = function save( callback ){
  * 		err - ошибка от node_redis
  * 		reply - возвращается искомый объект прав
  */
-AccessModelUserView.prototype.find = function find( callback ) {
-	var viewName = this.viewName;
-	var user = this.user;
-	var self = this;
-	this.client.GET(  strViewAccessUser( viewName, role), function( err, reply ) {
+AccessModuleUserView.find = function find( client, user, viewName, callback ) {
+
+	client.GET(  strViewAccessUser( viewName, user), function( err, reply ) {
 		if ( err ) {
 			callback( err );
 		} else {
-			//Формируем из массива объект прав:
-			var objAccess  = JSON.parse(reply[i]);
+			if ( reply ) {
+				var objAccess  = JSON.parse(reply);
 
-			self.objAccess = objAccess;
-			callback( null, objAccess );
+				callback( null, objAccess );
+			} else {
+				callback(new Error('No requested object access (user: ' + user +', ' +
+				'viewName: ' + viewName + ')'))
+			}
 		}
 	});
 };
@@ -76,15 +59,12 @@ AccessModelUserView.prototype.find = function find( callback ) {
 /**
  * Удаление модели прав для view в redis по заданному списку flexo scheme
  *
- * @param listFlexoSchemesNames - массив запрашиваемых flexo схем во view
  * @param callback (err, reply)
  * 		err - ошибка от node_redis
  * 		reply - - true в случае успешного удаления
  */
-AccessModelUserView.prototype.delete = function remove(listFlexoSchemesNames, callback){
-	var multi = this.client.multi();
-	var viewName = this.viewName;
-	var user = this.user;
+AccessModuleUserView.delete = function remove(client, user, viewName, callback){
+	var multi = client.multi();
 	var key;
 
 	//Формируем команды на удаление
@@ -108,8 +88,7 @@ AccessModelUserView.prototype.delete = function remove(listFlexoSchemesNames, ca
  *
  * @returns {{}} - объект с подготовленными данными
  */
-AccessModelUserView.prototype.accessPreparation = function accessPreparation( viewConfig ) {
-	var objAccess = this.objAccess;
+AccessModuleUserView.accessPreparation = function accessPreparation( objAccess, viewConfig ) {
 	//Формируем объект со справочниками из полей для будущего определения пересечения прав
 	var objReturnAccessForUser = {};
 	objReturnAccessForUser['add'] = [];
@@ -148,3 +127,5 @@ function strViewAccessUser( viewName, user ) {
 function setAllAccess(){
 	return 'all:access:';
 }
+
+module.exports = AccessModuleUserView;

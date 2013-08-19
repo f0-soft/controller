@@ -1,21 +1,4 @@
-module.exports = ModelUser;
-
-/**
- * Конструктор модели пользователя
- *
- * @constructor
- * @param client - объект redis клиент
- * @param [login] - строка, login пользователя
- * @param [_id] - строка, идентификатор пользователя
- */
-
-function ModelUser( client, login, _id ) {
-	this.client = client;
-	this.login = login;
-	this._id = _id;
-	this.objUser = {};
-	return this;
-}
+var ModuleUser = {};
 
 /**
  * Создаем нового пользователя и сохраняем в redis
@@ -25,16 +8,14 @@ function ModelUser( client, login, _id ) {
  * 		err - ошибки от node_redis и ...
  * 		reply - возвращается true в случае успешного создания
  */
-ModelUser.prototype.create = function create( odjUser, callback ) {
+ModuleUser.create = function create( client, odjUser, callback ) {
 
 	if(typeof odjUser['_id'] !== "string"){
 		throw new Error( 'In the object field _id is missing: ' + JSON.stringify( odjUser ) );
 	}
 
-	var self = this;
-
 	//Сохраняем данные о пользователе в redis
-	var multi = this.client.multi();
+	var multi = client.multi();
 
 	//Сохраняем кеш с данными о пользователе
 	multi.SET( strUserCache( odjUser['_id'] ), JSON.stringify( odjUser ) );
@@ -51,20 +32,18 @@ ModelUser.prototype.create = function create( odjUser, callback ) {
 		if(err){
 			callback( err );
 		} else {
-			self.objUser = odjUser;
-
 			callback( null, true );
 		}
 	});
 };
 
-ModelUser.prototype.checkUnique = function checkUnique(login, callback){
+ModuleUser.checkUnique = function checkUnique(client, login, callback){
 	if(typeof login !== "string"){
 		throw new Error( 'In the object field login is missing: ' + JSON.stringify( odjUser ) );
 	}
 
 	//Проверяем уникальность создаваемого пользователя
-	this.client.GET( strLoginToId( login ), function( err, reply ){
+	client.GET( strLoginToId( login ), function( err, reply ){
 		if( err ){
 			callback( err );
 		} else if (reply) {
@@ -82,40 +61,38 @@ ModelUser.prototype.checkUnique = function checkUnique(login, callback){
  * 		err - ошибки от node_redis и ...
  * 		reply - объект с информацией о пользователе	в виде {fieldName:value}
  */
-ModelUser.prototype.find = function find(callback){
+ModuleUser.find = function find(client, _id, login, callback){
 	//Простой поиск пользователя
-	if( this._id ) {
-		var self = this;
+	if( _id ) {
 		//Получаем кеш с данными пользователя
-		this.client.GET( strUserCache( this._id ), function( err, reply ) {
+		client.GET( strUserCache( _id ), function( err, reply ) {
 			if ( err ) {
 				callback( err );
 			} else if (reply) {
 				callback( null, JSON.parse( reply ) );
 			} else {
-				callback( new Error( 'No cache in redis for the _id: '+ self._id ) );
+				callback( new Error( 'No cache in redis for the _id: '+ _id ) );
 			}
 		} );
-	} else if ( this.login ) {
-		var self = this;
+	} else if ( login ) {
 		//Получаем идентификатор пользователя
-		this.client.GET( strLoginToId( this.login ), function( err, _id ){
+		client.GET( strLoginToId( login ), function( err, _id ){
 			if( err ){
 				callback(err);
 			} else if ( _id ){
 				//Получаем кеш с данными пользователя
-				self.client.GET( strUserCache( _id ), function( err, reply ) {
+				client.GET( strUserCache( _id ), function( err, reply ) {
 					if ( err ) {
 						callback( err );
 					} else if (reply) {
 						callback( null, JSON.parse( reply ) );
 					} else {
-						callback( new Error( 'No cache in redis for the login: '+ self.login ) );
+						callback( new Error( 'No cache in redis for the login: '+ login ) );
 					}
 				} );
 
 			} else {
-				callback( new Error( 'Requested the login does not exist: ' + self.login ) );
+				callback( new Error( 'Requested the login does not exist: ' + login ) );
 			}
 		});
 	} else {
@@ -123,9 +100,9 @@ ModelUser.prototype.find = function find(callback){
 	}
 };
 
-ModelUser.prototype.findsPass = function findsPass(listDocuments, callback){
+ModuleUser.findsPass = function findsPass(client, listDocuments, callback){
 	//ToDo: хранить пары логин пароль, возможно???
-	var multi = this.client.multi();
+	var multi = client.multi();
 
 	for(var i=0; i<listDocuments.length; i++){
 		multi.GET( strIdToLogin(listDocuments._id) );
@@ -150,22 +127,21 @@ ModelUser.prototype.findsPass = function findsPass(listDocuments, callback){
  * 		err - ошибки от node_redis и ...
  * 		reply - возвращается true в случае успешного удаления
  */
-ModelUser.prototype.delete = function del(callback){
-	if ( this._id ) {
+ModuleUser.delete = function del(client, _id, callback){
+	if ( _id ) {
 		//Получаем имя пользователя
-		var self = this;
-		this.client.GET( strIdToLogin( this._id ), function(err, login){
+		client.GET( strIdToLogin( _id ), function(err, login){
 			if ( err ) {
 				callback( err );
 			} else if ( login ) {
 				//Формируем команды на удаление пользователя
-				var multi = self.client.multi();
-				multi.DEL( strUserCache( self._id ) );
-				multi.DEL( strIdToLogin( self._id ) );
+				var multi = client.multi();
+				multi.DEL( strUserCache( _id ) );
+				multi.DEL( strIdToLogin( _id ) );
 				multi.DEL( strLoginToId( login ) );
 				//ToDo: Временно зачистка ключей из множества для бытрого удаления всех прав
-				multi.SREM( setAllAccess(), strUserCache( self._id ) );
-				multi.SREM( setAllAccess(), strIdToLogin( self._id ) );
+				multi.SREM( setAllAccess(), strUserCache( _id ) );
+				multi.SREM( setAllAccess(), strIdToLogin( _id ) );
 				multi.SREM( setAllAccess(), strLoginToId( login ) );
 
 				multi.EXEC(function( err, replies ) {
@@ -176,7 +152,7 @@ ModelUser.prototype.delete = function del(callback){
 					}
 				} );
 			} else {
-				callback( new Error( 'Removal is not an existing user with _id: ' + self._id ) );
+				callback( new Error( 'Removal is not an existing user with _id: ' + _id ) );
 			}
 		} );
 	} else {
@@ -193,12 +169,11 @@ ModelUser.prototype.delete = function del(callback){
  * 		err - ошибки от node_redis и ...
  * 		reply - возвращается true в случае успешного удаления
  */
-ModelUser.prototype.modify = function modify(objNewData, callback){
+ModuleUser.modify = function modify(client, _id, objNewData, callback){
 
-	if ( this._id ) {
+	if ( _id ) {
 		//Получаем кеш из redis по _id
-		var self = this;
-		this.client.GET( strUserCache( this._id ), function( err, reply ){
+		client.GET( strUserCache( _id ), function( err, reply ){
 			if( err ) {
 				callback( err );
 			} else if ( reply ) {
@@ -206,7 +181,7 @@ ModelUser.prototype.modify = function modify(objNewData, callback){
 				//Получаю список изменяемых полей
 				var listFields = Object.keys( objNewData );
 				//Вносим изменения в кеш
-				var multi = self.client.multi();
+				var multi = client.multi();
 				for( var i = 0; i < listFields.length; i++ ) {
 					//Проверяем изменение логина пользователя
 					if(listFields[i] === 'login') {
@@ -214,9 +189,9 @@ ModelUser.prototype.modify = function modify(objNewData, callback){
 						var newLogin = objNewData['login'];
 
 						multi.DEL(strLoginToId(lastLogin));
-						multi.DEL(strIdToLogin(self._id));
-						multi.SET(strLoginToId(newLogin), self._id);
-						multi.SET(strIdToLogin(self._id), newLogin);
+						multi.DEL(strIdToLogin(_id));
+						multi.SET(strLoginToId(newLogin), _id);
+						multi.SET(strIdToLogin(_id), newLogin);
 					}
 
 					//Отфильтровываем изменение поля _id
@@ -227,7 +202,7 @@ ModelUser.prototype.modify = function modify(objNewData, callback){
 				}
 
 				//Сохраняем измененные кеш с данными о пользователе
-				multi.SET( strUserCache( self._id ), JSON.stringify( cache ));
+				multi.SET( strUserCache( _id ), JSON.stringify( cache ));
 				multi.EXEC( function( err ){
 						if ( err ){
 							callback( err );
@@ -238,7 +213,7 @@ ModelUser.prototype.modify = function modify(objNewData, callback){
 
 			} else {
 				callback( new Error( 'Modification of data is not existing user with _id: '
-					+ self._id ) );
+					+ _id ) );
 			}
 		} );
 	} else {
@@ -266,3 +241,4 @@ function setAllAccess(){
 	return 'all:access:';
 }
 
+module.exports = ModuleUser;
