@@ -92,7 +92,7 @@ configForController.menuConfig = menuConfig;
 
 if(mock.view ){
 	var viewConfig = {dependent:'services'};
-	var View = require( './view_mock.js' );
+	var View = require( './mock/view_mock.js' );
 } else {
 	var viewConfig = require('./config/viewConfig.js').viewConfig;
 	var View = require( 'f0.view' );

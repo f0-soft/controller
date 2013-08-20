@@ -119,15 +119,16 @@ AccessModuleUserFlexo.accessDataPreparation =
 						globalFlexoSchemes[flexoSchemesName[i]]['read']);
 					//Проверяем целостность прав на чтение
 					//Права на flexo не должны по полям превышать глобальных прав
-					var differenceRead = underscore.difference(readFields,
+					var resultReadFields = underscore.difference(readFields[0], readFields[1]);
+					var differenceRead = underscore.difference(resultReadFields,
 						globalFlexoSchemes[flexoSchemesName[i]]['read']);
 					if( differenceRead.length !== 0 ){
 						//ToDo: доделать сигнализацию о нарушении целостности
 						//Присутствует нарушение целостности, обрезаем права
-						readFields = underscore.difference(readFields, differenceRead);
+						readFields[0] = underscore.difference(readFields[0], differenceRead);
 					}
 					//Сохраняем права на чтение
-					if(readFields.length !== 0){
+					if(readFields[0].length !== 0 || readFields[1].length !== 0){
 						objAccess[flexoSchemesName[i]]['read'] = readFields;
 					}
 
@@ -136,15 +137,16 @@ AccessModuleUserFlexo.accessDataPreparation =
 						globalFlexoSchemes[flexoSchemesName[i]]['modify']);
 					//Проверяем целостность прав на модификацию
 					//Права на flexo не должны по полям превышать глобальных прав
-					var differenceModify = underscore.difference(modifyFields,
+					var resultModifyFields = underscore.difference(modifyFields[0], modifyFields[1]);
+					var differenceModify = underscore.difference(resultModifyFields,
 						globalFlexoSchemes[flexoSchemesName[i]]['modify']);
 					if( differenceModify.length !== 0 ){
 						//ToDo: доделать сигнализацию о нарушении целостности
 						//Присутствует нарушение целостности, обрезаем права
-						modifyFields = underscore.difference(modifyFields, differenceModify);
+						modifyFields[0] = underscore.difference(modifyFields[0], differenceModify);
 					}
 					//Сохраняем права на модификацию
-					if(modifyFields.length !== 0){
+					if(modifyFields[0].length !== 0 || modifyFields[1].length !== 0){
 						objAccess[flexoSchemesName[i]]['modify'] = modifyFields;
 					}
 
@@ -153,15 +155,16 @@ AccessModuleUserFlexo.accessDataPreparation =
 						globalFlexoSchemes[flexoSchemesName[i]]['modify']);
 					//Проверяем целостность прав на создание
 					//Права на flexo не должны по полям превышать глобальных прав
-					var differenceCreate = underscore.difference(createFields,
+					var resultCreateFields = underscore.difference(createFields[0], createFields[1]);
+					var differenceCreate = underscore.difference(resultCreateFields,
 						globalFlexoSchemes[flexoSchemesName[i]]['modify']);
 					if( differenceCreate.length !== 0 ){
 						//ToDo: доделать сигнализацию о нарушении целостности
 						//Присутствует нарушение целостности, обрезаем права
-						createFields = underscore.difference(createFields, differenceCreate);
+						createFields[0] = underscore.difference(createFields[0], differenceCreate);
 					}
 					//Сохраняем права на создание
-					if(createFields.length !== 0){
+					if(createFields[0].length !== 0 || createFields[1].length !== 0){
 						objAccess[flexoSchemesName[i]]['create'] = createFields;
 					}
 
@@ -200,7 +203,8 @@ function accessDataPreparationForMethod(method, objAccess, fieldsGlobalFlexoSche
 
 	if ( objAccess[method] ) {
 		//Проверяем наличие спец команды (all)
-		if( objAccess[method]['(all)'] ) {
+		var temp = objAccess[method]['(all)'];
+		if( !underscore.isUndefined(temp)) {
 			//Проверяется на равенство 1, так как запрет всех полей по роли должно
 			// соответстввать отсутствию полей в правах
 			if ( objAccess[method]['(all)'] === 1 ){
@@ -238,13 +242,13 @@ function accessDataPreparationForMethod(method, objAccess, fieldsGlobalFlexoSche
 			}
 		} else {
 			//Получаем все поля из объекта прав
-			var readFields = Object.keys(objAccess[method]);
+			var fields = Object.keys(objAccess[method]);
 			//Формируем списки которые необходимо добавить или удалить
-			for ( var j = 0; j < readFields.length; j++) {
+			for ( var j = 0; j < fields.length; j++) {
 				//Проверяется, так как в роли при отсутствия спец команды (all) поля с
 				// запретом равносильны отсутствию полей
-				if (objAccess[method][readFields[j]] === 1){
-					permissionFields.push(readFields[j]);
+				if (objAccess[method][fields[j]] === 1){
+					permissionFields.push(fields[j]);
 				} else {
 					notPermissionFields.push(fields[j]);
 				}

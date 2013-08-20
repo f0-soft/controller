@@ -3,8 +3,6 @@ var underscore = require('underscore');
 var view = {}; //Переменная для хранения массивов с данными для каждой flexo схемы
 var dependent; //Переменная для хранения имени зависимой схемы
 var viewName; //Название view
-var viewDbAccess;
-var viewViewAccess;
 
 function init ( config, callback ){
 	dependent = config.dependent;
@@ -14,7 +12,7 @@ function init ( config, callback ){
 
 function getTemplate ( name, vids, callback ) {
 
-	callback(null, vids, '<table>' + viewName + '</table>', 'javascriptConfigFor' + viewName);
+	callback(null, vids, '<table>' + name + '</table>', 'javascriptConfigFor' + name);
 }
 
 function find(viewName, listOf_vids, request, callback){

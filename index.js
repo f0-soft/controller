@@ -832,6 +832,8 @@ function formingFlexoAndView( user, role, viewName, callback ){
 	crossingAccessForView(user, role, viewName, function( err, listAllowedOf_vid ) {
 		if( err ) {
 			callback ( err );
+		} else if ( listAllowedOf_vid.length === 0 ) {
+		    callback ( new Error('No permissions access to view'));
 		} else {
 			//Формируем список необходимых flexo схем
 			var listOfFlexoSchemes = [];
@@ -868,82 +870,93 @@ function formingFlexoAndView( user, role, viewName, callback ){
 				}
 			}
 
+			listOfFlexoSchemes = underscore.uniq(listOfFlexoSchemes);
 			listAllowedOf_vid = underscore.difference(listAllowedOf_vid, list_vidForRemove);
 
-			//Подготавливаем объект с правами для view
-			crossingAccessForFlexo(user, role, viewName, listOfFlexoSchemes,
-				function(err, flexoAccess){
-				if( err ){
-					callback( err );
-				} else {
-					//Сравниваем разрешения flexo и требуемые разрешения
+			if ( listOfFlexoSchemes.length ) {
+				//Подготавливаем объект с правами для view
+				crossingAccessForFlexo(user, role, viewName, listOfFlexoSchemes,
+					function(err, flexoAccess){
+					if( err ){
+						callback( err );
+					} else {
+						//Сравниваем разрешения flexo и требуемые разрешения
 
-					var list_vidForRemove = [];
-					for( var i = 0; i < list_vidForFlexoCheck.length; i++ ) {
-						if(list_vidForFlexoCheck[i].type === READ){
+						var list_vidForRemove = [];
+						for( var i = 0; i < list_vidForFlexoCheck.length; i++ ) {
+							if(list_vidForFlexoCheck[i].type === READ){
 
-							var difference = underscore.difference(list_vidForFlexoCheck[i].fields,
-								flexoAccess[READ][list_vidForFlexoCheck[i].schemeName]);
+								var difference = underscore.difference(
+									list_vidForFlexoCheck[i].fields,
+									flexoAccess[READ][list_vidForFlexoCheck[i].schemeName]);
 
-							if(difference.length !== 0){
-								//Запрашиваются поля которые не разрешены в полях
-								//ToDo: Возможно: логировать нарушение целостности
-								list_vidForRemove.push(list_vidForFlexoCheck[i].listAllowedOf_vid);
-							}
-
-
-						} else if (list_vidForFlexoCheck[i].type === MODIFY) {
-
-							var difference = underscore.difference(list_vidForFlexoCheck[i].fields,
-								flexoAccess[MODIFY][list_vidForFlexoCheck[i].schemeName]);
-
-							if(difference.length !== 0){
-								//Запрашиваются поля которые не разрешены в полях
-								//ToDo: Возможно: логировать нарушение целостности
-								list_vidForRemove.push(list_vidForFlexoCheck[i].listAllowedOf_vid);
-							}
+								if(difference.length !== 0){
+									//Запрашиваются поля которые не разрешены в полях
+									//ToDo: Возможно: логировать нарушение целостности
+									list_vidForRemove.push(
+										list_vidForFlexoCheck[i].listAllowedOf_vid);
+								}
 
 
-						} else if (list_vidForFlexoCheck[i].type === CREATE) {
+							} else if (list_vidForFlexoCheck[i].type === MODIFY) {
 
-							if( list_vidForFlexoCheck[i].fields.length === 0 ) {
-								//Проверяется общее разрешение на создание документа в целом
-								if (flexoAccess['createAll'][list_vidForFlexoCheck[i].schemeName]
+								var difference = underscore.difference(
+									list_vidForFlexoCheck[i].fields,
+									flexoAccess[MODIFY][list_vidForFlexoCheck[i].schemeName]);
+
+								if(difference.length !== 0){
+									//Запрашиваются поля которые не разрешены в полях
+									//ToDo: Возможно: логировать нарушение целостности
+									list_vidForRemove.push(
+										list_vidForFlexoCheck[i].listAllowedOf_vid);
+								}
+
+
+							} else if (list_vidForFlexoCheck[i].type === CREATE) {
+
+								if( list_vidForFlexoCheck[i].fields.length === 0 ) {
+									//Проверяется общее разрешение на создание документа в целом
+									if (flexoAccess['createAll'][list_vidForFlexoCheck[i].schemeName]
+										!== 1){
+										//ToDo: Возможно: логировать нарушение целостности
+										list_vidForRemove.push(
+											list_vidForFlexoCheck[i].listAllowedOf_vid);
+									}
+								} else {
+									//Проверяется частные разрешения на создание документа
+									var difference = underscore.difference(
+										list_vidForFlexoCheck[i].fields,
+										flexoAccess[CREATE][list_vidForFlexoCheck[i].schemeName]);
+
+									if(difference.length !== 0){
+										//Запрашиваются поля которые не разрешены в полях
+										//ToDo: Возможно: логировать нарушение целостности
+										list_vidForRemove.push(
+											list_vidForFlexoCheck[i].listAllowedOf_vid);
+									}
+
+								}
+
+							} else if (list_vidForFlexoCheck[i].type === DELETE) {
+								//Проверяется общее разрешение на удаление документа в целом
+								if (flexoAccess['delete'][list_vidForFlexoCheck[i].schemeName]
 									!== 1){
 									//ToDo: Возможно: логировать нарушение целостности
 									list_vidForRemove.push(
 										list_vidForFlexoCheck[i].listAllowedOf_vid);
 								}
-							} else {
-								//Проверяется частные разрешения на создание документа
-								var difference = underscore.difference(
-									list_vidForFlexoCheck[i].fields,
-									flexoAccess[CREATE][list_vidForFlexoCheck[i].schemeName]);
-
-								if(difference.length !== 0){
-									//Запрашиваются поля которые не разрешены в полях
-									//ToDo: Возможно: логировать нарушение целостности
-									list_vidForRemove.push(list_vidForFlexoCheck[i].listAllowedOf_vid);
-								}
-
-							}
-
-						} else if (list_vidForFlexoCheck[i].type === DELETE) {
-							//Проверяется общее разрешение на удаление документа в целом
-							if (flexoAccess['delete'][list_vidForFlexoCheck[i].schemeName]
-								!== 1){
-								//ToDo: Возможно: логировать нарушение целостности
-								list_vidForRemove.push(
-									list_vidForFlexoCheck[i].listAllowedOf_vid);
 							}
 						}
+
+						listAllowedOf_vid = underscore.difference(
+							listAllowedOf_vid, list_vidForRemove);
+
+						callback( null, listAllowedOf_vid );
 					}
-
-					listAllowedOf_vid = underscore.difference(listAllowedOf_vid, list_vidForRemove);
-
-					callback( null, listAllowedOf_vid );
-				}
-			});
+				});
+			} else {
+				callback( null, listAllowedOf_vid );
+			}
 
 		}
 	} );
@@ -952,96 +965,90 @@ function formingFlexoAndView( user, role, viewName, callback ){
 function crossingAccessForFlexo(user, role, viewName, flexoSchemes, callback) {
 
 	//Запрашиваемый данные о правах для определения пересечения
-	if ( flexoSchemes ) {
-		async.parallel([
-			function(cb){
-				AccessModuleRoleFlexo.accessDataPreparation( client, role, globalFlexoSchemes,
-					flexoSchemes, cb);
-			},
-			function(cb){
-				AccessModuleUserFlexo.accessDataPreparation( client, user, globalFlexoSchemes,
-					flexoSchemes, cb);
-			}
-		],
-			function(err, replies) {
-				if( err ) {
-					callback ( err )
-				} else {
-					//Определение пересечения прав
-					var objAccessRole = replies[0];
-					var objAccessUser = replies[1];
+	async.parallel([
+		function(cb){
+			AccessModuleRoleFlexo.accessDataPreparation( client, role, globalFlexoSchemes,
+				flexoSchemes, cb);
+		},
+		function(cb){
+			AccessModuleUserFlexo.accessDataPreparation( client, user, globalFlexoSchemes,
+				flexoSchemes, cb);
+		}
+	],
+		function(err, replies) {
+			if( err ) {
+				callback ( err )
+			} else {
+				//Определение пересечения прав
+				var objAccessRole = replies[0];
+				var objAccessUser = replies[1];
 
-					var schemes = flexoSchemes;
-					//Объект хранящий готовое пересечение прав на чтение
-					var objAccess = {};
+				var schemes = flexoSchemes;
+				//Объект хранящий готовое пересечение прав на чтение
+				var objAccess = {};
 
-					for( var i = 0; i < schemes.length; i++ ) {
+				for( var i = 0; i < schemes.length; i++ ) {
 
-						//Чтение
-						objAccess = crossingAccess( 'read', schemes[i], objAccessRole,
-							objAccessUser, objAccess );
+					//Чтение
+					objAccess = crossingAccess( 'read', schemes[i], objAccessRole,
+						objAccessUser, objAccess );
 
-						//Модификация
-						objAccess = crossingAccess( 'modify', schemes[i], objAccessRole,
-							objAccessUser, objAccess );
+					//Модификация
+					objAccess = crossingAccess( 'modify', schemes[i], objAccessRole,
+						objAccessUser, objAccess );
 
-						//Создание
-						objAccess = crossingAccess( 'create', schemes[i], objAccessRole,
-							objAccessUser, objAccess );
+					//Создание
+					objAccess = crossingAccess( 'create', schemes[i], objAccessRole,
+						objAccessUser, objAccess );
 
-						//Cоздание в целом
-						var createAll = 0;
+					//Cоздание в целом
+					var createAll = 0;
 
-						if( objAccessRole[schemes[i]] && objAccessRole[schemes[i]]['createAll'] ) {
-							createAll = objAccessRole[schemes[i]['createAll']];
-						}
-
-						if(objAccessUser[schemes[i]]){
-							if( objAccessUser[schemes[i]]['createAll'] === 0) {
-								createAll = 0;
-							} else if ( objAccessUser[schemes[i]]['createAll'] === 1) {
-								createAll = 1;
-							}
-						}
-
-						if ( !objAccess['createAll'] ) {
-							objAccess['createAll'] = {}
-						}
-
-						objAccess['createAll'][schemes[i]] = createAll;
-
-						//Удаление
-						var del = 0;
-
-						if( objAccessRole[schemes[i]] && objAccessRole[schemes[i]]['delete'] ) {
-							del = objAccessRole[schemes[i]['delete']];
-						}
-
-						if(objAccessUser[schemes[i]]){
-							if( objAccessUser[schemes[i]]['delete'] === 0) {
-								del = 0;
-							} else if ( objAccessUser[schemes[i]]['delete'] === 1) {
-								del = 1;
-							}
-						}
-
-						if ( !objAccess['delete'] ) {
-							objAccess['delete'] = {}
-						}
-
-						objAccess['delete'][schemes[i]] = del;
+					if( objAccessRole[schemes[i]] && objAccessRole[schemes[i]]['createAll'] ) {
+						createAll = objAccessRole[schemes[i]['createAll']];
 					}
 
-					callback( null, objAccess );
+					if(objAccessUser[schemes[i]]){
+						if( objAccessUser[schemes[i]]['createAll'] === 0) {
+							createAll = 0;
+						} else if ( objAccessUser[schemes[i]]['createAll'] === 1) {
+							createAll = 1;
+						}
+					}
 
+					if ( !objAccess['createAll'] ) {
+						objAccess['createAll'] = {}
+					}
+
+					objAccess['createAll'][schemes[i]] = createAll;
+
+					//Удаление
+					var del = 0;
+
+					if( objAccessRole[schemes[i]] && objAccessRole[schemes[i]]['delete'] ) {
+						del = objAccessRole[schemes[i]['delete']];
+					}
+
+					if(objAccessUser[schemes[i]]){
+						if( objAccessUser[schemes[i]]['delete'] === 0) {
+							del = 0;
+						} else if ( objAccessUser[schemes[i]]['delete'] === 1) {
+							del = 1;
+						}
+					}
+
+					if ( !objAccess['delete'] ) {
+						objAccess['delete'] = {}
+					}
+
+					objAccess['delete'][schemes[i]] = del;
 				}
-			}
-		);
-	} else {
-		callback( new Error( 'No description in global object view with name: '
-			+ JSON.stringify( viewName ) ) );
-	}
 
+				callback( null, objAccess );
+
+			}
+		}
+	);
 }
 
 function crossingAccessForView(user, role, viewName, callback ) {
@@ -1049,7 +1056,10 @@ function crossingAccessForView(user, role, viewName, callback ) {
 	async.parallel([
 		function(cb){
 			AccessModuleRoleView.find(client, role, viewName, function(err, objAccess){
-				if (err) {
+				if (err && err.message === 'No requested object access (role: ' + role +', ' +
+				'viewName: ' + viewName + ')') {
+					cb( null, {add:[], del:[]});
+				} else if ( err ) {
 					cb( err );
 				} else {
 					cb( null, AccessModuleRoleView.accessPreparation( objAccess,
@@ -1059,7 +1069,10 @@ function crossingAccessForView(user, role, viewName, callback ) {
 		},
 		function(cb){
 			AccessModuleUserView.find(client, user, viewName, function(err, objAccess){
-				if (err) {
+				if (err && err.message === 'No requested object access (user: ' + user +', ' +
+					'viewName: ' + viewName + ')') {
+					cb( null, {add:[], del:[]});
+				} else if ( err ) {
 					cb( err );
 				} else {
 					cb( null, AccessModuleUserView.accessPreparation( objAccess,

@@ -230,14 +230,14 @@ function accessDataPreparationForMethod(method, objAccess, fieldsGlobalFlexoSche
 			}
 		} else {
 			//Получаем все поля из объекта прав
-			var readFields = Object.keys(objAccess[method]);
+			var fields = Object.keys(objAccess[method]);
 			//Формируем списки которые необходимо добавить или удалить
 			var addReadFields = [];
-			for ( var j = 0; j < readFields.length; j++) {
+			for ( var j = 0; j < fields.length; j++) {
 				//Проверяется, так как в роли при отсутствия спец команды (all) поля с
 				// запретом равносильны отсутствию полей
-				if (objAccess[method][readFields[j]] === 1){
-					addReadFields.push(readFields[j]);
+				if (objAccess[method][fields[j]] === 1){
+					addReadFields.push(fields[j]);
 				}
 			}
 
