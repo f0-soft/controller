@@ -62,6 +62,11 @@ var testObjGlobalViewsConfig = {
 		y3:{flexo:['testUsers', 'company'], type:'modify'},
 		u2:{flexo:['testUsers', 'hash'], type:'modify'},
 		i1:{flexo:['testUsers', 'salt'], type:'modify'}
+	},
+	'testView5':{
+		q1:{flexo:['testUsers', '_id'], type:'delete'},
+		w2:{flexo:['testUsers', 'tsUpdate'], type:'delete'},
+		e3:{flexo:['testUsers'], type:'delete'}
 	}
 };
 
@@ -887,6 +892,18 @@ var testData4 = { //Наполняется генератором в тесте
 		socket:{},
 		flexoAllowedField:'',
 		_vidAllowed:''
+	},
+	testDelete:{
+		testObjAccessFlexoRole:{
+			read: {},
+			modify: {},
+			create: {},
+			createAll: 0,
+			delete: 1
+		},
+		viewNameForDelete: 'testView5',
+		testObjViewAccessRole: {},
+		socket:{}
 	}
 };
 
@@ -1032,12 +1049,11 @@ exports.viewWithFlexo = {
 					allowedListOf_vids[getRandom(0, (allowedListOf_vids.length - 1))];
 
 				var request = {};
-				request['queries'] = {};
-				request['queries']['selector'] = {};
-				request['queries']['selector'][randFieldForSelector] = generatorString(1,10);
-				request['queries']['options'] = {};
-				request['queries']['options']['sort'] = {};
-				request['queries']['options']['sort'][randFieldForSort] = getRandom(0,1);
+				request['selector'] = {};
+				request['selector'][randFieldForSelector] = generatorString(1,10);
+				request['options'] = {};
+				request['options']['sort'] = {};
+				request['options']['sort'][randFieldForSort] = getRandom(0,1);
 
 				controller.queryToView ( 'read', request, viewName, socket, function(err, reply) {
 					test.ifError(err);
@@ -1059,15 +1075,15 @@ exports.viewWithFlexo = {
 					allowedListOf_vids[getRandom(0, (allowedListOf_vids.length - 1))];
 
 				var request = {};
-				request['queries'] = {};
-				request['queries']['selector'] = {};
-				request['queries']['selector'][randFieldForSelector] = generatorString(1,10);
-				request['queries']['options'] = {};
-				request['queries']['options']['sort'] = {};
-				request['queries']['options']['sort'][randFieldForSort] = getRandom(0,1);
+				request['selector'] = {};
+				request['selector'][randFieldForSelector] = generatorString(1,10);
+				request['options'] = {};
+				request['options']['sort'] = {};
+				request['options']['sort'][randFieldForSort] = getRandom(0,1);
 
 				controller.queryToView ( 'read', request, viewName, socket, function(err, reply) {
-					test.strictEqual(err.message, 'Requested more fields than allowed to read');
+					test.strictEqual(err.message, 'Controller: Requested more fields than ' +
+						'allowed to read');
 					test.done();
 				});
 			},
@@ -1086,15 +1102,15 @@ exports.viewWithFlexo = {
 
 
 				var request = {};
-				request['queries'] = {};
-				request['queries']['selector'] = {};
-				request['queries']['selector'][randFieldForSelector] = generatorString(1,10);
-				request['queries']['options'] = {};
-				request['queries']['options']['sort'] = {};
-				request['queries']['options']['sort'][randFieldForSort] = getRandom(0,1);
+				request['selector'] = {};
+				request['selector'][randFieldForSelector] = generatorString(1,10);
+				request['options'] = {};
+				request['options']['sort'] = {};
+				request['options']['sort'][randFieldForSort] = getRandom(0,1);
 
 				controller.queryToView ( 'read', request, viewName, socket, function(err, reply) {
-					test.strictEqual(err.message, 'Requested more fields than allowed to read');
+					test.strictEqual(err.message, 'Controller: Requested more fields than ' +
+						'allowed to read');
 					test.done();
 				});
 			}
@@ -1252,7 +1268,7 @@ exports.viewWithFlexo = {
 			testData4.testCreate.listNotFlexo_vids = listNotFlexo_vids;
 
 			test.expect( ( listAllowed_vids.length + 4 ) );
-			debugger;
+
 			controller.getTemplate( viewName, user, role, socket, function( err, config, template ) {
 				test.ifError(err);
 				test.ok(config);
@@ -1287,10 +1303,9 @@ exports.viewWithFlexo = {
 
 				//Формируем запрос на создание
 				var queryToCreate = {};
-				queryToCreate.queries = {};
 
 				for(var i=0; i<listAllowed_vidsWithFlexo.length; i++){
-					queryToCreate.queries[listAllowed_vidsWithFlexo[i]] = getRandom(0, 10000);
+					queryToCreate[listAllowed_vidsWithFlexo[i]] = getRandom(0, 10000);
 				}
 
 				controller.queryToView ( 'create', queryToCreate, viewName, socket,
@@ -1314,19 +1329,18 @@ exports.viewWithFlexo = {
 
 				//Формируем запрос на создание
 				var queryToCreate = {};
-				queryToCreate.queries = {};
 
 				for(var i=0; i<listAllowed_vidsWithFlexo.length; i++){
-					queryToCreate.queries[listAllowed_vidsWithFlexo[i]] = getRandom(0, 10000);
+					queryToCreate[listAllowed_vidsWithFlexo[i]] = getRandom(0, 10000);
 				}
 
 				for(var i=0; i<listNotAllowed_vids.length; i++){
-					queryToCreate.queries[listNotAllowed_vids[i]] = getRandom(0, 10000);
+					queryToCreate[listNotAllowed_vids[i]] = getRandom(0, 10000);
 				}
 
 				controller.queryToView ( 'create', queryToCreate, viewName, socket,
 					function(err, reply) {
-						test.strictEqual(err.message, 'No permission to create in view');
+						test.strictEqual(err.message, 'Controller: No permission to create in view');
 						test.done();
 					});
 			}
@@ -1483,7 +1497,7 @@ exports.viewWithFlexo = {
 			var role = testData4.userRole;
 			var socket = testData4.testModify.socket;
 			var globalViewConfig = testObjGlobalViewsConfig[viewName];
-			debugger;
+
 			//Находим единственный идентификатор который разрешен в этом тесте
 			var flexoAllowedField = testData4.testModify.flexoAllowedField;
 			var _vidAllowed;
@@ -1498,7 +1512,7 @@ exports.viewWithFlexo = {
 			}
 
 			testData4.testModify._vidAllowed = _vidAllowed;
-			debugger;
+
 			controller.getTemplate( viewName, user, role, socket, function( err, config, template ) {
 				test.ifError(err);
 				test.ok(config);
@@ -1518,6 +1532,295 @@ exports.viewWithFlexo = {
 
 				test.done();
 			} );
+
+		},
+		queryToModify:{
+			allowed_vidsInQueriesProperties: function ( test ) {
+				test.expect( 2 );
+				var viewName = testData4.testModify.viewNameForModify;
+				var socket = testData4.testModify.socket;
+				var allowed_vid = testData4.testModify._vidAllowed;
+				var listOf_vids = Object.keys(testObjGlobalViewsConfig[viewName]);
+				listOf_vids = underscore.without(listOf_vids, allowed_vid);
+
+				//Формируем запрос на модификацию
+				var request = {};
+				request['selector'] = {};
+				request['selector']
+					[listOf_vids[generatorString(0,(listOf_vids.length - 1))]]
+						= generatorString(1,10);
+				request['properties'] = {};
+				request['properties'][allowed_vid] = generatorString(1,10);
+
+				controller.queryToView ( 'modify', request, viewName, socket, function(err, reply) {
+					test.ifError(err);
+					test.ok(reply);
+					test.done();
+				})
+
+			},
+			notAllowed_vidsInQueriesProperties: function ( test ) {
+				test.expect( 1 );
+				var viewName = testData4.testModify.viewNameForModify;
+				var socket = testData4.testModify.socket;
+				var allowed_vid = testData4.testModify._vidAllowed;
+				var listOf_vids = Object.keys(testObjGlobalViewsConfig[viewName]);
+				listOf_vids = underscore.without(listOf_vids, allowed_vid);
+
+				//Формируем запрос на модификацию
+				var request = {};
+				request['selector'] = {};
+				request['selector'][allowed_vid] = generatorString(1,10);
+				request['properties'] = {};
+				request['properties']
+					[listOf_vids[generatorString(0,(listOf_vids.length - 1))]]
+					= generatorString(1,10);
+
+				controller.queryToView ( 'modify', request, viewName, socket, function(err, reply) {
+					test.strictEqual(err.message, 'Controller: No permission to modify in view');
+					test.done();
+				})
+
+			}
+		},
+		deleteFlexoAndViewAccess: function(test){
+			test.expect( 8 );
+			var login = testData4.userLogin;
+			var role = testData4.userRole;
+			var viewName = testData4.testCreate.viewNameForCreate;
+			var flexoSchemeName = testData4.flexoSchemeName;
+
+			//Формируем объект запрос на удаление view прав по пользователю
+			var queryForDelete = {
+				access: {
+					viewName:viewName,
+					login:login
+				}
+			};
+
+			controller.delete(queryForDelete, function( err, reply ) {
+				test.ifError(err);
+				test.ok(reply);
+
+				//Формируем объект запрос на удаление flexo прав по пользователю
+				var queryForDelete = {
+					access: {
+						flexoSchemeName:flexoSchemeName,
+						login:login
+					}
+				};
+
+				controller.delete(queryForDelete, function( err, reply ) {
+					test.ifError(err);
+					test.ok(reply);
+					//Формируем объект запрос на удаление flexo прав по роли
+					var queryForDelete = {
+						access: {
+							flexoSchemeName:flexoSchemeName,
+							role:role
+						}
+					};
+
+					controller.delete(queryForDelete, function( err, reply ) {
+						test.ifError(err);
+						test.ok(reply);
+						//Формируем объект запрос на удаление view прав по роли
+						var queryForDelete = {
+							access: {
+								viewName:viewName,
+								role:role
+							}
+						};
+
+						controller.delete(queryForDelete, function( err, reply ) {
+							test.ifError(err);
+							test.ok(reply);
+							test.done();
+						});
+					});
+				});
+			});
+		}
+
+	},
+	deleteAccess:{
+		saveFlexoCreateAccessForRoleAndUser: function(test){
+			test.expect( 2 );
+
+			var objAccessForRole = testData4.testDelete.testObjAccessFlexoRole;
+			var role = testData4.userRole;
+			var flexoSchemeName = testData4.flexoSchemeName;
+
+			//Формируем запрос на сохранение прав по роли для flexo схемы
+			var queryForSave = {
+				access:{
+					flexoSchemeName: flexoSchemeName,
+					role:role,
+					objAccess: objAccessForRole
+				}
+			};
+
+			controller.create(queryForSave, function( err, reply ) {
+				test.ifError(err);
+				test.ok(reply);
+				test.done();
+			});
+		},
+		saveViewAccessForRoleAndUser: function(test){
+			test.expect( 2 );
+
+			var objAccessRole = testData4.testDelete.testObjViewAccessRole;
+			var role = testData4.userRole;
+			var viewName = testData4.testDelete.viewNameForDelete;
+
+			//Наполняем разрешениями view для роли
+			var listOf_vids = Object.keys(testObjGlobalViewsConfig[viewName]);
+
+			for(var i = 0; i < listOf_vids.length; i++ ) {
+				objAccessRole[listOf_vids[i]] = 1;
+			}
+
+			//Формируем объект запрос на сохранение прав по роли
+			var queryForSave = {
+				access:{
+					viewName: viewName,
+					role: role,
+					objAccess: objAccessRole
+				}
+			};
+
+			controller.create(queryForSave, function( err, reply ) {
+				test.ifError(err);
+				test.ok(reply);
+				test.done();
+			});
+		},
+		getTemplateFromView: function ( test ) {
+
+
+			var viewName = testData4.testDelete.viewNameForDelete;
+			var user = testData4.userLogin;
+			var role = testData4.userRole;
+			var socket = testData4.testDelete.socket;
+			var globalViewConfig = testObjGlobalViewsConfig[viewName];
+
+			//Все идентификаторы разрешены в этом тесте
+			var listAllowed_vids = Object.keys(globalViewConfig);
+
+
+			test.expect( listAllowed_vids.length + 4 );
+			controller.getTemplate( viewName, user, role, socket, function( err, config, template ) {
+				test.ifError(err);
+				test.ok(config);
+				test.ok(template);
+
+				//Проверяем список идентификаторов сохраненных у объекта socket
+				if( socket.view && socket.view[viewName] ){
+					test.strictEqual(socket.view[viewName].length, 3,
+						'Проверяем количество разрешенных идентификаторов view');
+
+
+					for( var i = 0; i < listAllowed_vids.length; i++ ) {
+						var result = underscore.indexOf( socket.view[viewName], listAllowed_vids[i] );
+						test.notStrictEqual(result, -1,	'Проверка наличия разрешенного ' +
+							'идентификатора view в списке разрашенных у socket' );
+					}
+
+				}
+
+				test.done();
+			} );
+		},
+		queryToDelete:{
+			allowed_vidsInQueriesSelector: function ( test ) {
+				test.expect( 2 );
+				var viewName = testData4.testDelete.viewNameForDelete;
+				var socket = testData4.testDelete.socket;
+				var listOf_vids = Object.keys(testObjGlobalViewsConfig[viewName]);
+				var notFlexoFields_vid;
+
+				//Ищем элемент во view у которого нет привязки к flexo полю
+				for( var i = 0; i < listOf_vids.length; i++ ) {
+					if(testObjGlobalViewsConfig[viewName][listOf_vids[i]].flexo.length === 1){
+						notFlexoFields_vid = listOf_vids[i];
+					}
+				}
+
+				listOf_vids = underscore.without(listOf_vids, notFlexoFields_vid);
+
+				//Формируем запрос на модификацию
+				var request = {};
+				request['selector'] = {};
+				request['selector'][listOf_vids[0]] = generatorString(1,10);
+				request['selector'][listOf_vids[1]] = generatorString(1,10);
+
+				controller.queryToView ( 'delete', request, viewName, socket, function(err, reply) {
+					test.ifError(err);
+					test.ok(reply);
+					test.done();
+				});
+
+			},
+			notAllowed_vidsInQueriesSelector: function ( test ) {
+				test.expect( 1 );
+				var viewName = testData4.testDelete.viewNameForDelete;
+				var socket = testData4.testDelete.socket;
+				var listOf_vids = Object.keys(testObjGlobalViewsConfig[viewName]);
+				var notFlexoFields_vid;
+
+				//Ищем элемент во view у которого нет привязки к flexo полю
+				for( var i = 0; i < listOf_vids.length; i++ ) {
+					if(testObjGlobalViewsConfig[viewName][listOf_vids[i]].flexo.length === 1){
+						notFlexoFields_vid = listOf_vids[i];
+					}
+				}
+
+				listOf_vids = underscore.without(listOf_vids, notFlexoFields_vid);
+
+				//Формируем запрос на модификацию
+				var request = {};
+				request['selector'] = {};
+				request['selector'][listOf_vids[0]] = generatorString(1,10);
+				request['selector'][notFlexoFields_vid] = generatorString(1,10);
+
+				controller.queryToView ( 'delete', request, viewName, socket, function(err, reply) {
+					test.strictEqual(err.message, 'Controller: No permission to delete in view');
+					test.done();
+				});
+			}
+		},
+		deleteFlexoAndViewAccess: function(test){
+			test.expect( 4 );
+			var role = testData4.userRole;
+			var viewName = testData4.testDelete.viewNameForDelete;
+			var flexoSchemeName = testData4.flexoSchemeName;
+
+
+			//Формируем объект запрос на удаление flexo прав по роли
+			var queryForDelete = {
+				access: {
+					flexoSchemeName:flexoSchemeName,
+					role:role
+				}
+			};
+
+			controller.delete(queryForDelete, function( err, reply ) {
+				test.ifError(err);
+				test.ok(reply);
+				//Формируем объект запрос на удаление view прав по роли
+				var queryForDelete = {
+					access: {
+						viewName:viewName,
+						role:role
+					}
+				};
+
+				controller.delete(queryForDelete, function( err, reply ) {
+					test.ifError(err);
+					test.ok(reply);
+					test.done();
+				});
+			});
 
 		}
 	}

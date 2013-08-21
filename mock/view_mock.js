@@ -24,13 +24,13 @@ function find(viewName, listOf_vids, request, callback){
 		objResults[viewName] = [];
 
 		var objLocal = [];
-		var fieldsSearch = Object.keys(request.queries.selector);
+		var fieldsSearch = Object.keys(request.selector);
 		var limit = -1;
 		var skip = 0;
-		if (request.queries.options && request.queries.options.limit)
-			limit = request.queries.options.limit;
-		if (request.queries.options && request.queries.options.limit)
-			skip = request.queries.options.skip;
+		if (request.options && request.options.limit)
+			limit = request.options.limit;
+		if (request.options && request.options.limit)
+			skip = request.options.skip;
 
 		//Получаем массив объектов с полями
 
@@ -39,7 +39,7 @@ function find(viewName, listOf_vids, request, callback){
 			if(fieldsSearch.length !== 0){
 				var trigger = true;
 				for( var k = 0; k < fieldsSearch.length; k++ ){
-					if( request.queries.selector[fieldsSearch[k]] ===
+					if( request.selector[fieldsSearch[k]] ===
 						view[viewName][j][fieldsSearch[k]] ){
 						continue;
 					}
@@ -58,10 +58,10 @@ function find(viewName, listOf_vids, request, callback){
 						if(underscore.isArray(view[viewName][j][fieldsByView[x]])){
 							if(schemes.length === 1){
 								schemes.push(dependent);
-								request.queries[dependent] = [];
+								request.selector[dependent] = [];
 
 								for(var z=0; z<view[viewName][j][fieldsByView[x]].length; z++){
-									request.queries[dependent].push({
+									request.selector[dependent].push({
 										selector:{
 											_id:view[viewName][j][fieldsByView[x]][z]
 										}
@@ -109,10 +109,10 @@ function insert (viewName, listOf_vids, request, callback) {
 	//Проверяем наличие объекта для данной схемы
 	if( !view[viewName] ) view[viewName] = [];
 
-	if(underscore.isArray(request.queries)) {
+	if(underscore.isArray(request)) {
 
-		for(var j=0; j<request.queries.length; j++){
-			var obj = request.queries[j];
+		for(var j=0; j<request.length; j++){
+			var obj = request[j];
 			obj._id = getRandomArbitary(0,10000).toString();
 			var time = new Date().getTime();
 			obj.tsCreate = time;
@@ -131,7 +131,7 @@ function insert (viewName, listOf_vids, request, callback) {
 		}
 	} else {
 
-		var obj = request.queries;
+		var obj = request;
 		obj._id = getRandomArbitary(0,10000).toString();
 		var time = new Date().getTime();
 		obj.tsCreate = time;
@@ -156,12 +156,12 @@ function insert (viewName, listOf_vids, request, callback) {
 
 function modify ( viewName, request, callback ){
 	var objResults = [];
-	if(underscore.isArray(request.queries)) {
-		for( var i = 0; i < request.queries.length; i++ ) {
-			objResults.push(request.queries[i].selector);
+	if(underscore.isArray(request)) {
+		for( var i = 0; i < request.length; i++ ) {
+			objResults.push(request[i].selector);
 		}
 	} else {
-		objResults.push(request.queries.selector);
+		objResults.push(request.selector);
 	}
 
 	setImmediate(function(){
@@ -174,8 +174,8 @@ function modify ( viewName, request, callback ){
 function del(viewName, request, callback){
 
 	var objResults = [];
-	if(underscore.isArray(request.queries)) {
-		for( var i = 0; i < request.queries.length; i++ ) {
+	if(underscore.isArray(request)) {
+		for( var i = 0; i < request.length; i++ ) {
 			objResults.push({1:1});
 		}
 	} else {

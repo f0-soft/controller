@@ -34,24 +34,30 @@ module.exports = Controller;
  * @param callback
  */
 Controller.init = function init( config, callback ) {
+	if (!underscore.isFunction(callback)){
+		throw new Error( 'Controller: callback not a function' );
+	}
+
 	if ( config.view ) {
 		View = config.view;
 	} else {
-		callback( new Error( 'Parameter view is not specified in the config object' ) );
+		callback( new Error( 'Controller: Parameter view is not specified in the config object' ) );
 		return;
 	}
 
 	if ( config.viewConfig ) {
 		globalViewConfig = config.viewConfig;
 	} else {
-		callback( new Error( 'Parameter viewConfig is not specified in the config object' ) );
+		callback( new Error( 'Controller: Parameter viewConfig is not specified in the config ' +
+			'object' ) );
 		return;
 	}
 
 	if ( config.flexoSchemes ) {
 		globalFlexoSchemes = config.flexoSchemes;
 	} else {
-		callback( new Error( 'Parameter flexoSchemes is not specified in the config object' ) );
+		callback( new Error( 'Controller: Parameter flexoSchemes is not specified in the config ' +
+			'object' ) );
 		return;
 	}
 
@@ -96,7 +102,14 @@ Controller.init = function init( config, callback ) {
 
 Controller.create = function create( query, callback ) {
 
-	if ( !INITIALIZED ) { throw new Error( 'Flexo initialization required' ); }
+	if (!underscore.isFunction(callback)){
+		throw new Error( 'Controller: callback not a function' );
+	}
+
+	if ( !INITIALIZED ) {
+		callback(new Error( 'Controller: Flexo initialization required' ));
+		return;
+	}
 
 	/*if ( query.user ) {
 		//Запрос на создание пользователя
@@ -168,7 +181,7 @@ Controller.create = function create( query, callback ) {
 					query.access.objAccess, callback );
 
 			} else {
-				callback( new Error( 'Not set role or login in query: '
+				callback( new Error( 'Controller: Not set role or login in query: '
 					+ JSON.stringify( query ) ) )
 			}
 		} else if ( query.access.flexoSchemeName ) {
@@ -182,21 +195,28 @@ Controller.create = function create( query, callback ) {
 				AccessModuleUserFlexo.save( client, query.access.login,
 					query.access.flexoSchemeName, query.access.objAccess, callback );
 			} else {
-				callback( new Error( 'Not set role or login in query: '
+				callback( new Error( 'Controller: Not set role or login in query: '
 					+ JSON.stringify( query ) ) );
 			}
 		} else {
-			callback( new Error( 'Incorrect parameter access in query: '
+			callback( new Error( 'Controller: Incorrect parameter access in query: '
 				+ JSON.stringify( query ) ) );
 		}
 	} else {
-		callback( new Error( 'Invalid query: ' + JSON.stringify( query ) ) );
+		callback( new Error( 'Controller: Invalid query: ' + JSON.stringify( query ) ) );
 	}
 };
 
 Controller.find = function find( query, callback ) {
 
-	if ( !INITIALIZED ) { throw new Error( 'Flexo initialization required' ); }
+	if (!underscore.isFunction(callback)){
+		throw new Error( 'Controller: callback not a function' );
+	}
+
+	if ( !INITIALIZED ) {
+		callback(new Error( 'Controller: Flexo initialization required' ));
+		return;
+	}
 
 	var model;
 	/*if ( query.user ) {
@@ -262,7 +282,7 @@ Controller.find = function find( query, callback ) {
 					callback );
 
 			} else {
-				callback( new Error( 'Not set role or login in query: '
+				callback( new Error( 'Controller: Not set role or login in query: '
 					+ JSON.stringify( query ) ) )
 			}
 		} else if ( query.access.flexoSchemeName ) {
@@ -279,21 +299,28 @@ Controller.find = function find( query, callback ) {
 				AccessModuleUserFlexo.find( client, query.access.login, query.access.flexoSchemeName, callback );
 
 			} else {
-				callback( new Error( 'Not set role or login in query: '
+				callback( new Error( 'Controller: Not set role or login in query: '
 					+ JSON.stringify( query ) ) );
 			}
 		} else {
-			callback( new Error( 'Incorrect parameter access in query: '
+			callback( new Error( 'Controller: Incorrect parameter access in query: '
 				+ JSON.stringify( query ) ) );
 		}
 	} else {
-		callback( new Error( 'Invalid query: ' + JSON.stringify( query ) ) );
+		callback( new Error( 'Controller: Invalid query: ' + JSON.stringify( query ) ) );
 	}
 };
 
 Controller.delete = function del( query, callback ) {
 
-	if ( !INITIALIZED ) { throw new Error( 'Flexo initialization required' ); }
+	if (!underscore.isFunction(callback)){
+		throw new Error( 'Controller: callback not a function' );
+	}
+
+	if ( !INITIALIZED ) {
+		callback(new Error( 'Controller: Flexo initialization required' ));
+		return;
+	}
 
 	var model;
 	/*if ( query.user ) {
@@ -359,7 +386,7 @@ Controller.delete = function del( query, callback ) {
 				AccessModuleUserView.delete( client, query.access.login, query.access.viewName,
 					callback );
 			} else {
-				callback( new Error( 'Not set role or login in query: '
+				callback( new Error( 'Controller: Not set role or login in query: '
 					+ JSON.stringify( query ) ) );
 			}
 		} else if ( query.access.flexoSchemeName ) {
@@ -378,21 +405,28 @@ Controller.delete = function del( query, callback ) {
 					query.access.flexoSchemeName, callback );
 
 			} else {
-				callback( new Error( 'Not set role or login in query: '
+				callback( new Error( 'Controller: Not set role or login in query: '
 					+ JSON.stringify( query ) ) );
 			}
 		} else {
-			callback( new Error( 'Incorrect parameter access in query: '
+			callback( new Error( 'Controller: Incorrect parameter access in query: '
 				+ JSON.stringify( query ) ) );
 		}
 	} else {
-		callback( new Error( 'Invalid query: ' + JSON.stringify( query ) ) );
+		callback( new Error( 'Controller: Invalid query: ' + JSON.stringify( query ) ) );
 	}
 };
 
 Controller.modify = function modify( query, callback ) {
 
-	if ( !INITIALIZED ) { throw new Error( 'Flexo initialization required' ); }
+	if (!underscore.isFunction(callback)){
+		throw new Error( 'Controller: callback not a function' );
+	}
+
+	if ( !INITIALIZED ) {
+		callback(new Error( 'Controller: Flexo initialization required' ));
+		return;
+	}
 
 	/*if ( query.user ) {
 		var viewName = 'viewUsers';
@@ -502,13 +536,20 @@ Controller.getTemplate = getTemplate;
 
 function getTemplate(name, user, role, socket, callback ) {
 
-	if ( !INITIALIZED ) { throw new Error( 'Flexo initialization required' ); }
+	if (!underscore.isFunction(callback)){
+		throw new Error( 'Controller: callback not a function' );
+	}
+
+	if ( !INITIALIZED ) {
+		callback(new Error( 'Controller: Flexo initialization required' ));
+		return;
+	}
 
 	//Проверяем есть ли уже готовые права для view
 	if( socket.view && socket.view[name] ) {
 		//Подготовленный список _vid есть
 		//Запрашиваем шаблон view c необходимыми параметрами
-		View.getTemplate(name, socket.view[name], {}, function( err, ids, config, template ){
+		View.getTemplate(name, socket.view[name], function( err, ids, config, template ){
 			if( err ){
 				callback( err );
 			} else {
@@ -556,51 +597,58 @@ function getTemplate(name, user, role, socket, callback ) {
 
 Controller.queryToView = function queryToView( type, request, viewName, socket, callback ) {
 
-	if ( !INITIALIZED ) { throw new Error( 'Flexo initialization required' ); }
+	if (!underscore.isFunction(callback)){
+		throw new Error( 'Controller: callback not a function' );
+	}
+
+	if ( !INITIALIZED ) {
+		callback(new Error( 'Controller: Flexo initialization required' ));
+		return;
+	}
 
 	if( socket.view && socket.view[viewName] ) {
 		//Подготовленный список разрешенных _vid есть
 		if( type === READ ) {
 
-			if(checkRead( viewName, request.queries, socket.view[viewName] ) ){
+			if(checkRead( viewName, request, socket.view[viewName] ) ){
 				//Вызываем view c необходимыми параметрами
 				View.find( viewName, socket.view[viewName], request, callback );
 
 			} else {
-				callback(new Error('Requested more fields than allowed to read'));
+				callback(new Error('Controller: Requested more fields than allowed to read'));
 			}
 
 		} else if ( type === CREATE ) {
 
-			if(checkCreate( viewName, request.queries, socket.view[viewName] ) ){
+			if(checkCreate( viewName, request, socket.view[viewName] ) ){
 				//Вызываем view c необходимыми параметрами
 				//Вызываем view c необходимыми параметрами
 				View.insert( viewName, socket.view[viewName], request, callback );
 			} else {
-				callback(new Error('No permission to create in view'));
+				callback(new Error('Controller: No permission to create in view'));
 			}
 
 		} else if ( type === MODIFY ) {
 
-			if(checkModify( viewName, request.queries, socket.view[viewName] ) ){
+			if(checkModify( viewName, request, socket.view[viewName] ) ){
 				//Вызываем view c необходимыми параметрами
 				View.modify( viewName, request, callback );
 			} else {
-				callback(new Error('No permission to modify in view'));
+				callback(new Error('Controller: No permission to modify in view'));
 			}
 
 		} else if ( type === DELETE ) {
 
-			if(checkDelete( viewName, request.queries, socket.view[viewName] ) ){
+			if(checkDelete( viewName, request, socket.view[viewName] ) ){
 				View.delete( viewName, request, callback );
 			} else {
-				callback(new Error('No permission to delete in view'));
+				callback(new Error('Controller: No permission to delete in view'));
 			}
 
 		}
 
 	} else {
-		callback(new Error('Requested data without requiring a template or config'));
+		callback(new Error('Controller: Requested data without requiring a template or config'));
 	}
 };
 
@@ -626,10 +674,11 @@ function checkRead( viewName, queries, listOfAllowed_vids ) {
 
 	//Проверяем имеет ли запрашиваемый _vids доступ на чтение в глобальной переменной
 	for( var i=0; i < _vidsForCheck.length; i++ ) {
-		if ( !( globalViewConfig[viewName][listOfAllowed_vids[i]] &&
-			globalViewConfig[viewName][listOfAllowed_vids[i]].flexo.length !== 0 &&
-			( globalViewConfig[viewName][listOfAllowed_vids[i]].type === READ ||
-				globalViewConfig[viewName][listOfAllowed_vids[i]].type === MODIFY ) ) ) {
+		if ( !( globalViewConfig[viewName][_vidsForCheck[i]] &&
+			globalViewConfig[viewName][_vidsForCheck[i]].flexo.length !== 0 &&
+			globalViewConfig[viewName][_vidsForCheck[i]].flexo.length > 1 &&
+			( globalViewConfig[viewName][_vidsForCheck[i]].type === READ ||
+				globalViewConfig[viewName][_vidsForCheck[i]].type === MODIFY ) ) ) {
 			return false;
 		}
 	}
@@ -664,9 +713,10 @@ function checkCreate( viewName, queries, listOfAllowed_vids ) {
 
 		//Проверяем имеет ли запрашиваемый _vids доступ к flexo в глобальной переменной
 		for( var i = 0; i < _vidsForCheck.length; i++ ) {
-			if (!( globalViewConfig[viewName][listOfAllowed_vids[i]] &&
-				globalViewConfig[viewName][listOfAllowed_vids[i]].flexo.length !== 0 &&
-				globalViewConfig[viewName][listOfAllowed_vids[i]].type === CREATE ) ) {
+			if (!( globalViewConfig[viewName][_vidsForCheck[i]] &&
+				globalViewConfig[viewName][_vidsForCheck[i]].flexo.length !== 0 &&
+				globalViewConfig[viewName][_vidsForCheck[i]].flexo.length > 1 &&
+				globalViewConfig[viewName][_vidsForCheck[i]].type === CREATE ) ) {
 				return false;
 			}
 		}
@@ -689,9 +739,10 @@ function checkCreate( viewName, queries, listOfAllowed_vids ) {
 
 		//Проверяем имеет ли запрашиваемый _vids доступ к flexo в глобальной переменной
 		for( var i = 0; i < _vidsForCheck.length; i++ ) {
-			if (!( globalViewConfig[viewName][listOfAllowed_vids[i]] &&
-				globalViewConfig[viewName][listOfAllowed_vids[i]].flexo.length !== 0 &&
-				globalViewConfig[viewName][listOfAllowed_vids[i]].type === CREATE ) ) {
+			if (!( globalViewConfig[viewName][_vidsForCheck[i]] &&
+				globalViewConfig[viewName][_vidsForCheck[i]].flexo.length !== 0 &&
+				globalViewConfig[viewName][_vidsForCheck[i]].flexo.length > 1 &&
+				globalViewConfig[viewName][_vidsForCheck[i]].type === CREATE ) ) {
 				return false;
 			}
 		}
@@ -727,9 +778,10 @@ function checkModify( viewName, queries, listOfAllowed_vids ) {
 
 		//Проверяем имеет ли запрашиваемый _vids доступ к flexo в глобальной переменной
 		for( var i = 0; i < _vidsForCheck.length; i++ ) {
-			if (!( globalViewConfig[viewName][listOfAllowed_vids[i]] &&
-				globalViewConfig[viewName][listOfAllowed_vids[i]].flexo.length !== 0 &&
-				globalViewConfig[viewName][listOfAllowed_vids[i]].type === MODIFY ) ) {
+			if (!( globalViewConfig[viewName][_vidsForCheck[i]] &&
+				globalViewConfig[viewName][_vidsForCheck[i]].flexo.length !== 0 &&
+				globalViewConfig[viewName][_vidsForCheck[i]].flexo.length > 1 &&
+				globalViewConfig[viewName][_vidsForCheck[i]].type === MODIFY ) ) {
 				return false;
 			}
 		}
@@ -752,9 +804,10 @@ function checkModify( viewName, queries, listOfAllowed_vids ) {
 
 		//Проверяем имеет ли запрашиваемый _vids доступ к flexo в глобальной переменной
 		for( var i = 0; i < _vidsForCheck.length; i++ ) {
-			if (!( globalViewConfig[viewName][listOfAllowed_vids[i]] &&
-				globalViewConfig[viewName][listOfAllowed_vids[i]].flexo.length !== 0 &&
-				globalViewConfig[viewName][listOfAllowed_vids[i]].type === MODIFY ) ) {
+			if (!( globalViewConfig[viewName][_vidsForCheck[i]] &&
+				globalViewConfig[viewName][_vidsForCheck[i]].flexo.length !== 0 &&
+				globalViewConfig[viewName][_vidsForCheck[i]].flexo.length > 1 &&
+				globalViewConfig[viewName][_vidsForCheck[i]].type === MODIFY ) ) {
 				return false;
 			}
 		}
@@ -790,9 +843,10 @@ function checkDelete( viewName, queries, listOfAllowed_vids ) {
 
 		//Проверяем имеет ли запрашиваемый _vids доступ к flexo в глобальной переменной
 		for( var i = 0; i < _vidsForCheck.length; i++ ) {
-			if (!( globalViewConfig[viewName][listOfAllowed_vids[i]] &&
-				globalViewConfig[viewName][listOfAllowed_vids[i]].flexo.length !== 0 &&
-				globalViewConfig[viewName][listOfAllowed_vids[i]].type === DELETE ) ) {
+			if (!( globalViewConfig[viewName][_vidsForCheck[i]] &&
+				globalViewConfig[viewName][_vidsForCheck[i]].flexo.length !== 0 &&
+				globalViewConfig[viewName][_vidsForCheck[i]].flexo.length > 1 &&
+				globalViewConfig[viewName][_vidsForCheck[i]].type === DELETE ) ) {
 				return false;
 			}
 		}
@@ -815,9 +869,10 @@ function checkDelete( viewName, queries, listOfAllowed_vids ) {
 
 		//Проверяем имеет ли запрашиваемый _vids доступ к flexo в глобальной переменной
 		for( var i = 0; i < _vidsForCheck.length; i++ ) {
-			if (!( globalViewConfig[viewName][listOfAllowed_vids[i]] &&
-				globalViewConfig[viewName][listOfAllowed_vids[i]].flexo.length !== 0 &&
-				globalViewConfig[viewName][listOfAllowed_vids[i]].type === DELETE ) ) {
+			if (!( globalViewConfig[viewName][_vidsForCheck[i]] &&
+				globalViewConfig[viewName][_vidsForCheck[i]].flexo.length !== 0 &&
+				globalViewConfig[viewName][_vidsForCheck[i]].flexo.length > 1 &&
+				globalViewConfig[viewName][_vidsForCheck[i]].type === DELETE ) ) {
 				return false;
 			}
 		}
@@ -833,7 +888,7 @@ function formingFlexoAndView( user, role, viewName, callback ){
 		if( err ) {
 			callback ( err );
 		} else if ( listAllowedOf_vid.length === 0 ) {
-		    callback ( new Error('No permissions access to view'));
+		    callback ( new Error('Controller: No permissions access to view'));
 		} else {
 			//Формируем список необходимых flexo схем
 			var listOfFlexoSchemes = [];
@@ -1004,11 +1059,13 @@ function crossingAccessForFlexo(user, role, viewName, flexoSchemes, callback) {
 					//Cоздание в целом
 					var createAll = 0;
 
-					if( objAccessRole[schemes[i]] && objAccessRole[schemes[i]]['createAll'] ) {
-						createAll = objAccessRole[schemes[i]['createAll']];
+					if( objAccessRole[schemes[i]] &&
+						!underscore.isUndefined( objAccessRole[schemes[i]]['createAll'] ) ) {
+						createAll = objAccessRole[schemes[i]]['createAll'];
 					}
 
-					if(objAccessUser[schemes[i]]){
+					if(objAccessUser[schemes[i]] &&
+						!underscore.isUndefined( objAccessUser[schemes[i]]['createAll'] )){
 						if( objAccessUser[schemes[i]]['createAll'] === 0) {
 							createAll = 0;
 						} else if ( objAccessUser[schemes[i]]['createAll'] === 1) {
@@ -1025,11 +1082,13 @@ function crossingAccessForFlexo(user, role, viewName, flexoSchemes, callback) {
 					//Удаление
 					var del = 0;
 
-					if( objAccessRole[schemes[i]] && objAccessRole[schemes[i]]['delete'] ) {
-						del = objAccessRole[schemes[i]['delete']];
+					if( objAccessRole[schemes[i]] &&
+						!underscore.isUndefined( objAccessRole[schemes[i]]['delete'] ) ) {
+						del = objAccessRole[schemes[i]]['delete'];
 					}
 
-					if(objAccessUser[schemes[i]]){
+					if(objAccessUser[schemes[i]] &&
+						!underscore.isUndefined( objAccessUser[schemes[i]]['delete'] )){
 						if( objAccessUser[schemes[i]]['delete'] === 0) {
 							del = 0;
 						} else if ( objAccessUser[schemes[i]]['delete'] === 1) {
@@ -1056,8 +1115,8 @@ function crossingAccessForView(user, role, viewName, callback ) {
 	async.parallel([
 		function(cb){
 			AccessModuleRoleView.find(client, role, viewName, function(err, objAccess){
-				if (err && err.message === 'No requested object access (role: ' + role +', ' +
-				'viewName: ' + viewName + ')') {
+				if (err && err.message === 'Controller: No requested object access (role: ' +
+					role +', viewName: ' + viewName + ')') {
 					cb( null, {add:[], del:[]});
 				} else if ( err ) {
 					cb( err );
@@ -1069,8 +1128,8 @@ function crossingAccessForView(user, role, viewName, callback ) {
 		},
 		function(cb){
 			AccessModuleUserView.find(client, user, viewName, function(err, objAccess){
-				if (err && err.message === 'No requested object access (user: ' + user +', ' +
-					'viewName: ' + viewName + ')') {
+				if (err && err.message === 'Controller: No requested object access (user: ' +
+					user +', viewName: ' + viewName + ')') {
 					cb( null, {add:[], del:[]});
 				} else if ( err ) {
 					cb( err );

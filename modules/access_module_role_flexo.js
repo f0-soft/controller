@@ -53,8 +53,8 @@ AccessModuleRoleFlexo.find = function find( client, role, flexoSchemeName, callb
 
 			callback( null, objAccess );
 		} else {
-			callback(new Error( 'No requested object access (role: ' + role +', flexoScheme: ' +
-				flexoSchemeName + ')' ) );
+			callback(new Error( 'Controller: No requested object access (role: ' + role +', ' +
+				'flexoScheme: ' + flexoSchemeName + ')' ) );
 		}
 	});
 };

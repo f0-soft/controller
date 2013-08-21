@@ -50,7 +50,7 @@ AccessModuleRoleView.find = function find( client, role, viewName, callback ) {
 
 				callback( null, objAccess );
 			} else {
-				callback(new Error('No requested object access (role: ' + role +', ' +
+				callback(new Error('Controller: No requested object access (role: ' + role +', ' +
 					'viewName: ' + viewName + ')'))
 			}
 		}

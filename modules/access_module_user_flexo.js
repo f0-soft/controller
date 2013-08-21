@@ -49,8 +49,8 @@ AccessModuleUserFlexo.find = function find( client, user, flexoSchemeName, callb
 
 			callback( null, objAccess );
 		} else {
-			callback(new Error( 'No requested object access (user: ' + user +', flexoScheme: ' +
-				flexoSchemeName + ')' ) );
+			callback(new Error( 'Controller: No requested object access (user: ' + user +', ' +
+				'flexoScheme: ' + flexoSchemeName + ')' ) );
 		}
 	});
 };
@@ -169,17 +169,21 @@ AccessModuleUserFlexo.accessDataPreparation =
 					}
 
 					//Права на создание всего документа
-					if(objAccessForOneScheme['createAll']){
-						objAccess[flexoSchemesName[i]]['createAll'] = 1;
-					} else {
-						objAccess[flexoSchemesName[i]]['createAll'] = 0;
+					if(!underscore.isUndefined(objAccessForOneScheme['createAll'])){
+						if(objAccessForOneScheme['createAll']){
+							objAccess[flexoSchemesName[i]]['createAll'] = 1;
+						} else {
+							objAccess[flexoSchemesName[i]]['createAll'] = 0;
+						}
 					}
 
 					//Удаление
-					if(objAccessForOneScheme['delete']){
-						objAccess[flexoSchemesName[i]]['delete'] = 1;
-					} else {
-						objAccess[flexoSchemesName[i]]['delete'] = 0;
+					if(!underscore.isUndefined(objAccessForOneScheme['delete'])){
+						if(objAccessForOneScheme['delete']){
+							objAccess[flexoSchemesName[i]]['delete'] = 1;
+						} else {
+							objAccess[flexoSchemesName[i]]['delete'] = 0;
+						}
 					}
 				}
 			}
@@ -239,6 +243,9 @@ function accessDataPreparationForMethod(method, objAccess, fieldsGlobalFlexoSche
 
 				//Объединяем права
 				notPermissionFields = underscore.union(fieldsGlobalFlexoScheme, notPermissionFields);
+				//Из запрещенных вычитаем разрешенные (так как '(all)' запрещает все поля, то
+				//разрешенные отдельные поля более приоритетны
+				notPermissionFields = underscore.difference(notPermissionFields, permissionFields);
 			}
 		} else {
 			//Получаем все поля из объекта прав

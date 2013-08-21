@@ -49,7 +49,7 @@ AccessModuleUserView.find = function find( client, user, viewName, callback ) {
 
 				callback( null, objAccess );
 			} else {
-				callback(new Error('No requested object access (user: ' + user +', ' +
+				callback(new Error('Controller: No requested object access (user: ' + user +', ' +
 				'viewName: ' + viewName + ')'))
 			}
 		}
