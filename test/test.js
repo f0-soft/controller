@@ -1,9 +1,11 @@
-var Controller = require('./index.js');
+var fs = require('fs');
+var Controller = require('./../index.js');
 var async = require('async');
 var underscore = require('underscore');
+var _ = underscore;
 
 //Получаем информацию из конфига, о том требуется ли подключение mock_view
-var mock = require('./config/config.js').mock;
+var mock = require('./../config/config.js').mock;
 
 //Словарь используемый для генерации строк
 var charString = ['й','ц','у','к','е','н','г','ш','щ',
@@ -21,16 +23,16 @@ var charString = ['й','ц','у','к','е','н','г','ш','щ',
 //Имитация глобальной переменной для хранения общих данных о view
 var testObjGlobalViewsConfig = {
 	'testView1': {
-		q1:{flexo:[]},
-		w2:{flexo:[]},
-		e3:{flexo:[]},
-		r4:{flexo:[]},
-		t5:{flexo:[]},
-		y6:{flexo:[]},
-		u7:{flexo:[]},
-		i8:{flexo:[]},
-		o9:{flexo:[]},
-		p10:{flexo:[]}
+		q1:{},
+		w2:{},
+		e3:{},
+		r4:{},
+		t5:{},
+		y6:{},
+		u7:{},
+		i8:{},
+		o9:{},
+		p10:{}
 	},
 	'testView2': {
 		q1:{flexo:['testUsers', 'login'], type:'read'},
@@ -40,7 +42,9 @@ var testObjGlobalViewsConfig = {
 		t5:{flexo:['testUsers', 'position'], type:'read'},
 		y6:{flexo:['testUsers', 'company'], type:'read'},
 		u7:{flexo:['testUsers', 'hash'], type:'read'},
-		i8:{flexo:['testUsers', 'salt'], type:'read'}
+		i8:{flexo:['testUsers', 'salt'], type:'read'},
+		o9:{flexo:['testUsers', '_id'], type:'read'},
+		p10:{flexo:['testUsers', '_tsUpdate'], type:'read'}
 	},
 	'testView3': {
 		a9:{flexo:['testUsers'], type:'create'},
@@ -54,6 +58,8 @@ var testObjGlobalViewsConfig = {
 		i1:{flexo:['testUsers', 'salt'], type:'create'}
 	},
 	'testView4':{
+		s10:{flexo:['testUsers', 'tsUpdate'], type:'read'},
+		a9:{flexo:['testUsers', '_id'], type:'read'},
 		q8:{flexo:['testUsers', 'login'], type:'modify'},
 		w7:{flexo:['testUsers', 'role'], type:'modify'},
 		e6:{flexo:['testUsers', 'name'], type:'modify'},
@@ -64,8 +70,8 @@ var testObjGlobalViewsConfig = {
 		i1:{flexo:['testUsers', 'salt'], type:'modify'}
 	},
 	'testView5':{
-		q1:{flexo:['testUsers', '_id'], type:'delete'},
-		w2:{flexo:['testUsers', 'tsUpdate'], type:'delete'},
+		q1:{flexo:['testUsers', '_id'], type:'read'},
+		w2:{flexo:['testUsers', 'tsUpdate'], type:'read'},
 		e3:{flexo:['testUsers'], type:'delete'}
 	}
 };
@@ -73,20 +79,9 @@ var testObjGlobalViewsConfig = {
 //Имитация глобальной переменной с информацией из flexo схем
 //сигнатура {schemeName:{read:[fieldsNames], modify:[fieldsNames]}
 var globalFlexoSchemes = {
-	'testCustomers': {
-		read:['name', 'inn', 'managerName'],
-		modify:['name', 'inn']
-	},
-	'testOrders': {
-		read: ['number', 'comments', 'services'],
-		modify:['number', 'comments', 'services']
-	},
-	'testServices': {
-		read: ['name', 'price'],
-		modify:['name', 'price']
-	},
 	'testUsers': {
-		read: ['login', 'role', 'name', 'lastname', 'position', 'company', 'hash', 'salt'],
+		read: ['_id', 'tsUpdate','login', 'role', 'name', 'lastname', 'position', 'company',
+			'hash', 'salt'],
 		modify: ['login', 'role', 'name', 'lastname', 'position', 'company', 'hash', 'salt']
 	}
 };
@@ -95,14 +90,15 @@ var globalFlexoSchemes = {
 var controller;
 
 //Устанавливаем параметр view в конфиг контроллера
-if ( mock ) {
-	var view = require( './mock/view_mock.js' );
+var View;
+if ( mock.view ) {
+	View = require( './../mock/view_mock.js' );
 }
 
 //Конфиг контроллера
 configForController = {
 	redisConfig: {},
-	view:view,
+	view:View,
 	flexoSchemes:globalFlexoSchemes,
 	viewConfig:testObjGlobalViewsConfig
 };
@@ -110,20 +106,45 @@ configForController = {
 //Тестирование инициализации контроллера и view
 exports.testInit = {
 	initView: function(test){
-		test.expect( 7 );
-		view.init({}, function( err, reply ){
-			test.ifError(err);
-			test.ok(reply);
-			test.ok(view.getTemplate);
-			test.ok(view.find);
-			test.ok(view.insert);
-			test.ok(view.modify);
-			test.ok(view.delete);
-			test.done();
-		});
+
+		if( mock.view ) {
+			test.expect( 7 );
+			View.init({}, function( err, reply ){
+				test.ifError(err);
+				test.ok(reply);
+				test.ok(View.getTemplate);
+				test.ok(View.find);
+				test.ok(View.insert);
+				test.ok(View.modify);
+				test.ok(View.delete);
+				test.done();
+			});
+		} else {
+			test.expect( 6 );
+
+			var config = {
+				pRabbit: require('f0.rabbit'),
+				pFlexo: require('f0.flexo'),
+				pView: require('f0.view'),
+				scheme_flexo: __dirname + '/scheme/flexo/',
+				scheme_view: __dirname + '/scheme/view/',
+				template: __dirname + '/scheme/template/'
+			};
+			debugger
+			initStarter( config, function( err, res ) {
+				test.ifError(err);
+				test.ok(View.getTemplate);
+				test.ok(View.find);
+				test.ok(View.insert);
+				test.ok(View.modify);
+				test.ok(View.delete);
+				test.done();
+			} );
+		}
 	},
 	initController: function (test) {
 		test.expect( 6 );
+		debugger
 		Controller.init( configForController, function( err, reply ) {
 			test.ifError(err);
 			test.ok(reply);
@@ -560,7 +581,7 @@ exports.viewWithoutFlexo = {
 			}
 
 			test.expect( ( listAllowed_vids.length + 4 ) );
-
+			debugger;
 			controller.getTemplate( viewName, user, role, socket, function( err, config, template ) {
 				test.ifError(err);
 				test.ok(config);
@@ -837,6 +858,7 @@ exports.viewWithoutFlexo = {
 		}
 	}
 };
+
 
 var testData4 = { //Наполняется генератором в тесте
 	userLogin: generatorString(1,10),
@@ -1292,7 +1314,7 @@ exports.viewWithFlexo = {
 		},
 		queryToCreate:{
 			allowed_vidsInQueries: function( test ) {
-                test.expect( 2 );
+
 				var viewName = testData4.testCreate.viewNameForCreate;
 				var socket = testData4.testCreate.socket;
 
@@ -1308,11 +1330,23 @@ exports.viewWithFlexo = {
 					queryToCreate[listAllowed_vidsWithFlexo[i]] = getRandom(0, 10000);
 				}
 
+				test.expect( listAllowed_vidsWithFlexo.length + 2 );
+
 				controller.queryToView ( 'create', queryToCreate, viewName, socket,
 					function(err, reply) {
-                    test.ifError(err);
+
+						test.ifError(err);
 					var _vids = Object.keys(reply[0]);
-					test.ok(_vids.length);
+
+					test.strictEqual(_vids.length, listAllowed_vidsWithFlexo.length,
+						'Проверяем количество возвращенных идентификаторов view');
+
+					for( var i = 0; i < _vids.length; i++ ) {
+						var result = underscore.indexOf( listAllowed_vidsWithFlexo, _vids[i] );
+						test.notStrictEqual(result, -1,	'Сравнение возвращенных ' +
+							'идентификаторов с сохраненными идентификаторами view ' );
+					}
+
 					test.done();
 				});
 			},
@@ -1388,6 +1422,11 @@ exports.viewWithFlexo = {
 			var login = testData4.userLogin;
 			var role = testData4.userRole;
 			var flexoSchemeName = testData4.flexoSchemeName;
+
+			//Генерируем права на чтение для роли
+			for( var i = 0; i < globalFlexoSchemes[flexoSchemeName].read.length; i++ ) {
+				objAccessForRole.read[globalFlexoSchemes[flexoSchemeName].read[i]] = 1;
+			}
 
 			//Генерируем права на модификацию для роли
 			var notAccessRole = getRandom(0, (globalFlexoSchemes[flexoSchemeName].modify.length - 1) );
@@ -1490,8 +1529,7 @@ exports.viewWithFlexo = {
 			});
 		},
 		getTemplateFromView:function(test){
-			test.expect( 5 );
-
+			test.expect( 7 );
 			var viewName = testData4.testModify.viewNameForModify;
 			var user = testData4.userLogin;
 			var role = testData4.userRole;
@@ -1511,6 +1549,14 @@ exports.viewWithFlexo = {
 				}
 			}
 
+			//Получаем _vid для полей _id и tsUpdate
+			var _vidsForSelector = [];
+			for(var i=0; i<listOf_vids.length; i++){
+				if(testObjGlobalViewsConfig[viewName][listOf_vids[i]].type === 'read'){
+					_vidsForSelector.push(listOf_vids[i]);
+				}
+			}
+
 			testData4.testModify._vidAllowed = _vidAllowed;
 
 			controller.getTemplate( viewName, user, role, socket, function( err, config, template ) {
@@ -1520,7 +1566,7 @@ exports.viewWithFlexo = {
 
 				//Проверяем список идентификаторов сохраненных у объекта socket
 				if( socket.view && socket.view[viewName] ){
-					test.strictEqual(socket.view[viewName].length, 1,
+					test.strictEqual(socket.view[viewName].length, 3,
 						'Проверяем количество разрешенных идентификаторов view');
 
 
@@ -1528,6 +1574,11 @@ exports.viewWithFlexo = {
 					test.notStrictEqual(result, -1,	'Проверка наличия разрешенного ' +
 						'идентификатора view в списке разрашенных у socket' );
 
+					for( var i = 0; i < _vidsForSelector.length; i++ ) {
+						result = underscore.indexOf( socket.view[viewName], _vidsForSelector[i] );
+						test.notStrictEqual(result, -1,	'Проверка наличия разрешенного ' +
+							'идентификатора view в списке разрашенных у socket' );
+					}
 				}
 
 				test.done();
@@ -1543,12 +1594,19 @@ exports.viewWithFlexo = {
 				var listOf_vids = Object.keys(testObjGlobalViewsConfig[viewName]);
 				listOf_vids = underscore.without(listOf_vids, allowed_vid);
 
+				//Получаем _vid для полей _id и tsUpdate
+				var _vidsForSelector = [];
+				for(var i=0; i<listOf_vids.length; i++){
+					if(testObjGlobalViewsConfig[viewName][listOf_vids[i]].type === 'read'){
+						_vidsForSelector.push(listOf_vids[i]);
+					}
+				}
+
 				//Формируем запрос на модификацию
 				var request = {};
 				request['selector'] = {};
-				request['selector']
-					[listOf_vids[generatorString(0,(listOf_vids.length - 1))]]
-						= generatorString(1,10);
+				request['selector'][_vidsForSelector[0]] = generatorString(1,10);
+				request['selector'][_vidsForSelector[1]] = generatorString(1,10);
 				request['properties'] = {};
 				request['properties'][allowed_vid] = generatorString(1,10);
 
@@ -1651,6 +1709,11 @@ exports.viewWithFlexo = {
 			var role = testData4.userRole;
 			var flexoSchemeName = testData4.flexoSchemeName;
 
+			//Генерируем права на чтение для роли
+			for( var i = 0; i < globalFlexoSchemes[flexoSchemeName].read.length; i++ ) {
+                objAccessForRole.read[globalFlexoSchemes[flexoSchemeName].read[i]] = 1;
+			}
+
 			//Формируем запрос на сохранение прав по роли для flexo схемы
 			var queryForSave = {
 				access:{
@@ -1707,13 +1770,13 @@ exports.viewWithFlexo = {
 			//Все идентификаторы разрешены в этом тесте
 			var listAllowed_vids = Object.keys(globalViewConfig);
 
-
+			debugger;
 			test.expect( listAllowed_vids.length + 4 );
 			controller.getTemplate( viewName, user, role, socket, function( err, config, template ) {
 				test.ifError(err);
 				test.ok(config);
 				test.ok(template);
-
+				debugger;
 				//Проверяем список идентификаторов сохраненных у объекта socket
 				if( socket.view && socket.view[viewName] ){
 					test.strictEqual(socket.view[viewName].length, 3,
@@ -1741,7 +1804,7 @@ exports.viewWithFlexo = {
 
 				//Ищем элемент во view у которого нет привязки к flexo полю
 				for( var i = 0; i < listOf_vids.length; i++ ) {
-					if(testObjGlobalViewsConfig[viewName][listOf_vids[i]].flexo.length === 1){
+					if(testObjGlobalViewsConfig[viewName][listOf_vids[i]].type === 'delete'){
 						notFlexoFields_vid = listOf_vids[i];
 					}
 				}
@@ -1753,7 +1816,7 @@ exports.viewWithFlexo = {
 				request['selector'] = {};
 				request['selector'][listOf_vids[0]] = generatorString(1,10);
 				request['selector'][listOf_vids[1]] = generatorString(1,10);
-
+				debugger;
 				controller.queryToView ( 'delete', request, viewName, socket, function(err, reply) {
 					test.ifError(err);
 					test.ok(reply);
@@ -1768,20 +1831,12 @@ exports.viewWithFlexo = {
 				var listOf_vids = Object.keys(testObjGlobalViewsConfig[viewName]);
 				var notFlexoFields_vid;
 
-				//Ищем элемент во view у которого нет привязки к flexo полю
-				for( var i = 0; i < listOf_vids.length; i++ ) {
-					if(testObjGlobalViewsConfig[viewName][listOf_vids[i]].flexo.length === 1){
-						notFlexoFields_vid = listOf_vids[i];
-					}
-				}
-
 				listOf_vids = underscore.without(listOf_vids, notFlexoFields_vid);
 
 				//Формируем запрос на модификацию
 				var request = {};
 				request['selector'] = {};
-				request['selector'][listOf_vids[0]] = generatorString(1,10);
-				request['selector'][notFlexoFields_vid] = generatorString(1,10);
+				request['selector']['sss'] = generatorString(1,10);
 
 				controller.queryToView ( 'delete', request, viewName, socket, function(err, reply) {
 					test.strictEqual(err.message, 'Controller: No permission to delete in view');
@@ -1825,6 +1880,163 @@ exports.viewWithFlexo = {
 		}
 	}
 };
+
+function initStarter(config, callback){
+	if(config.pRabbit) rabbit = config.pRabbit;
+	else {
+		callback ('Starter: config.pRabbit - default.');
+		return;
+	}
+	if(config.pFlexo) flexo = config.pFlexo;
+	else {
+		callback ('Starter: config.pFlexo - default.');
+		return;
+	}
+	if(config.pView) view = config.pView;
+	else {
+		callback ('Starter: config.pView- default.');
+		return;
+	}
+
+
+//    ----------------------------------
+//    Блок разбор flexo схем
+//    ----------------------------------
+	var filename = fs.readdirSync(config.scheme_flexo);
+	//  массивы полей для редактирования и чтения для Controller
+	var flexoGlobalController = {};
+	// объект для модуля flexo
+	var flexoGlobal = {};
+
+	// массив названий флексосхем
+	var aFlexoName = [];
+
+	// разбор флексосхемы для контролера и flexo
+	for(var i = 0; i < filename.length; i++){
+		var buff = require(config.scheme_flexo+'/'+filename[i]);
+		var modify = [];
+		var type = {};
+		for(key in buff.root){
+			modify.push(key);
+			if(!buff.root[key].type) {
+				callback('ERR: В схеме '+buff.name+' поле '+key+' без type');
+				return;
+			}
+			type[key] = buff.root[key];
+		}
+
+		flexoGlobal[buff.name] = {
+			scheme: buff,
+			dict: {
+				mutable: modify,
+				types: type,
+				joins: [],
+				joinProperties: []
+			}
+		}
+
+		aFlexoName.push(buff.name);
+	}
+
+	for(var i = 0; i < aFlexoName.length; i++){
+		var buffFlexo = flexoGlobal[aFlexoName[i]].scheme;
+		var types = flexoGlobal[aFlexoName[i]].dict.types;
+		var read = [];
+		if(buffFlexo.join){
+			for(key in buffFlexo.join){
+				for(var g = 0; g < buffFlexo.join[key].fields.length; g++){
+					read.push(key+'_'+buffFlexo.join[key].fields[g]);
+					types[key+'_'+buffFlexo.join[key].fields[g]] = flexoGlobal[key].dict.types[buffFlexo.join[key].fields[g]];
+				}
+				if(buffFlexo.join[key].depend[0] === 'root')  flexoGlobal[aFlexoName[i]].dict.joinProperties.push(buffFlexo.join[key].depend[1]);
+				flexoGlobal[aFlexoName[i]].dict.joins.push(buffFlexo.join[key].depend[0]);
+
+			}
+		}
+
+		read = _.union(read, flexoGlobal[aFlexoName[i]].dict.mutable);
+		flexoGlobal[aFlexoName[i]].dict.all = read;
+		flexoGlobalController[aFlexoName[i]] = {
+			read: read,
+			modify: flexoGlobal[aFlexoName[i]].dict.mutable
+		}
+
+		flexoGlobalController[aFlexoName[i]].read.push('_id');
+		flexoGlobalController[aFlexoName[i]].read.push('tsUpdate');
+	}
+
+//    ----------------------------------
+//    Блок разбор flexo схем
+//    ----------------------------------
+
+	filename = fs.readdirSync(config.scheme_view);
+	//  массив _vid для контролерра
+	var viewGlobalController = {};
+	var viewGlobalView = {};
+
+	for(var i = 0; i < filename.length; i++){
+		var buff = require(config.scheme_view+'/'+filename[i]);
+
+		var aPoint = [{in: buff.config , url: ''}];
+		viewGlobalController[buff.name] = {};
+		viewGlobalView[buff.name] = {view: buff};
+		// прогон поконфигу
+		while (aPoint.length > 0){
+			var point = aPoint[0];
+			if(point.in['_vid']){
+				if(!point.in['_flexo']) viewGlobalController[buff.name][point.in['_vid']] = {};
+				else {
+					if(!point.in._flexo['type'] || !point.in._flexo['scheme']) {
+						callback('Ошибка разбора view-схемы '+buff.name+' _vid - '+point.in['_vid']);
+					} else {
+						viewGlobalController[buff.name][point.in['_vid']] = {type: point.in._flexo['type'], flexo: point.in._flexo['scheme']};
+						var aBuff =  point.url.split('/:');
+						aBuff.shift();
+//                        viewGlobalView[buff.name][point.in['_vid']] = aBuff;
+					}
+				}
+			}
+			aPoint.shift();
+			if(point.in && typeof(point.in) === 'object') {
+				if(_.isArray(point.in)) {
+					for(var g = 0; g < point.in.length ; g++){
+						aPoint.unshift({in: point.in[g], url: point.url+'/:'+g});
+					}
+				} else {
+					for(key in point.in){
+						aPoint.unshift({in: point.in[key], url:  point.url+'/:'+key});
+					}
+				}
+			}
+		}
+	}
+
+//    ----------------------------------
+//    Блок инициализации паралельной
+//    ----------------------------------
+	View = view;
+	testObjGlobalViewsConfig = viewGlobalController;
+	globalFlexoSchemes = flexoGlobalController;
+
+	async.waterfall([
+		function(cb){
+			rabbit.init(null, cb);
+		},
+		function(arg, cb){
+			flexo.init({storage: rabbit, schemes: flexoGlobal}, cb);
+		},
+		function(arg, cb){
+			view.init({provider: arg, views: flexoGlobal, templatePath: config.template}, cb);
+
+		}/*,
+		function(arg, cb){
+			controller.init({view: arg, viewConfig: viewGlobalController, flexoSchemes: flexoGlobalController}, cb);
+		}*/
+	], function (err, result) {
+		if(err) callback (err);
+		else callback (null, result);
+	});
+}
 
 //Создаем случайное число в заданных пределах
 function getRandom(min, max) {

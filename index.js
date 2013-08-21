@@ -675,6 +675,7 @@ function checkRead( viewName, queries, listOfAllowed_vids ) {
 	//Проверяем имеет ли запрашиваемый _vids доступ на чтение в глобальной переменной
 	for( var i=0; i < _vidsForCheck.length; i++ ) {
 		if ( !( globalViewConfig[viewName][_vidsForCheck[i]] &&
+			globalViewConfig[viewName][_vidsForCheck[i]].flexo &&
 			globalViewConfig[viewName][_vidsForCheck[i]].flexo.length !== 0 &&
 			globalViewConfig[viewName][_vidsForCheck[i]].flexo.length > 1 &&
 			( globalViewConfig[viewName][_vidsForCheck[i]].type === READ ||
@@ -714,6 +715,7 @@ function checkCreate( viewName, queries, listOfAllowed_vids ) {
 		//Проверяем имеет ли запрашиваемый _vids доступ к flexo в глобальной переменной
 		for( var i = 0; i < _vidsForCheck.length; i++ ) {
 			if (!( globalViewConfig[viewName][_vidsForCheck[i]] &&
+				globalViewConfig[viewName][_vidsForCheck[i]].flexo &&
 				globalViewConfig[viewName][_vidsForCheck[i]].flexo.length !== 0 &&
 				globalViewConfig[viewName][_vidsForCheck[i]].flexo.length > 1 &&
 				globalViewConfig[viewName][_vidsForCheck[i]].type === CREATE ) ) {
@@ -740,6 +742,7 @@ function checkCreate( viewName, queries, listOfAllowed_vids ) {
 		//Проверяем имеет ли запрашиваемый _vids доступ к flexo в глобальной переменной
 		for( var i = 0; i < _vidsForCheck.length; i++ ) {
 			if (!( globalViewConfig[viewName][_vidsForCheck[i]] &&
+				globalViewConfig[viewName][_vidsForCheck[i]].flexo &&
 				globalViewConfig[viewName][_vidsForCheck[i]].flexo.length !== 0 &&
 				globalViewConfig[viewName][_vidsForCheck[i]].flexo.length > 1 &&
 				globalViewConfig[viewName][_vidsForCheck[i]].type === CREATE ) ) {
@@ -779,6 +782,7 @@ function checkModify( viewName, queries, listOfAllowed_vids ) {
 		//Проверяем имеет ли запрашиваемый _vids доступ к flexo в глобальной переменной
 		for( var i = 0; i < _vidsForCheck.length; i++ ) {
 			if (!( globalViewConfig[viewName][_vidsForCheck[i]] &&
+				globalViewConfig[viewName][_vidsForCheck[i]].flexo &&
 				globalViewConfig[viewName][_vidsForCheck[i]].flexo.length !== 0 &&
 				globalViewConfig[viewName][_vidsForCheck[i]].flexo.length > 1 &&
 				globalViewConfig[viewName][_vidsForCheck[i]].type === MODIFY ) ) {
@@ -805,6 +809,7 @@ function checkModify( viewName, queries, listOfAllowed_vids ) {
 		//Проверяем имеет ли запрашиваемый _vids доступ к flexo в глобальной переменной
 		for( var i = 0; i < _vidsForCheck.length; i++ ) {
 			if (!( globalViewConfig[viewName][_vidsForCheck[i]] &&
+				globalViewConfig[viewName][_vidsForCheck[i]].flexo &&
 				globalViewConfig[viewName][_vidsForCheck[i]].flexo.length !== 0 &&
 				globalViewConfig[viewName][_vidsForCheck[i]].flexo.length > 1 &&
 				globalViewConfig[viewName][_vidsForCheck[i]].type === MODIFY ) ) {
@@ -842,12 +847,32 @@ function checkDelete( viewName, queries, listOfAllowed_vids ) {
 		}
 
 		//Проверяем имеет ли запрашиваемый _vids доступ к flexo в глобальной переменной
+		var flexoScheme = [];
 		for( var i = 0; i < _vidsForCheck.length; i++ ) {
-			if (!( globalViewConfig[viewName][_vidsForCheck[i]] &&
-				globalViewConfig[viewName][_vidsForCheck[i]].flexo.length !== 0 &&
-				globalViewConfig[viewName][_vidsForCheck[i]].flexo.length > 1 &&
-				globalViewConfig[viewName][_vidsForCheck[i]].type === DELETE ) ) {
+			if(globalViewConfig[viewName][_vidsForCheck[i]].flexo &&
+				globalViewConfig[viewName][_vidsForCheck[i]].flexo.length > 1){
+				flexoScheme.push(globalViewConfig[viewName][_vidsForCheck[i]].flexo[0]);
+			} else {
 				return false;
+			}
+
+		}
+
+		//Проверяем есть ли разрешение на удаление для данной flexo схемы
+		flexoScheme = underscore.uniq(flexoScheme);
+
+		for( var j=0; j<flexoScheme.length; j++){
+			for( var i=0; i<listOfAllowed_vids.length; i++ ) {
+
+				if(globalViewConfig[viewName][listOfAllowed_vids[i]].flexo &&
+					globalViewConfig[viewName][listOfAllowed_vids[i]].flexo.length === 1 &&
+					globalViewConfig[viewName][listOfAllowed_vids[i]].flexo[0] === flexoScheme[j] &&
+					globalViewConfig[viewName][listOfAllowed_vids[i]].type === 'delete'){
+					break;
+				}
+				if(i === ( listOfAllowed_vids.length - 1 ) ) {
+					return false;
+				}
 			}
 		}
 
@@ -868,14 +893,35 @@ function checkDelete( viewName, queries, listOfAllowed_vids ) {
 		}
 
 		//Проверяем имеет ли запрашиваемый _vids доступ к flexo в глобальной переменной
+		var flexoScheme = [];
 		for( var i = 0; i < _vidsForCheck.length; i++ ) {
-			if (!( globalViewConfig[viewName][_vidsForCheck[i]] &&
-				globalViewConfig[viewName][_vidsForCheck[i]].flexo.length !== 0 &&
-				globalViewConfig[viewName][_vidsForCheck[i]].flexo.length > 1 &&
-				globalViewConfig[viewName][_vidsForCheck[i]].type === DELETE ) ) {
+			if(globalViewConfig[viewName][_vidsForCheck[i]].flexo &&
+				globalViewConfig[viewName][_vidsForCheck[i]].flexo.length > 1){
+				flexoScheme.push(globalViewConfig[viewName][_vidsForCheck[i]].flexo[0]);
+			} else {
 				return false;
 			}
+
 		}
+
+		//Проверяем есть ли разрешение на удаление для данной flexo схемы
+		flexoScheme = underscore.uniq(flexoScheme);
+
+		for( var j=0; j<flexoScheme.length; j++){
+			for( var i=0; i<listOfAllowed_vids.length; i++ ) {
+
+				if(globalViewConfig[viewName][listOfAllowed_vids[i]].flexo &&
+					globalViewConfig[viewName][listOfAllowed_vids[i]].flexo.length === 1 &&
+					globalViewConfig[viewName][listOfAllowed_vids[i]].flexo[0] === flexoScheme[j] &&
+					globalViewConfig[viewName][listOfAllowed_vids[i]].type === 'delete'){
+					break;
+				}
+				if(i === ( listOfAllowed_vids.length - 1 ) ) {
+					return false;
+				}
+			}
+		}
+
 	}
 
 	return true;
@@ -900,7 +946,8 @@ function formingFlexoAndView( user, role, viewName, callback ){
 				//Проверяем существует ли такой _vid в глобальном описании view
 				if( globalViewConfig[viewName][listAllowedOf_vid[i]] ){
 					//Проверяем требуется ли flexo данные
-					if(globalViewConfig[viewName][listAllowedOf_vid[i]].flexo.length !== 0){
+					if(globalViewConfig[viewName][listAllowedOf_vid[i]].flexo &&
+						globalViewConfig[viewName][listAllowedOf_vid[i]].flexo.length !== 0){
 						//Сохраняем данные о требуемой flexo
 						//ToDo:Оптимизировать наполнение объекта obj_vidForFlexoCheck
 						var schemeName = globalViewConfig[viewName][listAllowedOf_vid[i]].flexo[0];
@@ -941,31 +988,45 @@ function formingFlexoAndView( user, role, viewName, callback ){
 						for( var i = 0; i < list_vidForFlexoCheck.length; i++ ) {
 							if(list_vidForFlexoCheck[i].type === READ){
 
-								var difference = underscore.difference(
-									list_vidForFlexoCheck[i].fields,
-									flexoAccess[READ][list_vidForFlexoCheck[i].schemeName]);
+								if (flexoAccess[READ]){
+									var difference = underscore.difference(
+										list_vidForFlexoCheck[i].fields,
+										flexoAccess[READ][list_vidForFlexoCheck[i].schemeName]);
 
-								if(difference.length !== 0){
+									if(difference.length !== 0){
+										//Запрашиваются поля которые не разрешены в полях
+										//ToDo: Возможно: логировать нарушение целостности
+										list_vidForRemove.push(
+											list_vidForFlexoCheck[i].listAllowedOf_vid);
+									}
+								} else {
+
 									//Запрашиваются поля которые не разрешены в полях
 									//ToDo: Возможно: логировать нарушение целостности
 									list_vidForRemove.push(
 										list_vidForFlexoCheck[i].listAllowedOf_vid);
-								}
 
+								}
 
 							} else if (list_vidForFlexoCheck[i].type === MODIFY) {
 
-								var difference = underscore.difference(
-									list_vidForFlexoCheck[i].fields,
-									flexoAccess[MODIFY][list_vidForFlexoCheck[i].schemeName]);
+								if (flexoAccess[MODIFY]){
+									var difference = underscore.difference(
+										list_vidForFlexoCheck[i].fields,
+										flexoAccess[MODIFY][list_vidForFlexoCheck[i].schemeName]);
 
-								if(difference.length !== 0){
+									if(difference.length !== 0){
+										//Запрашиваются поля которые не разрешены в полях
+										//ToDo: Возможно: логировать нарушение целостности
+										list_vidForRemove.push(
+											list_vidForFlexoCheck[i].listAllowedOf_vid);
+									}
+								} else {
 									//Запрашиваются поля которые не разрешены в полях
 									//ToDo: Возможно: логировать нарушение целостности
 									list_vidForRemove.push(
 										list_vidForFlexoCheck[i].listAllowedOf_vid);
 								}
-
 
 							} else if (list_vidForFlexoCheck[i].type === CREATE) {
 
@@ -978,12 +1039,19 @@ function formingFlexoAndView( user, role, viewName, callback ){
 											list_vidForFlexoCheck[i].listAllowedOf_vid);
 									}
 								} else {
-									//Проверяется частные разрешения на создание документа
-									var difference = underscore.difference(
-										list_vidForFlexoCheck[i].fields,
-										flexoAccess[CREATE][list_vidForFlexoCheck[i].schemeName]);
+									if (flexoAccess[CREATE]){
+										//Проверяется частные разрешения на создание документа
+										var difference = underscore.difference(
+											list_vidForFlexoCheck[i].fields,
+											flexoAccess[CREATE][list_vidForFlexoCheck[i].schemeName]);
 
-									if(difference.length !== 0){
+										if(difference.length !== 0){
+											//Запрашиваются поля которые не разрешены в полях
+											//ToDo: Возможно: логировать нарушение целостности
+											list_vidForRemove.push(
+												list_vidForFlexoCheck[i].listAllowedOf_vid);
+										}
+									} else {
 										//Запрашиваются поля которые не разрешены в полях
 										//ToDo: Возможно: логировать нарушение целостности
 										list_vidForRemove.push(
@@ -993,6 +1061,7 @@ function formingFlexoAndView( user, role, viewName, callback ){
 								}
 
 							} else if (list_vidForFlexoCheck[i].type === DELETE) {
+
 								//Проверяется общее разрешение на удаление документа в целом
 								if (flexoAccess['delete'][list_vidForFlexoCheck[i].schemeName]
 									!== 1){

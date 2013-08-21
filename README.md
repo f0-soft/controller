@@ -7,8 +7,9 @@ Controller
 
 ## Тестирование:
 * включить mock view (изменить в файле config/config.js значения объекта mock на {view:true}, для отключения необходимо эти значения поменять на false)
-* запустить test_with_mock_view.js
+* запустить test/test.js
 !!! mock view работает формально (не сохраняет документы)
+
 
 ## Подключение:
 var Controller = require('controller');

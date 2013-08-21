@@ -11,7 +11,6 @@ function init ( config, callback ){
 
 
 function getTemplate ( name, vids, callback ) {
-
 	callback(null, vids, '<table>' + name + '</table>', 'javascriptConfigFor' + name);
 }
 
@@ -113,42 +112,24 @@ function insert (viewName, listOf_vids, request, callback) {
 
 		for(var j=0; j<request.length; j++){
 			var obj = request[j];
-			obj._id = getRandomArbitary(0,10000).toString();
-			var time = new Date().getTime();
-			obj.tsCreate = time;
-			obj.tsUpdate = time;
-
 			view[viewName].push(obj);
 
-
-			var newObj = {};
-			newObj._id = obj._id;
-			newObj.tsCreate = obj.tsCreate;
-			newObj.tsUpdate = obj.tsUpdate;
-			objReturn.push(newObj);
+			objReturn.push(obj);
 
 
 		}
 	} else {
 
 		var obj = request;
-		obj._id = getRandomArbitary(0,10000).toString();
 		var time = new Date().getTime();
-		obj.tsCreate = time;
-		obj.tsUpdate = time;
 
 		view[viewName].push(obj);
 
-
-		var newObj = {};
-		newObj._id = obj._id;
-		newObj.tsCreate = obj.tsCreate;
-		newObj.tsUpdate = obj.tsUpdate;
-		objReturn = [newObj];
+		objReturn = [obj];
 	}
 
 	setImmediate(function(){
-		callback(null, objReturn)
+		callback(null, objReturn )
 	});
 	return;
 
