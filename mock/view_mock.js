@@ -11,11 +11,46 @@ function init ( config, callback ){
 
 
 function getTemplate ( name, vids, callback ) {
-	callback(null, vids, '<table>' + name + '</table>', 'javascriptConfigFor' + name);
+
+	if ( !underscore.isString( name ) ) {
+		callback(new Error( 'View_mock: Parameter viewName is not set or not string' ));
+		return;
+	}
+
+	if ( !underscore.isArray( vids ) ) {
+		callback(new Error( 'View_mock: Parameter vids is not set or not array' ));
+		return;
+	}
+
+	if ( !underscore.isFunction( callback ) ) {
+		throw new Error( 'View_mock: callback not a function' );
+	}
+
+	callback(null, vids, 'javascriptConfigFor' + name, '');
 }
 
 function find(viewName, listOf_vids, request, callback){
-	//Схемы в запросе
+
+	if ( !underscore.isString( viewName ) ) {
+		callback(new Error( 'View_mock: Parameter viewName is not set or not string' ));
+		return;
+	}
+
+	if ( !underscore.isArray( listOf_vids ) ) {
+		callback(new Error( 'View_mock: Parameter vids is not set or not array' ));
+		return;
+	}
+
+	if ( !request ) {
+		callback(new Error( 'View_mock: Parameter request is not set' ));
+		return;
+	}
+
+	if ( !underscore.isFunction( callback ) ) {
+		throw new Error( 'View_mock: callback not a function' );
+	}
+
+		//Схемы в запросе
 	var objResults = {};
 
 	if( view[viewName] ) {
@@ -103,6 +138,26 @@ function find(viewName, listOf_vids, request, callback){
 
 function insert (viewName, listOf_vids, request, callback) {
 
+	if ( !underscore.isString( viewName ) ) {
+		callback(new Error( 'View_mock: Parameter viewName is not set or not string' ));
+		return;
+	}
+
+	if ( !underscore.isArray( listOf_vids ) ) {
+		callback(new Error( 'View_mock: Parameter vids is not set or not array' ));
+		return;
+	}
+
+	if ( !request ) {
+		callback(new Error( 'View_mock: Parameter request is not set' ));
+		return;
+	}
+
+	if ( !underscore.isFunction( callback ) ) {
+		throw new Error( 'View_mock: callback not a function' );
+	}
+
+
 	var objReturn = [];
 
 	//Проверяем наличие объекта для данной схемы
@@ -115,8 +170,6 @@ function insert (viewName, listOf_vids, request, callback) {
 			view[viewName].push(obj);
 
 			objReturn.push(obj);
-
-
 		}
 	} else {
 
@@ -136,6 +189,21 @@ function insert (viewName, listOf_vids, request, callback) {
 }
 
 function modify ( viewName, request, callback ){
+
+	if ( !underscore.isString( viewName ) ) {
+		callback(new Error( 'View_mock: Parameter viewName is not set or not string' ));
+		return;
+	}
+
+	if ( !request ) {
+		callback(new Error( 'View_mock: Parameter request is not set' ));
+		return;
+	}
+
+	if ( !underscore.isFunction( callback ) ) {
+		throw new Error( 'View_mock: callback not a function' );
+	}
+
 	var objResults = [];
 	if(underscore.isArray(request)) {
 		for( var i = 0; i < request.length; i++ ) {
@@ -153,6 +221,20 @@ function modify ( viewName, request, callback ){
 }
 
 function del(viewName, request, callback){
+
+	if ( !underscore.isString( viewName ) ) {
+		callback(new Error( 'View_mock: Parameter viewName is not set or not string' ));
+		return;
+	}
+
+	if ( !request ) {
+		callback(new Error( 'View_mock: Parameter request is not set' ));
+		return;
+	}
+
+	if ( !underscore.isFunction( callback ) ) {
+		throw new Error( 'View_mock: callback not a function' );
+	}
 
 	var objResults = [];
 	if(underscore.isArray(request)) {

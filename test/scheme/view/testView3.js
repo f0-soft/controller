@@ -1,6 +1,6 @@
 module.exports = {
 	name: 'testView3',
-	template: '',
+	view:{},
 	config: {
 		something: [
 			{ _vid: 'q8', _flexo:{type: 'create', scheme: ['testUsers', 'login']}, itemName:'q8'},

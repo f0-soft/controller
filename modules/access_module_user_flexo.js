@@ -5,6 +5,10 @@ var AccessModuleUserFlexo = {};
 /**
  * Сохранение модель в redis
  *
+ * @param client - ссылка на клиент redis
+ * @param user - строка, логин пользователя
+ * @param strFlexoSchemeName - строка, имя flexo схемы
+ * @param objAccess - объект с описанием прав доступа по пользователю
  * @param callback (err, reply)
  * 		err - ошибка от node_redis
  * 		reply - true в случае успешного сохранения
@@ -16,7 +20,7 @@ AccessModuleUserFlexo.save = function save( client, user, strFlexoSchemeName, ob
 	//Сохранение объекта прав в redis
 	key = strFlexoAccessUserScheme( user, strFlexoSchemeName );
 
-	multi.SET( key, JSON.stringify(objAccess));
+	multi.SET( key, JSON.stringify( objAccess ) );
 
 	//ToDo:Временно сохраняем ключ в множество для быстрого удаления всех прав
 	multi.SADD( setAllAccess, key );
@@ -33,10 +37,12 @@ AccessModuleUserFlexo.save = function save( client, user, strFlexoSchemeName, ob
 /**
  * Поиск модели прав для flexo схемы и заданной роли в redis
  *
+ * @param client - ссылка на клиент redis
+ * @param user - строка, логин пользоватея
  * @param flexoSchemeName - строка, название flexo схемы
  * @param callback (err, reply)
- * 		err - ошибка от node_redis
- * 		reply - возвращается искомый объект прав
+ * 		err - ошибка от node_redis или ошибка сигнализирующая об отсутствии объекта прав
+ * 		reply - искомый объект прав
  */
 AccessModuleUserFlexo.find = function find( client, user, flexoSchemeName, callback ) {
 
@@ -45,7 +51,7 @@ AccessModuleUserFlexo.find = function find( client, user, flexoSchemeName, callb
 		if ( err ) {
 			callback( err );
 		} else if ( reply ) {
-			var objAccess = JSON.parse(reply);
+			var objAccess = JSON.parse( reply );
 
 			callback( null, objAccess );
 		} else {
@@ -56,42 +62,16 @@ AccessModuleUserFlexo.find = function find( client, user, flexoSchemeName, callb
 };
 
 /**
- * Формирование объект права на чтение для запрашиваемых схем
+ * Получаем объекты прав и формируем в нужном виде права
  *
- * @param flexoSchemesName - массив строк, названия запрашиваемых схем
- * @param globalFlexoSchemes - объект с данными из схем flexo коллекций
- * @param callback
+ * @param client - ссылка на клиент redis
+ * @param user - строка, логин пользователя
+ * @param globalFlexoSchemes - ссылка на глобальный объект с информацией о flexo схемах
+ * @param flexoSchemesName - массив, запрашиваемых flexo схем
+ * @param callback (err, reply)
+ * 		err - ошибка от node_redis
+ * 		reply - возвращается искомый объект прав сгруппированный по flexo схемам
  */
-AccessModuleUserFlexo.findReadAccesses =
-	function findReadAccesses( client, user, globalFlexoSchemes, flexoSchemesName, callback ) {
-	var multi = client.multi();
-	//Формируем команды для получения объектов прав по указанным схемам
-	for( var i = 0; i < flexoSchemesName.length; i++ ) {
-		multi.GET( strFlexoAccessUserScheme( user, flexoSchemesName[i] ) );
-	}
-
-	multi.EXEC( function ( err, replies ) {
-		if ( err ) {
-			callback ( err );
-		} else {
-			//Формируем объект прав
-			var objAccessForOneScheme;
-			var objReadAccess = {};
-
-			for( var i = 0; i < replies.length; i++) {
-				if( replies[i] ){
-					objAccessForOneScheme = JSON.parse( replies[i] );
-
-					objReadAccess[flexoSchemesName[i]] =
-						accessDataPreparationForMethod('read', objAccessForOneScheme,
-							globalFlexoSchemes[flexoSchemesName[i]]['read']);
-				}
-			}
-			callback(null, objReadAccess)
-		}
-	} );
-};
-
 AccessModuleUserFlexo.accessDataPreparation =
 	function accessDataPreparation( client, user, globalFlexoSchemes, flexoSchemesName, callback ) {
 	var multi = client.multi();
@@ -114,63 +94,71 @@ AccessModuleUserFlexo.accessDataPreparation =
 					//ToDo: доделать проверку на создание схемы если нет никаких прав
 					objAccess[flexoSchemesName[i]] = {};
 
+					//Информация для заданной flexo из глобального конфига
+					var dataFromFlexoConfig = globalFlexoSchemes[flexoSchemesName[i]];
+					//Переменная для хранения различия между полями из правами и полями из
+					// глобального конфига
+					var difference;
+
 					//Права на чтение
-					var readFields = accessDataPreparationForMethod('read', objAccessForOneScheme,
-						globalFlexoSchemes[flexoSchemesName[i]]['read']);
+					var readFields = accessDataPreparationForMethod( 'read', objAccessForOneScheme,
+						dataFromFlexoConfig['read'] );
 					//Проверяем целостность прав на чтение
 					//Права на flexo не должны по полям превышать глобальных прав
-					var resultReadFields = underscore.difference(readFields[0], readFields[1]);
-					var differenceRead = underscore.difference(resultReadFields,
-						globalFlexoSchemes[flexoSchemesName[i]]['read']);
-					if( differenceRead.length !== 0 ){
+					var resultReadFields = underscore.difference( readFields[0], readFields[1] );
+					difference = underscore.difference( resultReadFields,
+						dataFromFlexoConfig['read'] );
+					if( difference.length !== 0 ){
 						//ToDo: доделать сигнализацию о нарушении целостности
 						//Присутствует нарушение целостности, обрезаем права
-						readFields[0] = underscore.difference(readFields[0], differenceRead);
+						readFields[0] = underscore.difference( readFields[0], difference );
 					}
 					//Сохраняем права на чтение
-					if(readFields[0].length !== 0 || readFields[1].length !== 0){
+					if( readFields[0].length !== 0 || readFields[1].length !== 0 ){
 						objAccess[flexoSchemesName[i]]['read'] = readFields;
 					}
 
 					//Права на модификацию
-					var modifyFields = accessDataPreparationForMethod('modify', objAccessForOneScheme,
-						globalFlexoSchemes[flexoSchemesName[i]]['modify']);
+					var modifyFields = accessDataPreparationForMethod( 'modify',
+						objAccessForOneScheme, dataFromFlexoConfig['modify'] );
 					//Проверяем целостность прав на модификацию
 					//Права на flexo не должны по полям превышать глобальных прав
-					var resultModifyFields = underscore.difference(modifyFields[0], modifyFields[1]);
-					var differenceModify = underscore.difference(resultModifyFields,
-						globalFlexoSchemes[flexoSchemesName[i]]['modify']);
-					if( differenceModify.length !== 0 ){
+					var resultModifyFields = underscore.difference( modifyFields[0],
+						modifyFields[1] );
+					difference = underscore.difference( resultModifyFields,
+						dataFromFlexoConfig['modify'] );
+					if( difference.length !== 0 ) {
 						//ToDo: доделать сигнализацию о нарушении целостности
 						//Присутствует нарушение целостности, обрезаем права
-						modifyFields[0] = underscore.difference(modifyFields[0], differenceModify);
+						modifyFields[0] = underscore.difference( modifyFields[0], difference );
 					}
 					//Сохраняем права на модификацию
-					if(modifyFields[0].length !== 0 || modifyFields[1].length !== 0){
+					if( modifyFields[0].length !== 0 || modifyFields[1].length !== 0 ) {
 						objAccess[flexoSchemesName[i]]['modify'] = modifyFields;
 					}
 
 					//Права на создание
-					var createFields = accessDataPreparationForMethod('create', objAccessForOneScheme,
-						globalFlexoSchemes[flexoSchemesName[i]]['modify']);
+					var createFields = accessDataPreparationForMethod( 'create',
+						objAccessForOneScheme, dataFromFlexoConfig['modify']);
 					//Проверяем целостность прав на создание
 					//Права на flexo не должны по полям превышать глобальных прав
-					var resultCreateFields = underscore.difference(createFields[0], createFields[1]);
-					var differenceCreate = underscore.difference(resultCreateFields,
-						globalFlexoSchemes[flexoSchemesName[i]]['modify']);
-					if( differenceCreate.length !== 0 ){
+					var resultCreateFields = underscore.difference( createFields[0],
+						createFields[1] );
+					difference = underscore.difference( resultCreateFields,
+						dataFromFlexoConfig['modify'] );
+					if( difference.length !== 0 ){
 						//ToDo: доделать сигнализацию о нарушении целостности
 						//Присутствует нарушение целостности, обрезаем права
-						createFields[0] = underscore.difference(createFields[0], differenceCreate);
+						createFields[0] = underscore.difference( createFields[0], difference );
 					}
 					//Сохраняем права на создание
-					if(createFields[0].length !== 0 || createFields[1].length !== 0){
+					if( createFields[0].length !== 0 || createFields[1].length !== 0 ) {
 						objAccess[flexoSchemesName[i]]['create'] = createFields;
 					}
 
 					//Права на создание всего документа
-					if(!underscore.isUndefined(objAccessForOneScheme['createAll'])){
-						if(objAccessForOneScheme['createAll']){
+					if( !underscore.isUndefined( objAccessForOneScheme['createAll'] ) ) {
+						if( objAccessForOneScheme['createAll'] ) {
 							objAccess[flexoSchemesName[i]]['createAll'] = 1;
 						} else {
 							objAccess[flexoSchemesName[i]]['createAll'] = 0;
@@ -178,8 +166,8 @@ AccessModuleUserFlexo.accessDataPreparation =
 					}
 
 					//Удаление
-					if(!underscore.isUndefined(objAccessForOneScheme['delete'])){
-						if(objAccessForOneScheme['delete']){
+					if( !underscore.isUndefined( objAccessForOneScheme['delete'] ) ) {
+						if( objAccessForOneScheme['delete'] ) {
 							objAccess[flexoSchemesName[i]]['delete'] = 1;
 						} else {
 							objAccess[flexoSchemesName[i]]['delete'] = 0;
@@ -187,7 +175,7 @@ AccessModuleUserFlexo.accessDataPreparation =
 					}
 				}
 			}
-			callback(null, objAccess)
+			callback(null, objAccess);
 		}
 	} );
 };
@@ -201,7 +189,7 @@ AccessModuleUserFlexo.accessDataPreparation =
  * @param fieldsGlobalFlexoScheme -  объект с данными из схем flexo коллекций
  * @returns {*}
  */
-function accessDataPreparationForMethod(method, objAccess, fieldsGlobalFlexoScheme){
+function accessDataPreparationForMethod( method, objAccess, fieldsGlobalFlexoScheme ){
 	var permissionFields = [];
 	var notPermissionFields = [];
 
@@ -213,51 +201,53 @@ function accessDataPreparationForMethod(method, objAccess, fieldsGlobalFlexoSche
 			// соответстввать отсутствию полей в правах
 			if ( objAccess[method]['(all)'] === 1 ){
 				//Получаем все поля из объекта прав
-				var fields = Object.keys(objAccess[method]);
+				var fields = Object.keys( objAccess[method] );
 				//Формируем списки которые необходимо добавить или удалить
-				for ( var j = 0; j < fields.length; j++) {
+				for ( var j = 0; j < fields.length; j++ ) {
 					if ( fields[j] !== '(all)' ) {
-						if (objAccess[method][fields[j]] === 1){
-							permissionFields.push(fields[j]);
+						if ( objAccess[method][fields[j]] === 1 ){
+							permissionFields.push( fields[j] );
 						} else {
-							notPermissionFields.push(fields[j]);
+							notPermissionFields.push( fields[j] );
 						}
 					}
 				}
 
 				//Пересекаем права
-				permissionFields = underscore.union(fieldsGlobalFlexoScheme, permissionFields);
+				permissionFields = underscore.union( fieldsGlobalFlexoScheme, permissionFields );
 			} else {
 				//Получаем все поля из объекта прав
 				var fields = Object.keys(objAccess[method]);
 				//Формируем списки которые необходимо добавить или удалить
-				for ( var j = 0; j < fields.length; j++) {
+				for ( var j = 0; j < fields.length; j++ ) {
 					if ( fields[j] !== '(all)' ) {
 						if (objAccess[method][fields[j]] === 1){
-							permissionFields.push(fields[j]);
+							permissionFields.push( fields[j] );
 						} else {
-							notPermissionFields.push(fields[j]);
+							notPermissionFields.push( fields[j] );
 						}
 					}
 				}
 
 				//Объединяем права
-				notPermissionFields = underscore.union(fieldsGlobalFlexoScheme, notPermissionFields);
+				notPermissionFields = underscore.union( fieldsGlobalFlexoScheme,
+					notPermissionFields );
 				//Из запрещенных вычитаем разрешенные (так как '(all)' запрещает все поля, то
 				//разрешенные отдельные поля более приоритетны
-				notPermissionFields = underscore.difference(notPermissionFields, permissionFields);
+				notPermissionFields = underscore.difference( notPermissionFields,
+					permissionFields );
 			}
 		} else {
 			//Получаем все поля из объекта прав
-			var fields = Object.keys(objAccess[method]);
+			var fields = Object.keys( objAccess[method] );
 			//Формируем списки которые необходимо добавить или удалить
 			for ( var j = 0; j < fields.length; j++) {
 				//Проверяется, так как в роли при отсутствия спец команды (all) поля с
 				// запретом равносильны отсутствию полей
-				if (objAccess[method][fields[j]] === 1){
-					permissionFields.push(fields[j]);
+				if ( objAccess[method][fields[j]] === 1 ){
+					permissionFields.push( fields[j] );
 				} else {
-					notPermissionFields.push(fields[j]);
+					notPermissionFields.push( fields[j] );
 				}
 			}
 		}
@@ -269,7 +259,9 @@ function accessDataPreparationForMethod(method, objAccess, fieldsGlobalFlexoSche
 /**
  * Удаление модели прав для flexo схемы и логина пользователя в redis
  *
- * @param flexoSchemeName - строка название flexo схемы
+ * @param client - ссылка на клиент redis
+ * @param user - строка, логин пользователя
+ * @param flexoSchemeName - строка, название flexo схемы
  * @param callback (err, reply)
  * 		err - ошибка от node_redis
  * 		reply - - true в случае успешного удаления
@@ -282,7 +274,7 @@ AccessModuleUserFlexo.delete = function remove( client, user, flexoSchemeName, c
 	key = strFlexoAccessUserScheme( user, flexoSchemeName );
 	multi.DEL( key );
 	//ToDo:Временно удаляем ключ в множестве предназначенного для быстрого удаления всех прав
-	multi.SREM( setAllAccess(), key);
+	multi.SREM( setAllAccess(), key );
 
 	multi.EXEC( function( err ) {
 		if ( err ) {

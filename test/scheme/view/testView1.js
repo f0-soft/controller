@@ -1,6 +1,6 @@
 module.exports = {
 	name: 'testView1',
-	template: '',
+	view:{},
 	config: {
 		menuItems: [
 			{ _vid: 'q1', itemName:'q1'},

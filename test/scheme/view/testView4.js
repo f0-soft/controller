@@ -1,6 +1,6 @@
 module.exports = {
 	name: 'testView4',
-	template: '',
+	view:{},
 	config: {
 		something: [
 			{ _vid: 's10', _flexo:{type: 'read', scheme: ['testUsers', 'tsUpdate']}, itemName:'s10'},

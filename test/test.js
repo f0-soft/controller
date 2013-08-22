@@ -20,7 +20,7 @@ var charString = ['й','ц','у','к','е','н','г','ш','щ',
 	'W','E','R','T','Y','U','I','O','P','A','S','D','F',
 	'G','H','J','K','L','Z','X','C','V','B','N','M'];
 
-//Имитация глобальной переменной для хранения общих данных о view
+//Имитация глобальной переменной для хранения общих данных о view при view_mock
 var testObjGlobalViewsConfig = {
 	'testView1': {
 		q1:{},
@@ -44,7 +44,7 @@ var testObjGlobalViewsConfig = {
 		u7:{flexo:['testUsers', 'hash'], type:'read'},
 		i8:{flexo:['testUsers', 'salt'], type:'read'},
 		o9:{flexo:['testUsers', '_id'], type:'read'},
-		p10:{flexo:['testUsers', '_tsUpdate'], type:'read'}
+		p10:{flexo:['testUsers', 'tsUpdate'], type:'read'}
 	},
 	'testView3': {
 		a9:{flexo:['testUsers'], type:'create'},
@@ -72,11 +72,11 @@ var testObjGlobalViewsConfig = {
 	'testView5':{
 		q1:{flexo:['testUsers', '_id'], type:'read'},
 		w2:{flexo:['testUsers', 'tsUpdate'], type:'read'},
-		e3:{flexo:['testUsers'], type:'delete'}
+		a9:{flexo:['testUsers'], type:'delete'}
 	}
 };
 
-//Имитация глобальной переменной с информацией из flexo схем
+//Имитация глобальной переменной с информацией из flexo схем при использовании view_mock
 //сигнатура {schemeName:{read:[fieldsNames], modify:[fieldsNames]}
 var globalFlexoSchemes = {
 	'testUsers': {
@@ -97,21 +97,20 @@ if ( mock.view ) {
 
 //Конфиг контроллера
 configForController = {
-	redisConfig: {},
-	view:View,
-	flexoSchemes:globalFlexoSchemes,
-	viewConfig:testObjGlobalViewsConfig
+	redisConfig: {}
 };
 
 //Тестирование инициализации контроллера и view
 exports.testInit = {
+	//Инициализация view
 	initView: function(test){
 
 		if( mock.view ) {
-			test.expect( 7 );
+			//При использование mock_view
+			test.expect( 6 );
+
 			View.init({}, function( err, reply ){
 				test.ifError(err);
-				test.ok(reply);
 				test.ok(View.getTemplate);
 				test.ok(View.find);
 				test.ok(View.insert);
@@ -120,6 +119,7 @@ exports.testInit = {
 				test.done();
 			});
 		} else {
+			//Без использования mock
 			test.expect( 6 );
 
 			var config = {
@@ -130,7 +130,8 @@ exports.testInit = {
 				scheme_view: __dirname + '/scheme/view/',
 				template: __dirname + '/scheme/template/'
 			};
-			debugger
+
+			//Вызывается функция starter, которая соберет необходимую глобальную информацию
 			initStarter( config, function( err, res ) {
 				test.ifError(err);
 				test.ok(View.getTemplate);
@@ -142,9 +143,14 @@ exports.testInit = {
 			} );
 		}
 	},
+	//Инициализация контроллера
 	initController: function (test) {
 		test.expect( 6 );
-		debugger
+		//Добавляем в конфиг контроллера необходимую информацию
+		configForController.view = View;
+		configForController.flexoSchemes = globalFlexoSchemes;
+		configForController.viewConfig = testObjGlobalViewsConfig;
+
 		Controller.init( configForController, function( err, reply ) {
 			test.ifError(err);
 			test.ok(reply);
@@ -181,10 +187,14 @@ var testData1 = {
 
 //Тестирование функций админки связанной с flexo правами
 exports.adminFunctionForFlexoAccess = {
+	//Сохранение flexo прав по пользователю
 	saveAccessForUser: function(test){
 		test.expect(13);
+		//Объект прав
 		var objAccess = testData1.testObjAccessFlexo;
+		//Логин пользователя
 		var login = testData1.userLogin;
+		//Название flexo схемы
 		var flexoSchemeName = testData1.flexoSchemeName;
 
 		//Формируем объект запрос на сохранение
@@ -200,6 +210,7 @@ exports.adminFunctionForFlexoAccess = {
 			test.ifError(err);
 			test.ok(reply);
 
+			//Формируем объект запрос на чтение сохраненных прав
 			var queryForRead = {
 				access: {
 					flexoSchemeName:flexoSchemeName,
@@ -235,9 +246,12 @@ exports.adminFunctionForFlexoAccess = {
 		});
 
 	},
+	//Тестируем удаление flexo прав по пользователю
 	deleteAccessForUser: function(test){
 		test.expect(3);
+		//Логин пользователя
 		var login = testData1.userLogin;
+		//Название flexo схемы
 		var flexoSchemeName = testData1.flexoSchemeName;
 
 		//Формируем объект запрос на удаление
@@ -252,6 +266,7 @@ exports.adminFunctionForFlexoAccess = {
 			test.ifError(err);
 			test.ok(reply);
 
+			//Формируем объект запрос на чтение удаленных данных
 			var queryForRead = {
 				access: {
 					flexoSchemeName:flexoSchemeName,
@@ -266,10 +281,14 @@ exports.adminFunctionForFlexoAccess = {
 			});
 		});
 	},
+	//Тестируем сохранение flexo прав по роли
 	saveAccessForRole:function(test){
 		test.expect(13);
+		//Объект flexo прав по роли
 		var objAccess = testData1.testObjAccessFlexo;
+		//Роль пользователя
 		var role = testData1.userRole;
+		//Название flexo схемы
 		var flexoSchemeName = testData1.flexoSchemeName;
 
 		//Формируем объект запрос на сохранение
@@ -285,6 +304,7 @@ exports.adminFunctionForFlexoAccess = {
 			test.ifError(err);
 			test.ok(reply);
 
+			//Формируем объект запрос на чтение сохраненных прав
 			var queryForRead = {
 				access: {
 					flexoSchemeName:flexoSchemeName,
@@ -319,9 +339,12 @@ exports.adminFunctionForFlexoAccess = {
 			});
 		});
 	},
+	//Тестируем удаление flexo прав по роли
 	deleteAccessForRole:function(test){
 		test.expect(3);
+		//Роль пользователя
 		var role = testData1.userRole;
+		//Название flexo схемы
 		var flexoSchemeName = testData1.flexoSchemeName;
 
 		//Формируем объект запрос на удаление
@@ -336,6 +359,7 @@ exports.adminFunctionForFlexoAccess = {
 			test.ifError(err);
 			test.ok(reply);
 
+			//Формируем объект запрос на создание
 			var queryForRead = {
 				access: {
 					flexoSchemeName:flexoSchemeName,
@@ -360,6 +384,7 @@ var testData2 = {
 
 //Тестирование функций админки связанной с view правами
 exports.adminFunctionForViewAccess = {
+	//Сохраняем права на view по пользователю
 	saveAccessForUser: function(test){
 		//Генерируем объект прав
 		var objAccess = {};
@@ -370,7 +395,9 @@ exports.adminFunctionForViewAccess = {
 
 		test.expect((count+5));
 
+		//Логин пользователя
 		var login = testData2.userLogin;
+		//Название view
 		var viewName = testData2.viewName;
 
 		//Формируем объект запрос на сохранение
@@ -386,6 +413,7 @@ exports.adminFunctionForViewAccess = {
 			test.ifError(err);
 			test.ok(reply);
 
+			//Формируем объект запрос на чтение сохраненных прав на view
 			var queryForRead = {
 				access: {
 					viewName: viewName,
@@ -408,9 +436,12 @@ exports.adminFunctionForViewAccess = {
 		});
 
 	},
+	//Тестируем удаление прав на view по пользователю
 	deleteAccessForUser: function(test){
 		test.expect(3);
+		//Логин пользователя
 		var login = testData2.userLogin;
+		//Название view
 		var viewName = testData2.viewName;
 
 		//Формируем объект запрос на удаление
@@ -425,6 +456,7 @@ exports.adminFunctionForViewAccess = {
 			test.ifError(err);
 			test.ok(reply);
 
+			//Формируем объект запрос на чтение удаленных прав
 			var queryForRead = {
 				access: {
 					viewName:viewName,
@@ -439,6 +471,7 @@ exports.adminFunctionForViewAccess = {
 			});
 		});
 	},
+	//Тестируем сохранение view прав по роли
 	saveAccessForRole: function(test){
 		//Генерируем объект прав
 		var objAccess = {};
@@ -448,8 +481,9 @@ exports.adminFunctionForViewAccess = {
 		}
 
 		test.expect((count+5));
-
+		//Роль пользователя
 		var role = testData2.userRole;
+		//Название view
 		var viewName = testData2.viewName;
 
 		//Формируем объект запрос на сохранение
@@ -465,6 +499,7 @@ exports.adminFunctionForViewAccess = {
 			test.ifError(err);
 			test.ok(reply);
 
+			//Формируем объект запрос на чтение сохраненных прав
 			var queryForRead = {
 				access: {
 					viewName: viewName,
@@ -487,9 +522,12 @@ exports.adminFunctionForViewAccess = {
 		});
 
 	},
+	//Тестируем удаление view прав по пользователю
 	deleteAccessForRole: function(test){
 		test.expect(3);
+		//Роль пользователя
 		var role = testData2.userRole;
+		//Название view
 		var viewName = testData2.viewName;
 
 		//Формируем объект запрос на удаление
@@ -504,6 +542,7 @@ exports.adminFunctionForViewAccess = {
 			test.ifError(err);
 			test.ok(reply);
 
+			//Формируем объект запрос на чтение удаленных прав
 			var queryForRead = {
 				access: {
 					viewName:viewName,
@@ -525,20 +564,26 @@ var testData3 = {
 	objAccessForUser:{}, //Объект прав генерируется в тесте
 	userLogin: generatorString(1,10),
 	userRole: generatorString(1,10),
-	viewName: 'testView1'
+	viewName: 'testView1',
+	notAllowed_vid:'' //Используется в тестах с спец командами '(all)'
 };
 
 //Тестирование определения пересечения прав для view, в view нет идентификаторов связанных с Flexo
 exports.viewWithoutFlexo = {
 	//Тест при условии, что на view есть права только по роли
 	setOnlyRoleAccessForView: {
+		//Сохраняем view права по роли
 		saveAccessRoleForView: function( test ) {
 			test.expect( 2 );
+			//Название view
 			var viewName = testData3.viewName;
+			//Название роли
 			var role = testData3.userRole;
+			//Объект с правами (пустой)
 			var objAccess = testData3.objAccessForRole;
 
-			//Генерируем объект прав по роли для view
+			//Генерируем объект прав по роли для view (есть разрешения на все идентификаторы, кроме
+			// одного случайно выбранного)
 			var _vids = Object.keys(testObjGlobalViewsConfig[viewName]);
 
 			for( var i = 0; i < _vids.length; i++ ) {
@@ -564,14 +609,22 @@ exports.viewWithoutFlexo = {
 				test.done();
 			});
 		},
+		//Запрашиваем шаблон, и по прикрепленным к socket списку идентификаторов определяем
+		// правильность нахождения разрешенных view
 		getTemplateFromView: function( test ) {
+			//Название view
 			var viewName = testData3.viewName;
+			//Роль пользователя
 			var role = testData3.userRole;
+			//Логин пользователя
 			var user = testData3.userLogin;
+			//Объект прав для view
 			var objAccess = testData3.objAccessForRole;
+			//Объект сокет
 			var socket = {};
 
-			//Формируем список разрешенных идентификаторов по объекту прав
+			//Анализируем объект прав и Формируем список разрешенных идентификаторов, по которому
+			//будем сверять результат
 			var _vids = Object.keys(objAccess);
 			var listAllowed_vids = [];
 			for( var i = 0; i < _vids.length; i++ ){
@@ -581,11 +634,12 @@ exports.viewWithoutFlexo = {
 			}
 
 			test.expect( ( listAllowed_vids.length + 4 ) );
-			debugger;
+
 			controller.getTemplate( viewName, user, role, socket, function( err, config, template ) {
+				debugger;
 				test.ifError(err);
 				test.ok(config);
-				test.ok(template);
+				test.strictEqual(template, '', 'Проверка отсутствия шаблона');
 
 				//Проверяем список идентификаторов сохраненных у объекта socket
 				if( socket.view && socket.view[viewName] ){
@@ -596,6 +650,99 @@ exports.viewWithoutFlexo = {
 						var result = underscore.indexOf( socket.view[viewName], listAllowed_vids[i] );
 						test.notStrictEqual(result, -1,	'Проверка наличия разрешенного ' +
 								'идентификатора view в списке разрашенных у socket' );
+					}
+				}
+
+				test.done();
+			} );
+		},
+		//Удаление объекта прав view по роли
+		deleteAccessRoleForView: function(test){
+			test.expect(2);
+			//Роль пользователя
+			var role = testData3.userRole;
+			//Название view
+			var viewName = testData3.viewName;
+
+			//Формируем объект запрос на удаление
+			var queryForDelete = {
+				access: {
+					viewName:viewName,
+					role:role
+				}
+			};
+
+			controller.delete(queryForDelete, function( err, reply ) {
+				test.ifError(err);
+				test.ok(reply);
+				test.done();
+			});
+		}
+	},
+	//Тест при условии, что на view есть права только по роли со спец командой '(all)'
+	setOnlyRoleAccessWithAllForView:{
+		saveAccessRoleForView: function( test ) {
+			test.expect( 2 );
+			testData3.objAccessForRole = {};
+			var viewName = testData3.viewName;
+			var role = testData3.userRole;
+			var objAccess = testData3.objAccessForRole;
+
+			//Генерируем объект прав по роли для view
+			var _vids = Object.keys(testObjGlobalViewsConfig[viewName]);
+			//Указываем что все идентификаторы разрешены
+			objAccess['(all)'] = 1;
+            //Указываем дополнительно, что один идентификатор запрещен
+			var notAllowed_vid = _vids[getRandom(0, ( _vids.length - 1 ) )];
+			objAccess[notAllowed_vid] = 0;
+
+			testData3.notAllowed_vid = notAllowed_vid;
+
+			//Формируем объект запрос на сохранение прав
+			var queryForSave = {
+				access:{
+					viewName: viewName,
+					role: role,
+					objAccess: objAccess
+				}
+			};
+
+			controller.create(queryForSave, function( err, reply ) {
+				test.ifError(err);
+				test.ok(reply);
+
+				test.done();
+			});
+		},
+		getTemplateFromView: function( test ) {
+			var viewName = testData3.viewName;
+			var role = testData3.userRole;
+			var user = testData3.userLogin;
+			var notAllowed_vid = testData3.notAllowed_vid;
+			var socket = {};
+
+			//Формируем список разрешенных идентификаторов по объекту прав
+			var listAllowed_vids = Object.keys(testObjGlobalViewsConfig[viewName]);
+
+			//Убираем из списка разрешенных идентификаторов один запрещенный
+			listAllowed_vids = underscore.without( listAllowed_vids, notAllowed_vid );
+
+			test.expect( ( listAllowed_vids.length + 4 ) );
+
+			controller.getTemplate( viewName, user, role, socket, function( err, config, template ) {
+				test.ifError(err);
+				test.ok(config);
+				test.strictEqual(template, '', 'Проверка отсутствия шаблона');
+
+				//Проверяем список идентификаторов сохраненных у объекта socket
+				if( socket.view && socket.view[viewName] ){
+					test.strictEqual(socket.view[viewName].length, listAllowed_vids.length,
+						'Проверяем количество разрешенных идентификаторов view');
+
+					for( var i = 0; i < listAllowed_vids.length; i++ ) {
+						var result = underscore.indexOf( socket.view[viewName], listAllowed_vids[i] );
+						test.notStrictEqual(result, -1,	'Проверка наличия разрешенного ' +
+							'идентификатора view в списке разрашенных у socket' );
 					}
 				}
 
@@ -677,7 +824,97 @@ exports.viewWithoutFlexo = {
 			controller.getTemplate( viewName, user, role, socket, function( err, config, template ) {
 				test.ifError(err);
 				test.ok(config);
-				test.ok(template);
+				test.strictEqual(template, '', 'Проверка отсутствия шаблона');
+
+				//Проверяем список идентификаторов сохраненных у объекта socket
+				if( socket.view && socket.view[viewName] ){
+					test.strictEqual(socket.view[viewName].length, listAllowed_vids.length,
+						'Проверяем количество разрешенных идентификаторов view');
+
+					for( var i = 0; i < listAllowed_vids.length; i++ ) {
+						var result = underscore.indexOf( socket.view[viewName], listAllowed_vids[i] );
+						test.notStrictEqual(result, -1,	'Проверка наличия разрешенного ' +
+							'идентификатора view в списке разрашенных у socket' );
+					}
+				}
+
+				test.done();
+			} );
+		},
+		deleteAccessUserForView: function(test){
+			test.expect(2);
+			var login = testData3.userLogin;
+			var viewName = testData3.viewName;
+
+			//Формируем объект запрос на удаление
+			var queryForDelete = {
+				access: {
+					viewName:viewName,
+					login:login
+				}
+			};
+
+			controller.delete(queryForDelete, function( err, reply ) {
+				test.ifError(err);
+				test.ok(reply);
+				test.done();
+			});
+		}
+	},
+	//Тест при условии, что на view есть права по пользователю cо спец командой '(all)'
+	setOnlyUserAccessWithAllForView:{
+		saveAccessUserForView: function( test ) {
+			test.expect( 2 );
+			testData3.objAccessForUser = {};
+			var viewName = testData3.viewName;
+			var login = testData3.userLogin;
+			var objAccess = testData3.objAccessForUser;
+
+			//Генерируем объект прав по роли для view
+			var _vids = Object.keys(testObjGlobalViewsConfig[viewName]);
+			//Указываем что все идентификаторы разрешены
+			objAccess['(all)'] = 1;
+			//Указываем дополнительно, что один идентификатор запрещен
+			var notAllowed_vid = _vids[getRandom(0, ( _vids.length - 1 ) )];
+			objAccess[notAllowed_vid] = 0;
+
+			testData3.notAllowed_vid = notAllowed_vid;
+
+			//Формируем объект запрос на сохранение прав
+			var queryForSave = {
+				access:{
+					viewName: viewName,
+					login: login,
+					objAccess: objAccess
+				}
+			};
+
+			controller.create(queryForSave, function( err, reply ) {
+				test.ifError(err);
+				test.ok(reply);
+
+				test.done();
+			});
+		},
+		getTemplateFromView: function( test ) {
+			var viewName = testData3.viewName;
+			var role = testData3.userRole;
+			var user = testData3.userLogin;
+			var notAllowed_vid = testData3.notAllowed_vid;
+			var socket = {};
+
+			//Формируем список разрешенных идентификаторов по объекту прав
+			var listAllowed_vids = Object.keys(testObjGlobalViewsConfig[viewName]);
+
+			//Убираем из списка разрешенных идентификаторов один запрещенный
+			listAllowed_vids = underscore.without( listAllowed_vids, notAllowed_vid );
+
+			test.expect( ( listAllowed_vids.length + 4 ) );
+
+			controller.getTemplate( viewName, user, role, socket, function( err, config, template ) {
+				test.ifError(err);
+				test.ok(config);
+				test.strictEqual(template, '', 'Проверка отсутствия шаблона');
 
 				//Проверяем список идентификаторов сохраненных у объекта socket
 				if( socket.view && socket.view[viewName] ){
@@ -806,7 +1043,7 @@ exports.viewWithoutFlexo = {
 			controller.getTemplate( viewName, user, role, socket, function( err, config, template ) {
 				test.ifError(err);
 				test.ok(config);
-				test.ok(template);
+				test.strictEqual(template, '', 'Проверка отсутствия шаблона');
 
 				//Проверяем список идентификаторов сохраненных у объекта socket
 				if( socket.view && socket.view[viewName] ){
@@ -877,7 +1114,256 @@ var testData4 = { //Наполняется генератором в тесте
 		socket:{},
 		listAllowed_vids:[],
 		listNotAllowed_vids:[]
+	}
+};
+
+//Тестирование определения пересечения прав для view для запросов на чтение, в view некоторые
+// идентификаторы связанны с Flexo
+exports.viewWithFlexoReadAccess = {
+	saveFlexoReadAccessOnlyForRole: function(test){
+		test.expect( 2 );
+
+		var objAccess = testData4.testRead.testObjAccessFlexo;
+		var role = testData4.userRole;
+		var flexoSchemeName = testData4.flexoSchemeName;
+
+		//Генерируем права на чтение
+		var notAccess = getRandom(0, (globalFlexoSchemes[flexoSchemeName].read.length - 1) );
+
+		for( var i=0; i < globalFlexoSchemes[flexoSchemeName].read.length; i++ ) {
+			if (i === notAccess) {
+				objAccess.read[globalFlexoSchemes[flexoSchemeName].read[i]] = 0;
+			} else {
+				objAccess.read[globalFlexoSchemes[flexoSchemeName].read[i]] = 1;
+			}
+		}
+
+		//Формируем запрос на сохранение прав по поли для flexo схемы
+		var queryForSave = {
+			access:{
+				flexoSchemeName: flexoSchemeName,
+				role:role,
+				objAccess: objAccess
+			}
+		};
+
+		controller.create(queryForSave, function( err, reply ) {
+			test.ifError(err);
+			test.ok(reply);
+			test.done();
+		});
+
 	},
+	saveViewAccessOnlyForRole: function(test){
+		test.expect( 2 );
+
+		var objAccess = testData4.testRead.testObjViewAccess;
+		var role = testData4.userRole;
+		var viewName = testData4.testRead.viewNameForRead;
+
+		//Наполняем разрешениями view
+		var listOf_vids = Object.keys(testObjGlobalViewsConfig[viewName]);
+
+		for(var i = 0; i < listOf_vids.length; i++ ) {
+			objAccess[listOf_vids[i]] = 1;
+		}
+
+		//Формируем объект запрос на сохранение прав
+		var queryForSave = {
+			access:{
+				viewName: viewName,
+				role: role,
+				objAccess: objAccess
+			}
+		};
+
+		controller.create(queryForSave, function( err, reply ) {
+			test.ifError(err);
+			test.ok(reply);
+			test.done();
+		});
+	},
+	getTemplateFromView: function(test){
+		var role = testData4.userRole;
+		var user = testData4.userLogin;
+		var socket = testData4.testRead.socket;
+		var viewName = testData4.testRead.viewNameForRead;
+		var objViewAccess = testData4.testRead.testObjViewAccess;
+		var objFlexoReadAccess = testData4.testRead.testObjAccessFlexo.read;
+		var globalViewConfig = testObjGlobalViewsConfig[viewName];
+
+		//Определяем перечень разрешенных идентификаторов view
+		var listAllowed_vids = [];
+		var _vids = Object.keys(objViewAccess);
+
+		for( var i = 0; i < _vids.length; i++ ){
+			if( objViewAccess[_vids[i]] === 1 ) {
+				listAllowed_vids.push(_vids[i]);
+			}
+		}
+
+		//Сверяем разрещения на чтение по _vids
+		var list_vidsForRemove = [];
+		var fieldsForRead = Object.keys( objFlexoReadAccess );
+		for( var i = 0; i < listAllowed_vids.length; i++ ){
+			if( globalViewConfig[listAllowed_vids[i]].flexo.length !== 0 ){
+				var field = globalViewConfig[listAllowed_vids[i]].flexo[1];
+				var type = globalViewConfig[listAllowed_vids[i]].type;
+				var index = underscore.indexOf( fieldsForRead, field );
+				if ( index === -1 || type !== 'read' ||
+					objFlexoReadAccess[fieldsForRead[index]] === 0){
+					list_vidsForRemove.push(listAllowed_vids[i]);
+				}
+			}
+		}
+
+		listAllowed_vids = underscore.difference(listAllowed_vids, list_vidsForRemove);
+
+		testData4.testRead.listAllowed_vids = listAllowed_vids;
+		testData4.testRead.listNotAllowed_vids = list_vidsForRemove;
+
+		test.expect( ( listAllowed_vids.length + 4 ) );
+
+		controller.getTemplate( viewName, user, role, socket, function( err, config, template ) {
+			test.ifError(err);
+			test.ok(config);
+			test.strictEqual(template, '', 'Проверка отсутствия шаблона');
+
+			//Проверяем список идентификаторов сохраненных у объекта socket
+			if( socket.view && socket.view[viewName] ){
+				test.strictEqual(socket.view[viewName].length, listAllowed_vids.length,
+					'Проверяем количество разрешенных идентификаторов view');
+
+				for( var i = 0; i < listAllowed_vids.length; i++ ) {
+					var result = underscore.indexOf( socket.view[viewName], listAllowed_vids[i] );
+					test.notStrictEqual(result, -1,	'Проверка наличия разрешенного ' +
+						'идентификатора view в списке разрашенных у socket' );
+				}
+			}
+
+			test.done();
+		} );
+	},
+	queryToRead: {
+		allowed_vidsInSelectorAndSort: function(test) {
+
+			test.expect( 2 );
+			var viewName = testData4.testRead.viewNameForRead;
+			var socket = testData4.testRead.socket;
+			var allowedListOf_vids = testData4.testRead.listAllowed_vids;
+
+			//Формируем запрос на чтение
+			var randFieldForSelector =
+				allowedListOf_vids[getRandom(0, (allowedListOf_vids.length - 1))];
+			var randFieldForSort =
+				allowedListOf_vids[getRandom(0, (allowedListOf_vids.length - 1))];
+
+			var request = {};
+			request['selector'] = {};
+			request['selector'][randFieldForSelector] = generatorString(1,10);
+			request['options'] = {};
+			request['options']['sort'] = {};
+			request['options']['sort'][randFieldForSort] = getRandom(0,1);
+
+			controller.queryToView ( 'read', request, viewName, socket, function(err, reply) {
+				test.ifError(err);
+				test.ok(reply);
+				test.done();
+			});
+		},
+		notAllowed_vidInSelector: function(test){
+			test.expect( 1 );
+			var viewName = testData4.testRead.viewNameForRead;
+			var socket = testData4.testRead.socket;
+			var allowedListOf_vids = testData4.testRead.listAllowed_vids;
+			var notAllowedListOf_vids = testData4.testRead.listNotAllowed_vids;
+
+			//Формируем запрос на чтение
+			var randFieldForSelector =
+				notAllowedListOf_vids[getRandom(0, (notAllowedListOf_vids.length - 1))];
+			var randFieldForSort =
+				allowedListOf_vids[getRandom(0, (allowedListOf_vids.length - 1))];
+
+			var request = {};
+			request['selector'] = {};
+			request['selector'][randFieldForSelector] = generatorString(1,10);
+			request['options'] = {};
+			request['options']['sort'] = {};
+			request['options']['sort'][randFieldForSort] = getRandom(0,1);
+
+			controller.queryToView ( 'read', request, viewName, socket, function(err, reply) {
+				test.strictEqual(err.message, 'Controller: Requested more fields than ' +
+					'allowed to read');
+				test.done();
+			});
+		},
+		notAllowed_vidInSort: function(test){
+			test.expect( 1 );
+			var viewName = testData4.testRead.viewNameForRead;
+			var socket = testData4.testRead.socket;
+			var allowedListOf_vids = testData4.testRead.listAllowed_vids;
+			var notAllowedListOf_vids = testData4.testRead.listNotAllowed_vids;
+
+			//Формируем запрос на чтение
+			var randFieldForSelector =
+				allowedListOf_vids[getRandom(0, (allowedListOf_vids.length - 1))];
+			var randFieldForSort =
+				notAllowedListOf_vids[getRandom(0, (notAllowedListOf_vids.length - 1))];
+
+
+			var request = {};
+			request['selector'] = {};
+			request['selector'][randFieldForSelector] = generatorString(1,10);
+			request['options'] = {};
+			request['options']['sort'] = {};
+			request['options']['sort'][randFieldForSort] = getRandom(0,1);
+
+			controller.queryToView ( 'read', request, viewName, socket, function(err, reply) {
+				test.strictEqual(err.message, 'Controller: Requested more fields than ' +
+					'allowed to read');
+				test.done();
+			});
+		}
+	},
+	deleteFlexoAndViewAccess: function(test){
+		test.expect( 4 );
+		var role = testData4.userRole;
+		var viewName = testData4.testRead.viewNameForRead;
+		var flexoSchemeName = testData4.flexoSchemeName;
+
+		//Формируем объект запрос на удаление view прав по роли
+		var queryForDelete = {
+			access: {
+				viewName:viewName,
+				role:role
+			}
+		};
+
+		controller.delete(queryForDelete, function( err, reply ) {
+			test.ifError(err);
+			test.ok(reply);
+
+			//Формируем объект запрос на удаление flexo прав по роли
+			var queryForDelete = {
+				access: {
+					flexoSchemeName:flexoSchemeName,
+					role:role
+				}
+			};
+
+			controller.delete(queryForDelete, function( err, reply ) {
+				test.ifError(err);
+				test.ok(reply);
+				test.done();
+			});
+		});
+	}
+};
+
+var testData5 = {
+	userLogin: generatorString(1,10),
+	userRole: generatorString(1,10),
+	flexoSchemeName: 'testUsers',
 	testCreate:{
 		testObjAccessFlexo: {
 			read: {},
@@ -892,7 +1378,258 @@ var testData4 = { //Наполняется генератором в тесте
 		listAllowed_vids:[],
 		listNotAllowed_vids:[],
 		listNotFlexo_vids:[]
+	}
+};
+
+//Тестирование определения пересечения прав для view для запросов на создание, в view некоторые
+// идентификаторы связанны с Flexo
+exports.viewWithFlexoCreateAccess = {
+	saveFlexoCreateAccessOnlyForUser: function(test){
+		test.expect( 2 );
+
+		var objAccess = testData5.testCreate.testObjAccessFlexo;
+		var login = testData5.userLogin;
+		var flexoSchemeName = testData5.flexoSchemeName;
+
+		//Генерируем права на создание
+		var notAccess = getRandom(0, (globalFlexoSchemes[flexoSchemeName].modify.length - 1) );
+
+		for( var i=0; i < globalFlexoSchemes[flexoSchemeName].modify.length; i++ ) {
+			if (i === notAccess) {
+				objAccess.create[globalFlexoSchemes[flexoSchemeName].modify[i]] = 0;
+			} else {
+				objAccess.create[globalFlexoSchemes[flexoSchemeName].modify[i]] = 1;
+			}
+		}
+
+		//Разрешение на схему
+		objAccess.createAll = 1;
+
+		//Формируем запрос на сохранение прав по пользователю для flexo схемы
+		var queryForSave = {
+			access:{
+				flexoSchemeName: flexoSchemeName,
+				login:login,
+				objAccess: objAccess
+			}
+		};
+
+		controller.create(queryForSave, function( err, reply ) {
+			test.ifError(err);
+			test.ok(reply);
+			test.done();
+		});
+
 	},
+	saveViewAccessOnlyForUser: function(test){
+		test.expect( 2 );
+
+		var objAccess = testData5.testCreate.testObjViewAccess;
+		var login = testData5.userLogin;
+		var viewName = testData5.testCreate.viewNameForCreate;
+
+		//Наполняем разрешениями view
+		var listOf_vids = Object.keys(testObjGlobalViewsConfig[viewName]);
+
+		for(var i = 0; i < listOf_vids.length; i++ ) {
+			objAccess[listOf_vids[i]] = 1;
+		}
+
+		//Формируем объект запрос на сохранение прав
+		var queryForSave = {
+			access:{
+				viewName: viewName,
+				login: login,
+				objAccess: objAccess
+			}
+		};
+
+		controller.create(queryForSave, function( err, reply ) {
+			test.ifError(err);
+			test.ok(reply);
+			test.done();
+		});
+	},
+	getTemplateFromView: function(test){
+		var role = testData5.userRole;
+		var user = testData5.userLogin;
+		var socket = testData5.testCreate.socket;
+		var viewName = testData5.testCreate.viewNameForCreate;
+		var objViewAccess = testData5.testCreate.testObjViewAccess;
+		var objFlexoCreateAccess = testData5.testCreate.testObjAccessFlexo.create;
+		var objFlexoCreateAllAccess = testData5.testCreate.testObjAccessFlexo.createAll;
+		var globalViewConfig = testObjGlobalViewsConfig[viewName];
+
+		//Определяем перечень разрешенных идентификаторов view
+		var listAllowed_vids = [];
+		var _vids = Object.keys(objViewAccess);
+
+		for( var i = 0; i < _vids.length; i++ ){
+			if( objViewAccess[_vids[i]] === 1 ) {
+				listAllowed_vids.push(_vids[i]);
+			}
+		}
+
+		//Сверяем разрещения на создание по _vids
+		var list_vidsForRemove = [];
+		var listNotFlexo_vids = [];
+		var fieldsForCreate = Object.keys( objFlexoCreateAccess );
+		for( var i = 0; i < listAllowed_vids.length; i++ ){
+
+			if( globalViewConfig[listAllowed_vids[i]].flexo.length !== 0 ){
+				if( globalViewConfig[listAllowed_vids[i]].flexo.length === 1){
+					if (objFlexoCreateAllAccess &&
+						globalViewConfig[listAllowed_vids[i]].type === 'create'){
+						listNotFlexo_vids.push(listAllowed_vids[i]);
+					}
+				} else {
+					var field = globalViewConfig[listAllowed_vids[i]].flexo[1];
+					var type = globalViewConfig[listAllowed_vids[i]].type;
+					var index = underscore.indexOf( fieldsForCreate, field );
+					if ( index === -1 || type !== 'create' ||
+						objFlexoCreateAccess[fieldsForCreate[index]] === 0){
+						list_vidsForRemove.push(listAllowed_vids[i]);
+					}
+				}
+			}
+		}
+
+		listAllowed_vids = underscore.difference(listAllowed_vids, list_vidsForRemove);
+
+		testData5.testCreate.listAllowed_vids = listAllowed_vids;
+		testData5.testCreate.listNotAllowed_vids = list_vidsForRemove;
+		testData5.testCreate.listNotFlexo_vids = listNotFlexo_vids;
+
+		test.expect( ( listAllowed_vids.length + 4 ) );
+
+		controller.getTemplate( viewName, user, role, socket, function( err, config, template ) {
+			test.ifError(err);
+			test.ok(config);
+			test.strictEqual(template, '', 'Проверка отсутствия шаблона');
+
+			//Проверяем список идентификаторов сохраненных у объекта socket
+			if( socket.view && socket.view[viewName] ){
+				test.strictEqual(socket.view[viewName].length, listAllowed_vids.length,
+					'Проверяем количество разрешенных идентификаторов view');
+
+				for( var i = 0; i < listAllowed_vids.length; i++ ) {
+					var result = underscore.indexOf( socket.view[viewName], listAllowed_vids[i] );
+					test.notStrictEqual(result, -1,	'Проверка наличия разрешенного ' +
+						'идентификатора view в списке разрашенных у socket' );
+				}
+			}
+
+			test.done();
+		} );
+
+	},
+	queryToCreate:{
+		allowed_vidsInQueries: function( test ) {
+
+			var viewName = testData5.testCreate.viewNameForCreate;
+			var socket = testData5.testCreate.socket;
+
+			var listAllowed_vids = testData5.testCreate.listAllowed_vids;
+			var listNotFlexo_vids = testData5.testCreate.listNotFlexo_vids;
+			var listAllowed_vidsWithFlexo =
+				underscore.difference(listAllowed_vids, listNotFlexo_vids);
+
+			//Формируем запрос на создание
+			var queryToCreate = [];
+			queryToCreate.push({});
+
+			for(var i=0; i<listAllowed_vidsWithFlexo.length; i++){
+				queryToCreate[0][listAllowed_vidsWithFlexo[i]] = getRandom(0, 10000);
+			}
+
+			test.expect( listAllowed_vidsWithFlexo.length + 2 );
+			debugger
+			controller.queryToView ( 'create', queryToCreate, viewName, socket,
+				function(err, reply) {
+
+				test.ifError(err);
+				var _vids = Object.keys(reply[0]);
+
+				test.strictEqual(_vids.length, listAllowed_vidsWithFlexo.length,
+					'Проверяем количество возвращенных идентификаторов view');
+
+				for( var i = 0; i < _vids.length; i++ ) {
+					var result = underscore.indexOf( listAllowed_vidsWithFlexo, _vids[i] );
+					test.notStrictEqual(result, -1,	'Сравнение возвращенных ' +
+						'идентификаторов с сохраненными идентификаторами view ' );
+				}
+
+				test.done();
+			});
+		},
+		notAllowed_vidsInQueries: function( test ) {
+			test.expect( 1 );
+			var viewName = testData5.testCreate.viewNameForCreate;
+			var socket = testData5.testCreate.socket;
+
+			var listAllowed_vids = testData5.testCreate.listAllowed_vids;
+			var listNotFlexo_vids = testData5.testCreate.listNotFlexo_vids;
+			var listNotAllowed_vids = testData5.testCreate.listNotAllowed_vids;
+			var listAllowed_vidsWithFlexo =
+				underscore.difference(listAllowed_vids, listNotFlexo_vids);
+
+			//Формируем запрос на создание
+			var queryToCreate = [{}];
+
+			for(var i=0; i<listAllowed_vidsWithFlexo.length; i++){
+				queryToCreate[0][listAllowed_vidsWithFlexo[i]] = getRandom(0, 10000);
+			}
+
+			for(var i=0; i<listNotAllowed_vids.length; i++){
+				queryToCreate[0][listNotAllowed_vids[i]] = getRandom(0, 10000);
+			}
+
+			controller.queryToView ( 'create', queryToCreate, viewName, socket,
+				function(err, reply) {
+					test.strictEqual(err.message, 'Controller: No permission to create in view');
+					test.done();
+				});
+		}
+	},
+	deleteFlexoAndViewAccess: function(test){
+		test.expect( 4 );
+		var login = testData5.userLogin;
+		var viewName = testData5.testCreate.viewNameForCreate;
+		var flexoSchemeName = testData5.flexoSchemeName;
+
+		//Формируем объект запрос на удаление view прав по роли
+		var queryForDelete = {
+			access: {
+				viewName:viewName,
+				login:login
+			}
+		};
+
+		controller.delete(queryForDelete, function( err, reply ) {
+			test.ifError(err);
+			test.ok(reply);
+
+			//Формируем объект запрос на удаление flexo прав по роли
+			var queryForDelete = {
+				access: {
+					flexoSchemeName:flexoSchemeName,
+					login:login
+				}
+			};
+
+			controller.delete(queryForDelete, function( err, reply ) {
+				test.ifError(err);
+				test.ok(reply);
+				test.done();
+			});
+		});
+	}
+};
+
+var testData6 = {
+	userLogin: generatorString(1,10),
+	userRole: generatorString(1,10),
+	flexoSchemeName: 'testUsers',
 	testModify:{
 		testObjAccessFlexoRole:{
 			read: {},
@@ -914,806 +1651,62 @@ var testData4 = { //Наполняется генератором в тесте
 		socket:{},
 		flexoAllowedField:'',
 		_vidAllowed:''
-	},
-	testDelete:{
-		testObjAccessFlexoRole:{
-			read: {},
-			modify: {},
-			create: {},
-			createAll: 0,
-			delete: 1
-		},
-		viewNameForDelete: 'testView5',
-		testObjViewAccessRole: {},
-		socket:{}
 	}
 };
 
-//Тестирование определения пересечения прав для view, в view некоторые идентификаторы
-// связанны с Flexo
-exports.viewWithFlexo = {
-	readAccess:{
-		saveFlexoReadAccessOnlyForRole: function(test){
-			test.expect( 2 );
-
-			var objAccess = testData4.testRead.testObjAccessFlexo;
-			var role = testData4.userRole;
-			var flexoSchemeName = testData4.flexoSchemeName;
-
-			//Генерируем права на чтение
-			var notAccess = getRandom(0, (globalFlexoSchemes[flexoSchemeName].read.length - 1) );
-
-			for( var i=0; i < globalFlexoSchemes[flexoSchemeName].read.length; i++ ) {
-				if (i === notAccess) {
-					objAccess.read[globalFlexoSchemes[flexoSchemeName].read[i]] = 0;
-				} else {
-					objAccess.read[globalFlexoSchemes[flexoSchemeName].read[i]] = 1;
-				}
-			}
-
-			//Формируем запрос на сохранение прав по поли для flexo схемы
-			var queryForSave = {
-				access:{
-					flexoSchemeName: flexoSchemeName,
-					role:role,
-					objAccess: objAccess
-				}
-			};
-
-			controller.create(queryForSave, function( err, reply ) {
-				test.ifError(err);
-				test.ok(reply);
-				test.done();
-			});
-
-		},
-		saveViewAccessOnlyForRole: function(test){
-			test.expect( 2 );
-
-			var objAccess = testData4.testRead.testObjViewAccess;
-			var role = testData4.userRole;
-			var viewName = testData4.testRead.viewNameForRead;
-
-			//Наполняем разрешениями view
-			var listOf_vids = Object.keys(testObjGlobalViewsConfig[viewName]);
-
-			for(var i = 0; i < listOf_vids.length; i++ ) {
-				objAccess[listOf_vids[i]] = 1;
-			}
-
-			//Формируем объект запрос на сохранение прав
-			var queryForSave = {
-				access:{
-					viewName: viewName,
-					role: role,
-					objAccess: objAccess
-				}
-			};
-
-			controller.create(queryForSave, function( err, reply ) {
-				test.ifError(err);
-				test.ok(reply);
-				test.done();
-			});
-		},
-		getTemplateFromView: function(test){
-			var role = testData4.userRole;
-			var user = testData4.userLogin;
-			var socket = testData4.testRead.socket;
-			var viewName = testData4.testRead.viewNameForRead;
-			var objViewAccess = testData4.testRead.testObjViewAccess;
-			var objFlexoReadAccess = testData4.testRead.testObjAccessFlexo.read;
-			var globalViewConfig = testObjGlobalViewsConfig[viewName];
-
-			//Определяем перечень разрешенных идентификаторов view
-			var listAllowed_vids = [];
-			var _vids = Object.keys(objViewAccess);
-
-			for( var i = 0; i < _vids.length; i++ ){
-				if( objViewAccess[_vids[i]] === 1 ) {
-					listAllowed_vids.push(_vids[i]);
-				}
-			}
-
-			//Сверяем разрещения на чтение по _vids
-			var list_vidsForRemove = [];
-			var fieldsForRead = Object.keys( objFlexoReadAccess );
-			for( var i = 0; i < listAllowed_vids.length; i++ ){
-				if( globalViewConfig[listAllowed_vids[i]].flexo.length !== 0 ){
-					var field = globalViewConfig[listAllowed_vids[i]].flexo[1];
-					var type = globalViewConfig[listAllowed_vids[i]].type;
-					var index = underscore.indexOf( fieldsForRead, field );
-					if ( index === -1 || type !== 'read' ||
-						objFlexoReadAccess[fieldsForRead[index]] === 0){
-					 	list_vidsForRemove.push(listAllowed_vids[i]);
-					}
-				}
-			}
-
-			listAllowed_vids = underscore.difference(listAllowed_vids, list_vidsForRemove);
-
-			testData4.testRead.listAllowed_vids = listAllowed_vids;
-			testData4.testRead.listNotAllowed_vids = list_vidsForRemove;
-
-			test.expect( ( listAllowed_vids.length + 4 ) );
-
-			controller.getTemplate( viewName, user, role, socket, function( err, config, template ) {
-				test.ifError(err);
-				test.ok(config);
-				test.ok(template);
-
-				//Проверяем список идентификаторов сохраненных у объекта socket
-				if( socket.view && socket.view[viewName] ){
-					test.strictEqual(socket.view[viewName].length, listAllowed_vids.length,
-						'Проверяем количество разрешенных идентификаторов view');
-
-					for( var i = 0; i < listAllowed_vids.length; i++ ) {
-						var result = underscore.indexOf( socket.view[viewName], listAllowed_vids[i] );
-						test.notStrictEqual(result, -1,	'Проверка наличия разрешенного ' +
-							'идентификатора view в списке разрашенных у socket' );
-					}
-				}
-
-				test.done();
-			} );
-		},
-		queryToRead: {
-			allowed_vidsInSelectorAndSort: function(test) {
-				test.expect( 2 );
-				var viewName = testData4.testRead.viewNameForRead;
-				var socket = testData4.testRead.socket;
-				var allowedListOf_vids = testData4.testRead.listAllowed_vids;
-
-				//Формируем запрос на чтение
-				var randFieldForSelector =
-					allowedListOf_vids[getRandom(0, (allowedListOf_vids.length - 1))];
-				var randFieldForSort =
-					allowedListOf_vids[getRandom(0, (allowedListOf_vids.length - 1))];
-
-				var request = {};
-				request['selector'] = {};
-				request['selector'][randFieldForSelector] = generatorString(1,10);
-				request['options'] = {};
-				request['options']['sort'] = {};
-				request['options']['sort'][randFieldForSort] = getRandom(0,1);
-
-				controller.queryToView ( 'read', request, viewName, socket, function(err, reply) {
-					test.ifError(err);
-					test.ok(reply);
-					test.done();
-				});
-			},
-			notAllowed_vidInSelector: function(test){
-				test.expect( 1 );
-				var viewName = testData4.testRead.viewNameForRead;
-				var socket = testData4.testRead.socket;
-				var allowedListOf_vids = testData4.testRead.listAllowed_vids;
-				var notAllowedListOf_vids = testData4.testRead.listNotAllowed_vids;
-
-				//Формируем запрос на чтение
-				var randFieldForSelector =
-					notAllowedListOf_vids[getRandom(0, (notAllowedListOf_vids.length - 1))];
-				var randFieldForSort =
-					allowedListOf_vids[getRandom(0, (allowedListOf_vids.length - 1))];
-
-				var request = {};
-				request['selector'] = {};
-				request['selector'][randFieldForSelector] = generatorString(1,10);
-				request['options'] = {};
-				request['options']['sort'] = {};
-				request['options']['sort'][randFieldForSort] = getRandom(0,1);
-
-				controller.queryToView ( 'read', request, viewName, socket, function(err, reply) {
-					test.strictEqual(err.message, 'Controller: Requested more fields than ' +
-						'allowed to read');
-					test.done();
-				});
-			},
-			notAllowed_vidInSort: function(test){
-				test.expect( 1 );
-				var viewName = testData4.testRead.viewNameForRead;
-				var socket = testData4.testRead.socket;
-				var allowedListOf_vids = testData4.testRead.listAllowed_vids;
-				var notAllowedListOf_vids = testData4.testRead.listNotAllowed_vids;
-
-				//Формируем запрос на чтение
-				var randFieldForSelector =
-					allowedListOf_vids[getRandom(0, (allowedListOf_vids.length - 1))];
-				var randFieldForSort =
-					notAllowedListOf_vids[getRandom(0, (notAllowedListOf_vids.length - 1))];
-
-
-				var request = {};
-				request['selector'] = {};
-				request['selector'][randFieldForSelector] = generatorString(1,10);
-				request['options'] = {};
-				request['options']['sort'] = {};
-				request['options']['sort'][randFieldForSort] = getRandom(0,1);
-
-				controller.queryToView ( 'read', request, viewName, socket, function(err, reply) {
-					test.strictEqual(err.message, 'Controller: Requested more fields than ' +
-						'allowed to read');
-					test.done();
-				});
-			}
-		},
-		deleteFlexoAndViewAccess: function(test){
-			test.expect( 4 );
-			var role = testData4.userRole;
-			var viewName = testData4.testRead.viewNameForRead;
-			var flexoSchemeName = testData4.flexoSchemeName;
-
-			//Формируем объект запрос на удаление view прав по роли
-			var queryForDelete = {
-				access: {
-					viewName:viewName,
-					role:role
-				}
-			};
-
-			controller.delete(queryForDelete, function( err, reply ) {
-				test.ifError(err);
-				test.ok(reply);
-
-				//Формируем объект запрос на удаление flexo прав по роли
-				var queryForDelete = {
-					access: {
-						flexoSchemeName:flexoSchemeName,
-						role:role
-					}
-				};
-
-				controller.delete(queryForDelete, function( err, reply ) {
-					test.ifError(err);
-					test.ok(reply);
-					test.done();
-				});
-			});
-		}
-	},
-	createAccess:{
-		saveFlexoCreateAccessOnlyForUser: function(test){
-			test.expect( 2 );
-
-			var objAccess = testData4.testCreate.testObjAccessFlexo;
-			var login = testData4.userLogin;
-			var flexoSchemeName = testData4.flexoSchemeName;
-
-			//Генерируем права на создание
-			var notAccess = getRandom(0, (globalFlexoSchemes[flexoSchemeName].modify.length - 1) );
-
-			for( var i=0; i < globalFlexoSchemes[flexoSchemeName].modify.length; i++ ) {
-				if (i === notAccess) {
-					objAccess.create[globalFlexoSchemes[flexoSchemeName].modify[i]] = 0;
-				} else {
-					objAccess.create[globalFlexoSchemes[flexoSchemeName].modify[i]] = 1;
-				}
-			}
-
-			//Разрешение на схему
-			objAccess.createAll = 1;
-
-			//Формируем запрос на сохранение прав по пользователю для flexo схемы
-			var queryForSave = {
-				access:{
-					flexoSchemeName: flexoSchemeName,
-					login:login,
-					objAccess: objAccess
-				}
-			};
-
-			controller.create(queryForSave, function( err, reply ) {
-				test.ifError(err);
-				test.ok(reply);
-				test.done();
-			});
-
-		},
-		saveViewAccessOnlyForUser: function(test){
-			test.expect( 2 );
-
-			var objAccess = testData4.testCreate.testObjViewAccess;
-			var login = testData4.userLogin;
-			var viewName = testData4.testCreate.viewNameForCreate;
-
-			//Наполняем разрешениями view
-			var listOf_vids = Object.keys(testObjGlobalViewsConfig[viewName]);
-
-			for(var i = 0; i < listOf_vids.length; i++ ) {
-				objAccess[listOf_vids[i]] = 1;
-			}
-
-			//Формируем объект запрос на сохранение прав
-			var queryForSave = {
-				access:{
-					viewName: viewName,
-					login: login,
-					objAccess: objAccess
-				}
-			};
-
-			controller.create(queryForSave, function( err, reply ) {
-				test.ifError(err);
-				test.ok(reply);
-				test.done();
-			});
-		},
-		getTemplateFromView: function(test){
-			var role = testData4.userRole;
-			var user = testData4.userLogin;
-			var socket = testData4.testCreate.socket;
-			var viewName = testData4.testCreate.viewNameForCreate;
-			var objViewAccess = testData4.testCreate.testObjViewAccess;
-			var objFlexoCreateAccess = testData4.testCreate.testObjAccessFlexo.create;
-			var objFlexoCreateAllAccess = testData4.testCreate.testObjAccessFlexo.createAll;
-			var globalViewConfig = testObjGlobalViewsConfig[viewName];
-
-			//Определяем перечень разрешенных идентификаторов view
-			var listAllowed_vids = [];
-			var _vids = Object.keys(objViewAccess);
-
-			for( var i = 0; i < _vids.length; i++ ){
-				if( objViewAccess[_vids[i]] === 1 ) {
-					listAllowed_vids.push(_vids[i]);
-				}
-			}
-
-			//Сверяем разрещения на создание по _vids
-			var list_vidsForRemove = [];
-			var listNotFlexo_vids = [];
-			var fieldsForCreate = Object.keys( objFlexoCreateAccess );
-			for( var i = 0; i < listAllowed_vids.length; i++ ){
-
-				if( globalViewConfig[listAllowed_vids[i]].flexo.length !== 0 ){
-					if( globalViewConfig[listAllowed_vids[i]].flexo.length === 1){
-						if (objFlexoCreateAllAccess &&
-							globalViewConfig[listAllowed_vids[i]].type === 'create'){
-							listNotFlexo_vids.push(listAllowed_vids[i]);
-						}
-					} else {
-						var field = globalViewConfig[listAllowed_vids[i]].flexo[1];
-						var type = globalViewConfig[listAllowed_vids[i]].type;
-						var index = underscore.indexOf( fieldsForCreate, field );
-						if ( index === -1 || type !== 'create' ||
-							objFlexoCreateAccess[fieldsForCreate[index]] === 0){
-							list_vidsForRemove.push(listAllowed_vids[i]);
-						}
-					}
-				}
-
-			}
-
-			listAllowed_vids = underscore.difference(listAllowed_vids, list_vidsForRemove);
-
-			testData4.testCreate.listAllowed_vids = listAllowed_vids;
-			testData4.testCreate.listNotAllowed_vids = list_vidsForRemove;
-			testData4.testCreate.listNotFlexo_vids = listNotFlexo_vids;
-
-			test.expect( ( listAllowed_vids.length + 4 ) );
-
-			controller.getTemplate( viewName, user, role, socket, function( err, config, template ) {
-				test.ifError(err);
-				test.ok(config);
-				test.ok(template);
-
-				//Проверяем список идентификаторов сохраненных у объекта socket
-				if( socket.view && socket.view[viewName] ){
-					test.strictEqual(socket.view[viewName].length, listAllowed_vids.length,
-						'Проверяем количество разрешенных идентификаторов view');
-
-					for( var i = 0; i < listAllowed_vids.length; i++ ) {
-						var result = underscore.indexOf( socket.view[viewName], listAllowed_vids[i] );
-						test.notStrictEqual(result, -1,	'Проверка наличия разрешенного ' +
-							'идентификатора view в списке разрашенных у socket' );
-					}
-				}
-
-				test.done();
-			} );
-
-		},
-		queryToCreate:{
-			allowed_vidsInQueries: function( test ) {
-
-				var viewName = testData4.testCreate.viewNameForCreate;
-				var socket = testData4.testCreate.socket;
-
-				var listAllowed_vids = testData4.testCreate.listAllowed_vids;
-				var listNotFlexo_vids = testData4.testCreate.listNotFlexo_vids;
-				var listAllowed_vidsWithFlexo =
-					underscore.difference(listAllowed_vids, listNotFlexo_vids);
-
-				//Формируем запрос на создание
-				var queryToCreate = {};
-
-				for(var i=0; i<listAllowed_vidsWithFlexo.length; i++){
-					queryToCreate[listAllowed_vidsWithFlexo[i]] = getRandom(0, 10000);
-				}
-
-				test.expect( listAllowed_vidsWithFlexo.length + 2 );
-
-				controller.queryToView ( 'create', queryToCreate, viewName, socket,
-					function(err, reply) {
-
-						test.ifError(err);
-					var _vids = Object.keys(reply[0]);
-
-					test.strictEqual(_vids.length, listAllowed_vidsWithFlexo.length,
-						'Проверяем количество возвращенных идентификаторов view');
-
-					for( var i = 0; i < _vids.length; i++ ) {
-						var result = underscore.indexOf( listAllowed_vidsWithFlexo, _vids[i] );
-						test.notStrictEqual(result, -1,	'Сравнение возвращенных ' +
-							'идентификаторов с сохраненными идентификаторами view ' );
-					}
-
-					test.done();
-				});
-			},
-			notAllowed_vidsInQueries: function( test ) {
-				test.expect( 1 );
-				var viewName = testData4.testCreate.viewNameForCreate;
-				var socket = testData4.testCreate.socket;
-
-				var listAllowed_vids = testData4.testCreate.listAllowed_vids;
-				var listNotFlexo_vids = testData4.testCreate.listNotFlexo_vids;
-				var listNotAllowed_vids = testData4.testCreate.listNotAllowed_vids;
-				var listAllowed_vidsWithFlexo =
-					underscore.difference(listAllowed_vids, listNotFlexo_vids);
-
-				//Формируем запрос на создание
-				var queryToCreate = {};
-
-				for(var i=0; i<listAllowed_vidsWithFlexo.length; i++){
-					queryToCreate[listAllowed_vidsWithFlexo[i]] = getRandom(0, 10000);
-				}
-
-				for(var i=0; i<listNotAllowed_vids.length; i++){
-					queryToCreate[listNotAllowed_vids[i]] = getRandom(0, 10000);
-				}
-
-				controller.queryToView ( 'create', queryToCreate, viewName, socket,
-					function(err, reply) {
-						test.strictEqual(err.message, 'Controller: No permission to create in view');
-						test.done();
-					});
-			}
-		},
-		deleteFlexoAndViewAccess: function(test){
-			test.expect( 4 );
-			var login = testData4.userLogin;
-			var viewName = testData4.testCreate.viewNameForCreate;
-			var flexoSchemeName = testData4.flexoSchemeName;
-
-			//Формируем объект запрос на удаление view прав по роли
-			var queryForDelete = {
-				access: {
-					viewName:viewName,
-					login:login
-				}
-			};
-
-			controller.delete(queryForDelete, function( err, reply ) {
-				test.ifError(err);
-				test.ok(reply);
-
-				//Формируем объект запрос на удаление flexo прав по роли
-				var queryForDelete = {
-					access: {
-						flexoSchemeName:flexoSchemeName,
-						login:login
-					}
-				};
-
-				controller.delete(queryForDelete, function( err, reply ) {
-					test.ifError(err);
-					test.ok(reply);
-					test.done();
-				});
-			});
-		}
-	},
-	modifyAccess:{
-		saveFlexoCreateAccessForRoleAndUser: function(test){
-			test.expect( 4 );
-
-			var objAccessForRole = testData4.testModify.testObjAccessFlexoRole;
-			var objAccessForUser = testData4.testModify.testObjAccessFlexoUser;
-			var login = testData4.userLogin;
-			var role = testData4.userRole;
-			var flexoSchemeName = testData4.flexoSchemeName;
-
-			//Генерируем права на чтение для роли
-			for( var i = 0; i < globalFlexoSchemes[flexoSchemeName].read.length; i++ ) {
-				objAccessForRole.read[globalFlexoSchemes[flexoSchemeName].read[i]] = 1;
-			}
-
-			//Генерируем права на модификацию для роли
-			var notAccessRole = getRandom(0, (globalFlexoSchemes[flexoSchemeName].modify.length - 1) );
-
-			//Устанавливаем спец поле '(all)'
-			objAccessForRole.modify['(all)'] = 1;
-
-			for( var i = 0; i < globalFlexoSchemes[flexoSchemeName].modify.length; i++ ) {
-				if (i === notAccessRole) {
-					objAccessForRole.modify[globalFlexoSchemes[flexoSchemeName].modify[i]] = 0;
-				}
-			}
-
-			//Генерируем права на модификацию для пользователя
-			var notAccessUser = getRandom(0, (globalFlexoSchemes[flexoSchemeName].modify.length - 1) );
-			objAccessForUser.modify['(all)'] = 0;
-			for( var i = 0; i < globalFlexoSchemes[flexoSchemeName].modify.length; i++ ) {
-				if (i === notAccessUser) {
-					objAccessForUser.modify[globalFlexoSchemes[flexoSchemeName].modify[i]] = 1;
-					flexoAllowedField = globalFlexoSchemes[flexoSchemeName].modify[i];
-				}
-			}
-
-			testData4.testModify.flexoAllowedField = flexoAllowedField;
-
-			//Формируем запрос на сохранение прав по пользователю для flexo схемы
-			var queryForSave = {
-				access:{
-					flexoSchemeName: flexoSchemeName,
-					login:login,
-					objAccess: objAccessForUser
-				}
-			};
-
-			controller.create(queryForSave, function( err, reply ) {
-				test.ifError(err);
-				test.ok(reply);
-				//Формируем запрос на сохранение прав по роли для flexo схемы
-				var queryForSave = {
-					access:{
-						flexoSchemeName: flexoSchemeName,
-						role:role,
-						objAccess: objAccessForRole
-					}
-				};
-
-				controller.create(queryForSave, function( err, reply ) {
-					test.ifError(err);
-					test.ok(reply);
-					test.done();
-				});
-			});
-
-		},
-		saveViewAccessForRoleAndUser: function(test){
-			test.expect( 4 );
-
-			var objAccessUser = testData4.testModify.testObjViewAccessUser;
-			var objAccessRole = testData4.testModify.testObjViewAccessRole;
-			var login = testData4.userLogin;
-			var role = testData4.userRole;
-			var viewName = testData4.testModify.viewNameForModify;
-
-			//Наполняем разрешениями view для роли
-			var listOf_vids = Object.keys(testObjGlobalViewsConfig[viewName]);
-
-			for(var i = 0; i < listOf_vids.length; i++ ) {
-				objAccessRole[listOf_vids[i]] = getRandom(0, 1);
-			}
-
-			//Наполняем разрешениями view для пользователя
-			objAccessUser['(all)'] = 1;
-
-			//Формируем объект запрос на сохранение прав по пользователю
-			var queryForSave = {
-				access:{
-					viewName: viewName,
-					login: login,
-					objAccess: objAccessUser
-				}
-			};
-
-			controller.create(queryForSave, function( err, reply ) {
-				test.ifError(err);
-				test.ok(reply);
-				//Формируем объект запрос на сохранение прав по роли
-				var queryForSave = {
-					access:{
-						viewName: viewName,
-						role: role,
-						objAccess: objAccessRole
-					}
-				};
-
-				controller.create(queryForSave, function( err, reply ) {
-					test.ifError(err);
-					test.ok(reply);
-					test.done();
-				});
-			});
-		},
-		getTemplateFromView:function(test){
-			test.expect( 7 );
-			var viewName = testData4.testModify.viewNameForModify;
-			var user = testData4.userLogin;
-			var role = testData4.userRole;
-			var socket = testData4.testModify.socket;
-			var globalViewConfig = testObjGlobalViewsConfig[viewName];
-
-			//Находим единственный идентификатор который разрешен в этом тесте
-			var flexoAllowedField = testData4.testModify.flexoAllowedField;
-			var _vidAllowed;
-			var listOf_vids = Object.keys(globalViewConfig);
-
-			for( var i = 0; i < listOf_vids.length; i++ ) {
-				if(globalViewConfig[listOf_vids[i]].flexo.length !== 0) {
-					if(globalViewConfig[listOf_vids[i]].flexo[1] === flexoAllowedField) {
-						_vidAllowed = listOf_vids[i];
-					}
-				}
-			}
-
-			//Получаем _vid для полей _id и tsUpdate
-			var _vidsForSelector = [];
-			for(var i=0; i<listOf_vids.length; i++){
-				if(testObjGlobalViewsConfig[viewName][listOf_vids[i]].type === 'read'){
-					_vidsForSelector.push(listOf_vids[i]);
-				}
-			}
-
-			testData4.testModify._vidAllowed = _vidAllowed;
-
-			controller.getTemplate( viewName, user, role, socket, function( err, config, template ) {
-				test.ifError(err);
-				test.ok(config);
-				test.ok(template);
-
-				//Проверяем список идентификаторов сохраненных у объекта socket
-				if( socket.view && socket.view[viewName] ){
-					test.strictEqual(socket.view[viewName].length, 3,
-						'Проверяем количество разрешенных идентификаторов view');
-
-
-					var result = underscore.indexOf( socket.view[viewName], _vidAllowed );
-					test.notStrictEqual(result, -1,	'Проверка наличия разрешенного ' +
-						'идентификатора view в списке разрашенных у socket' );
-
-					for( var i = 0; i < _vidsForSelector.length; i++ ) {
-						result = underscore.indexOf( socket.view[viewName], _vidsForSelector[i] );
-						test.notStrictEqual(result, -1,	'Проверка наличия разрешенного ' +
-							'идентификатора view в списке разрашенных у socket' );
-					}
-				}
-
-				test.done();
-			} );
-
-		},
-		queryToModify:{
-			allowed_vidsInQueriesProperties: function ( test ) {
-				test.expect( 2 );
-				var viewName = testData4.testModify.viewNameForModify;
-				var socket = testData4.testModify.socket;
-				var allowed_vid = testData4.testModify._vidAllowed;
-				var listOf_vids = Object.keys(testObjGlobalViewsConfig[viewName]);
-				listOf_vids = underscore.without(listOf_vids, allowed_vid);
-
-				//Получаем _vid для полей _id и tsUpdate
-				var _vidsForSelector = [];
-				for(var i=0; i<listOf_vids.length; i++){
-					if(testObjGlobalViewsConfig[viewName][listOf_vids[i]].type === 'read'){
-						_vidsForSelector.push(listOf_vids[i]);
-					}
-				}
-
-				//Формируем запрос на модификацию
-				var request = {};
-				request['selector'] = {};
-				request['selector'][_vidsForSelector[0]] = generatorString(1,10);
-				request['selector'][_vidsForSelector[1]] = generatorString(1,10);
-				request['properties'] = {};
-				request['properties'][allowed_vid] = generatorString(1,10);
-
-				controller.queryToView ( 'modify', request, viewName, socket, function(err, reply) {
-					test.ifError(err);
-					test.ok(reply);
-					test.done();
-				})
-
-			},
-			notAllowed_vidsInQueriesProperties: function ( test ) {
-				test.expect( 1 );
-				var viewName = testData4.testModify.viewNameForModify;
-				var socket = testData4.testModify.socket;
-				var allowed_vid = testData4.testModify._vidAllowed;
-				var listOf_vids = Object.keys(testObjGlobalViewsConfig[viewName]);
-				listOf_vids = underscore.without(listOf_vids, allowed_vid);
-
-				//Формируем запрос на модификацию
-				var request = {};
-				request['selector'] = {};
-				request['selector'][allowed_vid] = generatorString(1,10);
-				request['properties'] = {};
-				request['properties']
-					[listOf_vids[generatorString(0,(listOf_vids.length - 1))]]
-					= generatorString(1,10);
-
-				controller.queryToView ( 'modify', request, viewName, socket, function(err, reply) {
-					test.strictEqual(err.message, 'Controller: No permission to modify in view');
-					test.done();
-				})
-
-			}
-		},
-		deleteFlexoAndViewAccess: function(test){
-			test.expect( 8 );
-			var login = testData4.userLogin;
-			var role = testData4.userRole;
-			var viewName = testData4.testCreate.viewNameForCreate;
-			var flexoSchemeName = testData4.flexoSchemeName;
-
-			//Формируем объект запрос на удаление view прав по пользователю
-			var queryForDelete = {
-				access: {
-					viewName:viewName,
-					login:login
-				}
-			};
-
-			controller.delete(queryForDelete, function( err, reply ) {
-				test.ifError(err);
-				test.ok(reply);
-
-				//Формируем объект запрос на удаление flexo прав по пользователю
-				var queryForDelete = {
-					access: {
-						flexoSchemeName:flexoSchemeName,
-						login:login
-					}
-				};
-
-				controller.delete(queryForDelete, function( err, reply ) {
-					test.ifError(err);
-					test.ok(reply);
-					//Формируем объект запрос на удаление flexo прав по роли
-					var queryForDelete = {
-						access: {
-							flexoSchemeName:flexoSchemeName,
-							role:role
-						}
-					};
-
-					controller.delete(queryForDelete, function( err, reply ) {
-						test.ifError(err);
-						test.ok(reply);
-						//Формируем объект запрос на удаление view прав по роли
-						var queryForDelete = {
-							access: {
-								viewName:viewName,
-								role:role
-							}
-						};
-
-						controller.delete(queryForDelete, function( err, reply ) {
-							test.ifError(err);
-							test.ok(reply);
-							test.done();
-						});
-					});
-				});
-			});
+//Тестирование определения пересечения прав для view для запросов на модификацию, в view некоторые
+// идентификаторы связанны с Flexo
+exports.viewWithFlexoModifyAccess = {
+	saveFlexoCreateAccessForRoleAndUser: function(test){
+		test.expect( 4 );
+
+		var objAccessForRole = testData6.testModify.testObjAccessFlexoRole;
+		var objAccessForUser = testData6.testModify.testObjAccessFlexoUser;
+		var login = testData6.userLogin;
+		var role = testData6.userRole;
+		var flexoSchemeName = testData6.flexoSchemeName;
+
+		//Генерируем права на чтение для роли
+		for( var i = 0; i < globalFlexoSchemes[flexoSchemeName].read.length; i++ ) {
+			objAccessForRole.read[globalFlexoSchemes[flexoSchemeName].read[i]] = 1;
 		}
 
-	},
-	deleteAccess:{
-		saveFlexoCreateAccessForRoleAndUser: function(test){
-			test.expect( 2 );
+		//Генерируем права на модификацию для роли
+		var notAccessRole = getRandom(0, (globalFlexoSchemes[flexoSchemeName].modify.length - 1) );
 
-			var objAccessForRole = testData4.testDelete.testObjAccessFlexoRole;
-			var role = testData4.userRole;
-			var flexoSchemeName = testData4.flexoSchemeName;
+		//Устанавливаем спец поле '(all)'
+		objAccessForRole.modify['(all)'] = 1;
 
-			//Генерируем права на чтение для роли
-			for( var i = 0; i < globalFlexoSchemes[flexoSchemeName].read.length; i++ ) {
-                objAccessForRole.read[globalFlexoSchemes[flexoSchemeName].read[i]] = 1;
+		for( var i = 0; i < globalFlexoSchemes[flexoSchemeName].modify.length; i++ ) {
+			if (i === notAccessRole) {
+				objAccessForRole.modify[globalFlexoSchemes[flexoSchemeName].modify[i]] = 0;
 			}
+		}
 
+		//Генерируем права на модификацию для пользователя
+		var notAccessUser = getRandom(0, (globalFlexoSchemes[flexoSchemeName].modify.length - 1) );
+		objAccessForUser.modify['(all)'] = 0;
+		for( var i = 0; i < globalFlexoSchemes[flexoSchemeName].modify.length; i++ ) {
+			if (i === notAccessUser) {
+				objAccessForUser.modify[globalFlexoSchemes[flexoSchemeName].modify[i]] = 1;
+				flexoAllowedField = globalFlexoSchemes[flexoSchemeName].modify[i];
+			}
+		}
+
+		testData6.testModify.flexoAllowedField = flexoAllowedField;
+
+		//Формируем запрос на сохранение прав по пользователю для flexo схемы
+		var queryForSave = {
+			access:{
+				flexoSchemeName: flexoSchemeName,
+				login:login,
+				objAccess: objAccessForUser
+			}
+		};
+
+		controller.create(queryForSave, function( err, reply ) {
+			test.ifError(err);
+			test.ok(reply);
 			//Формируем запрос на сохранение прав по роли для flexo схемы
 			var queryForSave = {
 				access:{
@@ -1728,21 +1721,40 @@ exports.viewWithFlexo = {
 				test.ok(reply);
 				test.done();
 			});
-		},
-		saveViewAccessForRoleAndUser: function(test){
-			test.expect( 2 );
+		});
 
-			var objAccessRole = testData4.testDelete.testObjViewAccessRole;
-			var role = testData4.userRole;
-			var viewName = testData4.testDelete.viewNameForDelete;
+	},
+	saveViewAccessForRoleAndUser: function(test){
+		test.expect( 4 );
 
-			//Наполняем разрешениями view для роли
-			var listOf_vids = Object.keys(testObjGlobalViewsConfig[viewName]);
+		var objAccessUser = testData6.testModify.testObjViewAccessUser;
+		var objAccessRole = testData6.testModify.testObjViewAccessRole;
+		var login = testData6.userLogin;
+		var role = testData6.userRole;
+		var viewName = testData6.testModify.viewNameForModify;
 
-			for(var i = 0; i < listOf_vids.length; i++ ) {
-				objAccessRole[listOf_vids[i]] = 1;
+		//Наполняем разрешениями view для роли
+		var listOf_vids = Object.keys(testObjGlobalViewsConfig[viewName]);
+
+		for(var i = 0; i < listOf_vids.length; i++ ) {
+			objAccessRole[listOf_vids[i]] = getRandom(0, 1);
+		}
+
+		//Наполняем разрешениями view для пользователя
+		objAccessUser['(all)'] = 1;
+
+		//Формируем объект запрос на сохранение прав по пользователю
+		var queryForSave = {
+			access:{
+				viewName: viewName,
+				login: login,
+				objAccess: objAccessUser
 			}
+		};
 
+		controller.create(queryForSave, function( err, reply ) {
+			test.ifError(err);
+			test.ok(reply);
 			//Формируем объект запрос на сохранение прав по роли
 			var queryForSave = {
 				access:{
@@ -1757,115 +1769,155 @@ exports.viewWithFlexo = {
 				test.ok(reply);
 				test.done();
 			});
-		},
-		getTemplateFromView: function ( test ) {
+		});
+	},
+	getTemplateFromView:function(test){
+		test.expect( 7 );
+		var viewName = testData6.testModify.viewNameForModify;
+		var user = testData6.userLogin;
+		var role = testData6.userRole;
+		var socket = testData6.testModify.socket;
+		var globalViewConfig = testObjGlobalViewsConfig[viewName];
 
+		//Находим единственный идентификатор который разрешен в этом тесте
+		var flexoAllowedField = testData6.testModify.flexoAllowedField;
+		var _vidAllowed;
+		var listOf_vids = Object.keys(globalViewConfig);
 
-			var viewName = testData4.testDelete.viewNameForDelete;
-			var user = testData4.userLogin;
-			var role = testData4.userRole;
-			var socket = testData4.testDelete.socket;
-			var globalViewConfig = testObjGlobalViewsConfig[viewName];
-
-			//Все идентификаторы разрешены в этом тесте
-			var listAllowed_vids = Object.keys(globalViewConfig);
-
-			debugger;
-			test.expect( listAllowed_vids.length + 4 );
-			controller.getTemplate( viewName, user, role, socket, function( err, config, template ) {
-				test.ifError(err);
-				test.ok(config);
-				test.ok(template);
-				debugger;
-				//Проверяем список идентификаторов сохраненных у объекта socket
-				if( socket.view && socket.view[viewName] ){
-					test.strictEqual(socket.view[viewName].length, 3,
-						'Проверяем количество разрешенных идентификаторов view');
-
-
-					for( var i = 0; i < listAllowed_vids.length; i++ ) {
-						var result = underscore.indexOf( socket.view[viewName], listAllowed_vids[i] );
-						test.notStrictEqual(result, -1,	'Проверка наличия разрешенного ' +
-							'идентификатора view в списке разрашенных у socket' );
-					}
-
+		for( var i = 0; i < listOf_vids.length; i++ ) {
+			if(globalViewConfig[listOf_vids[i]].flexo.length !== 0) {
+				if(globalViewConfig[listOf_vids[i]].flexo[1] === flexoAllowedField) {
+					_vidAllowed = listOf_vids[i];
 				}
-
-				test.done();
-			} );
-		},
-		queryToDelete:{
-			allowed_vidsInQueriesSelector: function ( test ) {
-				test.expect( 2 );
-				var viewName = testData4.testDelete.viewNameForDelete;
-				var socket = testData4.testDelete.socket;
-				var listOf_vids = Object.keys(testObjGlobalViewsConfig[viewName]);
-				var notFlexoFields_vid;
-
-				//Ищем элемент во view у которого нет привязки к flexo полю
-				for( var i = 0; i < listOf_vids.length; i++ ) {
-					if(testObjGlobalViewsConfig[viewName][listOf_vids[i]].type === 'delete'){
-						notFlexoFields_vid = listOf_vids[i];
-					}
-				}
-
-				listOf_vids = underscore.without(listOf_vids, notFlexoFields_vid);
-
-				//Формируем запрос на модификацию
-				var request = {};
-				request['selector'] = {};
-				request['selector'][listOf_vids[0]] = generatorString(1,10);
-				request['selector'][listOf_vids[1]] = generatorString(1,10);
-				debugger;
-				controller.queryToView ( 'delete', request, viewName, socket, function(err, reply) {
-					test.ifError(err);
-					test.ok(reply);
-					test.done();
-				});
-
-			},
-			notAllowed_vidsInQueriesSelector: function ( test ) {
-				test.expect( 1 );
-				var viewName = testData4.testDelete.viewNameForDelete;
-				var socket = testData4.testDelete.socket;
-				var listOf_vids = Object.keys(testObjGlobalViewsConfig[viewName]);
-				var notFlexoFields_vid;
-
-				listOf_vids = underscore.without(listOf_vids, notFlexoFields_vid);
-
-				//Формируем запрос на модификацию
-				var request = {};
-				request['selector'] = {};
-				request['selector']['sss'] = generatorString(1,10);
-
-				controller.queryToView ( 'delete', request, viewName, socket, function(err, reply) {
-					test.strictEqual(err.message, 'Controller: No permission to delete in view');
-					test.done();
-				});
 			}
+		}
+
+		//Получаем _vid для полей _id и tsUpdate
+		var _vidsForSelector = [];
+		for(var i=0; i<listOf_vids.length; i++){
+			if(testObjGlobalViewsConfig[viewName][listOf_vids[i]].type === 'read'){
+				_vidsForSelector.push(listOf_vids[i]);
+			}
+		}
+
+		testData6.testModify._vidAllowed = _vidAllowed;
+		debugger
+		controller.getTemplate( viewName, user, role, socket, function( err, config, template ) {
+			test.ifError(err);
+			test.ok(config);
+			test.strictEqual(template, '', 'Проверка отсутствия шаблона');
+
+			//Проверяем список идентификаторов сохраненных у объекта socket
+			if( socket.view && socket.view[viewName] ){
+				test.strictEqual(socket.view[viewName].length, 3,
+					'Проверяем количество разрешенных идентификаторов view');
+
+
+				var result = underscore.indexOf( socket.view[viewName], _vidAllowed );
+				test.notStrictEqual(result, -1,	'Проверка наличия разрешенного ' +
+					'идентификатора view в списке разрашенных у socket' );
+
+				for( var i = 0; i < _vidsForSelector.length; i++ ) {
+					result = underscore.indexOf( socket.view[viewName], _vidsForSelector[i] );
+					test.notStrictEqual(result, -1,	'Проверка наличия разрешенного ' +
+						'идентификатора view в списке разрашенных у socket' );
+				}
+			}
+
+			test.done();
+		} );
+
+	},
+	queryToModify:{
+		allowed_vidsInQueriesProperties: function ( test ) {
+			test.expect( 2 );
+			var viewName = testData6.testModify.viewNameForModify;
+			var socket = testData6.testModify.socket;
+			var allowed_vid = testData6.testModify._vidAllowed;
+			var listOf_vids = Object.keys(testObjGlobalViewsConfig[viewName]);
+			listOf_vids = underscore.without(listOf_vids, allowed_vid);
+
+			//Получаем _vid для полей _id и tsUpdate
+			var _vidsForSelector = [];
+			for(var i=0; i<listOf_vids.length; i++){
+				if(testObjGlobalViewsConfig[viewName][listOf_vids[i]].type === 'read'){
+					_vidsForSelector.push(listOf_vids[i]);
+				}
+			}
+
+			//Формируем запрос на модификацию
+			var request = [{}];
+			request[0]['selector'] = {};
+			request[0]['selector'][_vidsForSelector[0]] = generatorString(1,10);
+			request[0]['selector'][_vidsForSelector[1]] = generatorString(1,10);
+			request[0]['properties'] = {};
+			request[0]['properties'][allowed_vid] = generatorString(1,10);
+
+			controller.queryToView ( 'modify', request, viewName, socket, function(err, reply) {
+				test.ifError(err);
+				test.ok(reply);
+				test.done();
+			})
+
 		},
-		deleteFlexoAndViewAccess: function(test){
-			test.expect( 4 );
-			var role = testData4.userRole;
-			var viewName = testData4.testDelete.viewNameForDelete;
-			var flexoSchemeName = testData4.flexoSchemeName;
+		notAllowed_vidsInQueriesProperties: function ( test ) {
+			test.expect( 1 );
+			var viewName = testData6.testModify.viewNameForModify;
+			var socket = testData6.testModify.socket;
+			var allowed_vid = testData6.testModify._vidAllowed;
+			var listOf_vids = Object.keys(testObjGlobalViewsConfig[viewName]);
+			listOf_vids = underscore.without(listOf_vids, allowed_vid);
 
+			//Формируем запрос на модификацию
+			var request = [{}];
+			request[0]['selector'] = {};
+			request[0]['selector'][allowed_vid] = generatorString(1,10);
+			request[0]['properties'] = {};
+			request[0]['properties']
+				[listOf_vids[generatorString(0,(listOf_vids.length - 1))]]
+				= generatorString(1,10);
 
-			//Формируем объект запрос на удаление flexo прав по роли
+			controller.queryToView ( 'modify', request, viewName, socket, function(err, reply) {
+				test.strictEqual(err.message, 'Controller: No permission to modify in view');
+				test.done();
+			})
+
+		}
+	},
+	deleteFlexoAndViewAccess: function(test){
+		test.expect( 8 );
+		var login = testData6.userLogin;
+		var role = testData6.userRole;
+		var viewName = testData6.testModify.viewNameForModify;
+		var flexoSchemeName = testData6.flexoSchemeName;
+
+		//Формируем объект запрос на удаление view прав по пользователю
+		var queryForDelete = {
+			access: {
+				viewName:viewName,
+				login:login
+			}
+		};
+
+		controller.delete(queryForDelete, function( err, reply ) {
+			test.ifError(err);
+			test.ok(reply);
+
+			//Формируем объект запрос на удаление flexo прав по пользователю
 			var queryForDelete = {
 				access: {
 					flexoSchemeName:flexoSchemeName,
-					role:role
+					login:login
 				}
 			};
 
 			controller.delete(queryForDelete, function( err, reply ) {
 				test.ifError(err);
 				test.ok(reply);
-				//Формируем объект запрос на удаление view прав по роли
+				//Формируем объект запрос на удаление flexo прав по роли
 				var queryForDelete = {
 					access: {
-						viewName:viewName,
+						flexoSchemeName:flexoSchemeName,
 						role:role
 					}
 				};
@@ -1873,11 +1925,222 @@ exports.viewWithFlexo = {
 				controller.delete(queryForDelete, function( err, reply ) {
 					test.ifError(err);
 					test.ok(reply);
-					test.done();
+					//Формируем объект запрос на удаление view прав по роли
+					var queryForDelete = {
+						access: {
+							viewName:viewName,
+							role:role
+						}
+					};
+
+					controller.delete(queryForDelete, function( err, reply ) {
+						test.ifError(err);
+						test.ok(reply);
+						test.done();
+					});
 				});
 			});
+		});
+	}
 
+};
+
+var testData7 = {
+	userLogin: generatorString(1,10),
+	userRole: generatorString(1,10),
+	flexoSchemeName: 'testUsers',
+	testDelete:{
+		testObjAccessFlexoRole:{
+			read: {},
+			modify: {},
+			create: {},
+			createAll: 0,
+			delete: 1
+		},
+		viewNameForDelete: 'testView5',
+		testObjViewAccessRole: {},
+		socket:{}
+	}
+};
+
+//Тестирование определения пересечения прав для view для запросов на удаление, в view некоторые
+// идентификаторы связанны с Flexo
+exports.viewWithFlexoDeleteAccess = {
+	saveFlexoCreateAccessForRoleAndUser: function(test){
+		test.expect( 2 );
+
+		var objAccessForRole = testData7.testDelete.testObjAccessFlexoRole;
+		var role = testData7.userRole;
+		var flexoSchemeName = testData7.flexoSchemeName;
+
+		//Генерируем права на чтение для роли
+		for( var i = 0; i < globalFlexoSchemes[flexoSchemeName].read.length; i++ ) {
+			objAccessForRole.read[globalFlexoSchemes[flexoSchemeName].read[i]] = 1;
 		}
+
+		//Формируем запрос на сохранение прав по роли для flexo схемы
+		var queryForSave = {
+			access:{
+				flexoSchemeName: flexoSchemeName,
+				role:role,
+				objAccess: objAccessForRole
+			}
+		};
+
+		controller.create(queryForSave, function( err, reply ) {
+			test.ifError(err);
+			test.ok(reply);
+			test.done();
+		});
+	},
+	saveViewAccessForRoleAndUser: function(test){
+		test.expect( 2 );
+
+		var objAccessRole = testData7.testDelete.testObjViewAccessRole;
+		var role = testData7.userRole;
+		var viewName = testData7.testDelete.viewNameForDelete;
+
+		//Наполняем разрешениями view для роли
+		var listOf_vids = Object.keys(testObjGlobalViewsConfig[viewName]);
+
+		for(var i = 0; i < listOf_vids.length; i++ ) {
+			objAccessRole[listOf_vids[i]] = 1;
+		}
+
+		//Формируем объект запрос на сохранение прав по роли
+		var queryForSave = {
+			access:{
+				viewName: viewName,
+				role: role,
+				objAccess: objAccessRole
+			}
+		};
+		debugger;
+		controller.create(queryForSave, function( err, reply ) {
+			test.ifError(err);
+			test.ok(reply);
+			test.done();
+		});
+	},
+	getTemplateFromView: function ( test ) {
+
+
+		var viewName = testData7.testDelete.viewNameForDelete;
+		var user = testData7.userLogin;
+		var role = testData7.userRole;
+		var socket = testData7.testDelete.socket;
+		var globalViewConfig = testObjGlobalViewsConfig[viewName];
+
+		//Все идентификаторы разрешены в этом тесте
+		var listAllowed_vids = Object.keys(globalViewConfig);
+
+		debugger
+		test.expect( listAllowed_vids.length + 4 );
+		controller.getTemplate( viewName, user, role, socket, function( err, config, template ) {
+			test.ifError(err);
+			test.ok(config);
+			test.strictEqual(template, '', 'Проверка отсутствия шаблона');
+
+			//Проверяем список идентификаторов сохраненных у объекта socket
+			if( socket.view && socket.view[viewName] ){
+				test.strictEqual(socket.view[viewName].length, 3,
+					'Проверяем количество разрешенных идентификаторов view');
+
+
+				for( var i = 0; i < listAllowed_vids.length; i++ ) {
+					var result = underscore.indexOf( socket.view[viewName], listAllowed_vids[i] );
+					test.notStrictEqual(result, -1,	'Проверка наличия разрешенного ' +
+						'идентификатора view в списке разрашенных у socket' );
+				}
+
+			}
+
+			test.done();
+		} );
+	},
+	queryToDelete:{
+		allowed_vidsInQueriesSelector: function ( test ) {
+			test.expect( 2 );
+			var viewName = testData7.testDelete.viewNameForDelete;
+			var socket = testData7.testDelete.socket;
+			var listOf_vids = Object.keys(testObjGlobalViewsConfig[viewName]);
+			var notFlexoFields_vid;
+
+			//Ищем элемент во view у которого нет привязки к flexo полю
+			for( var i = 0; i < listOf_vids.length; i++ ) {
+				if(testObjGlobalViewsConfig[viewName][listOf_vids[i]].type === 'delete'){
+					notFlexoFields_vid = listOf_vids[i];
+				}
+			}
+
+			listOf_vids = underscore.without(listOf_vids, notFlexoFields_vid);
+
+			//Формируем запрос на модификацию
+			var request = [{}];
+			request[0]['selector'] = {};
+			request[0]['selector'][listOf_vids[0]] = generatorString(1,10);
+			request[0]['selector'][listOf_vids[1]] = generatorString(1,10);
+
+			controller.queryToView ( 'delete', request, viewName, socket, function(err, reply) {
+				test.ifError(err);
+				test.ok(reply);
+				test.done();
+			});
+
+		},
+		notAllowed_vidsInQueriesSelector: function ( test ) {
+			test.expect( 1 );
+			var viewName = testData7.testDelete.viewNameForDelete;
+			var socket = testData7.testDelete.socket;
+			var listOf_vids = Object.keys(testObjGlobalViewsConfig[viewName]);
+			var notFlexoFields_vid;
+
+			listOf_vids = underscore.without(listOf_vids, notFlexoFields_vid);
+
+			//Формируем запрос на модификацию
+			var request = [{}];
+			request[0]['selector'] = {};
+			request[0]['selector']['sss'] = generatorString(1,10);
+
+			controller.queryToView ( 'delete', request, viewName, socket, function(err, reply) {
+				test.strictEqual(err.message, 'Controller: No permission to delete in view');
+				test.done();
+			});
+		}
+	},
+	deleteFlexoAndViewAccess: function(test){
+		test.expect( 4 );
+		var role = testData7.userRole;
+		var viewName = testData7.testDelete.viewNameForDelete;
+		var flexoSchemeName = testData7.flexoSchemeName;
+
+
+		//Формируем объект запрос на удаление flexo прав по роли
+		var queryForDelete = {
+			access: {
+				flexoSchemeName:flexoSchemeName,
+				role:role
+			}
+		};
+
+		controller.delete(queryForDelete, function( err, reply ) {
+			test.ifError(err);
+			test.ok(reply);
+			//Формируем объект запрос на удаление view прав по роли
+			var queryForDelete = {
+				access: {
+					viewName:viewName,
+					role:role
+				}
+			};
+
+			controller.delete(queryForDelete, function( err, reply ) {
+				test.ifError(err);
+				test.ok(reply);
+				test.done();
+			});
+		});
+
 	}
 };
 
@@ -2011,10 +2274,28 @@ function initStarter(config, callback){
 		}
 	}
 
+	var viewNames = Object.keys(viewGlobalController);
+	for(var i=0; i<viewNames.length; i++) {
+		if( !viewGlobalView[viewNames[i]].vids) {
+			viewGlobalView[viewNames[i]].vids = {};
+		}
+
+		var _vids = Object.keys(viewGlobalController[viewNames[i]]);
+		for(var j=0; j<_vids.length; j++) {
+			if(viewGlobalController[viewNames[i]][_vids[j]].flexo &&
+				viewGlobalController[viewNames[i]][_vids[j]].flexo.length === 2) {
+
+				viewGlobalView[viewNames[i]].vids[_vids[j]] =
+					viewGlobalController[viewNames[i]][_vids[j]].flexo
+			}
+		}
+	}
+
+
 //    ----------------------------------
 //    Блок инициализации паралельной
 //    ----------------------------------
-	View = view;
+
 	testObjGlobalViewsConfig = viewGlobalController;
 	globalFlexoSchemes = flexoGlobalController;
 
@@ -2026,7 +2307,14 @@ function initStarter(config, callback){
 			flexo.init({storage: rabbit, schemes: flexoGlobal}, cb);
 		},
 		function(arg, cb){
-			view.init({provider: arg, views: flexoGlobal, templatePath: config.template}, cb);
+			view.init({provider: arg, views: viewGlobalView, templatePath: config.template}, function (err, module){
+				if ( err ) {
+					cb(err);
+				} else {
+					View = module;
+					cb(err, module);
+				}
+			});
 
 		}/*,
 		function(arg, cb){
