@@ -23,7 +23,7 @@ AccessModuleUserFlexo.save = function save( client, user, strFlexoSchemeName, ob
 	multi.SET( key, JSON.stringify( objAccess ) );
 
 	//ToDo:Временно сохраняем ключ в множество для быстрого удаления всех прав
-	multi.SADD( setAllAccess, key );
+	multi.SADD( setAllAccess(), key );
 
 	multi.EXEC( function( err ) {
 		if ( err ) {
@@ -87,6 +87,8 @@ AccessModuleUserFlexo.accessDataPreparation =
 			//Формируем объект прав
 			var objAccessForOneScheme;
 			var objAccess = {};
+			//Объект для сохранения информации об нарушениях целостности
+			var aDescriptioneError = [];
 
 			for( var i = 0; i < replies.length; i++) {
 				if( replies[i] ){
@@ -109,7 +111,18 @@ AccessModuleUserFlexo.accessDataPreparation =
 					difference = underscore.difference( resultReadFields,
 						dataFromFlexoConfig['read'] );
 					if( difference.length !== 0 ){
-						//ToDo: доделать сигнализацию о нарушении целостности
+						//Логируем нарушение целостности
+						aDescriptioneError.push({
+							type:'loss integrity',
+							variant: 1,
+							place: 'AccessModuleUserFlexo.accessDataPreparation',
+							time: new Date().getTime(),
+							descriptione: {
+								flexoSchemesName: flexoSchemesName[i],
+								user: user
+							}
+						});
+
 						//Присутствует нарушение целостности, обрезаем права
 						readFields[0] = underscore.difference( readFields[0], difference );
 					}
@@ -128,7 +141,18 @@ AccessModuleUserFlexo.accessDataPreparation =
 					difference = underscore.difference( resultModifyFields,
 						dataFromFlexoConfig['modify'] );
 					if( difference.length !== 0 ) {
-						//ToDo: доделать сигнализацию о нарушении целостности
+						//Логируем нарушение целостности
+						aDescriptioneError.push({
+							type:'loss integrity',
+							variant: 2,
+							place: 'AccessModuleUserFlexo.accessDataPreparation',
+							time: new Date().getTime(),
+							descriptione: {
+								flexoSchemesName: flexoSchemesName[i],
+								user: user
+							}
+						});
+
 						//Присутствует нарушение целостности, обрезаем права
 						modifyFields[0] = underscore.difference( modifyFields[0], difference );
 					}
@@ -147,7 +171,18 @@ AccessModuleUserFlexo.accessDataPreparation =
 					difference = underscore.difference( resultCreateFields,
 						dataFromFlexoConfig['modify'] );
 					if( difference.length !== 0 ){
-						//ToDo: доделать сигнализацию о нарушении целостности
+						//Логируем нарушение целостности
+						aDescriptioneError.push({
+							type:'loss integrity',
+							variant: 3,
+							place: 'AccessModuleUserFlexo.accessDataPreparation',
+							time: new Date().getTime(),
+							descriptione: {
+								flexoSchemesName: flexoSchemesName[i],
+								user: user
+							}
+						});
+
 						//Присутствует нарушение целостности, обрезаем права
 						createFields[0] = underscore.difference( createFields[0], difference );
 					}
@@ -175,7 +210,18 @@ AccessModuleUserFlexo.accessDataPreparation =
 					}
 				}
 			}
-			callback(null, objAccess);
+
+			if (aDescriptioneError.length !== 0 ){
+				ModuleErrorLogging.save(client, aDescriptioneError, function( err, reply ) {
+					if ( err ) {
+						callback( err );
+					} else {
+						callback(null, objAccess);
+					}
+				});
+			} else {
+				callback(null, objAccess);
+			}
 		}
 	} );
 };

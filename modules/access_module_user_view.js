@@ -19,7 +19,7 @@ AccessModuleUserView.save = function save( client, user, viewName, objAccess, ca
 	multi.SET( key, JSON.stringify(objAccess));
 
 	//ToDo:Временно сохраняем ключ в множество для быстрого удаления всех прав
-	multi.SADD( setAllAccess, key );
+	multi.SADD( setAllAccess(), key );
 
 
 	multi.EXEC( function( err ) {

@@ -8,6 +8,7 @@ var AccessModuleUserView = require('./modules/access_module_user_view.js');
 var AccessModuleRoleFlexo = require('./modules/access_module_role_flexo.js');
 var AccessModuleUserFlexo = require('./modules/access_module_user_flexo.js');
 
+var ModuleErrorLogging = require('./modules/module_error_logging.js');
 var ModuleUser = require('./modules/module_user.js');
 
 var client;
@@ -24,6 +25,9 @@ var CREATEALL = 'createAll';
 var READ = 'read';
 var MODIFY = 'modify';
 var DELETE = 'delete';
+
+var MIN_DATETIME = 1359662400000;
+var MAX_DATETIME = 1517428800000;
 
 
 module.exports = Controller;
@@ -306,7 +310,8 @@ Controller.find = function find( query, callback ) {
 			} else if ( query.access.login ) {
 				//Запрос на чтение прав view по пользователю
 				//Запрашиваемый искомый объект прав
-				AccessModuleUserFlexo.find( client, query.access.login, query.access.flexoSchemeName, callback );
+				AccessModuleUserFlexo.find( client, query.access.login, query.access.flexoSchemeName,
+					callback );
 
 			} else {
 				callback( new Error( 'Controller: Not set role or login in query: '
@@ -594,12 +599,31 @@ function getTemplate(viewName, user, role, socket, callback ) {
 			} else {
 
 				if( socket.view[viewName].length !== ids.length ) {
-					//ToDo:логирование ошибки целостности
 					//Перезапись разрешенного списка _vid
 					socket.view[viewName] = ids;
-				}
 
-				callback( null, config, template );
+					//Логирование ошибки целостности, так как view обрезала список разрешенных
+					//идентификаторов
+					var objDescriptioneError = {};
+					objDescriptioneError.type = 'loss integrity';
+					objDescriptioneError.variant = 1;
+                    objDescriptioneError.place = 'View.getTemplate';
+					objDescriptioneError.time = new Date().getTime();
+					objDescriptioneError.descriptione = {};
+					objDescriptioneError.descriptione.viewName = viewName;
+					objDescriptioneError.descriptione.list_vidsFromSocket = socket.view[viewName];
+					objDescriptioneError.descriptione.user = user;
+					objDescriptioneError.descriptione.role = role;
+					ModuleErrorLogging.save(client, [objDescriptioneError], function( err, reply ) {
+						if ( err ) {
+							callback( err );
+						} else {
+							callback( null, config, template );
+						}
+					} );
+				} else {
+                	callback( null, config, template );
+				}
 			}
 		});
 	} else {
@@ -621,10 +645,28 @@ function getTemplate(viewName, user, role, socket, callback ) {
 						socket.view[viewName] = ids;
 
 						if( listAllowedOf_vid.length !== ids.length ){
-							//ToDo:логирование ошибки целостности
+							//Логирование ошибки целостности, так как view обрезала список
+							// разрешенных идентификаторов
+							var objDescriptioneError = {};
+							objDescriptioneError.type = 'loss integrity';
+							objDescriptioneError.variant = 2;
+							objDescriptioneError.place = 'View.getTemplate';
+							objDescriptioneError.time = new Date().getTime();
+							objDescriptioneError.descriptione = {};
+							objDescriptioneError.descriptione.viewName = viewName;
+							objDescriptioneError.descriptione.user = user;
+							objDescriptioneError.descriptione.role = role;
+							ModuleErrorLogging.save(client, [objDescriptioneError],
+								function( err, reply ) {
+								if ( err ) {
+									callback( err );
+								} else {
+									callback( null, config, template );
+								}
+							} );
+						} else {
+                        	callback( null, config, template );
 						}
-
-						callback( null, config, template );
 					}
 				});
 			}
@@ -958,6 +1000,8 @@ function formingFlexoAndView( user, role, viewName, callback ){
 			//Переменная для хранения информации о анализируемом идентификаторе view из
 			// глобального конфига
 			var _vidsDataFromViewConfig;
+			//Массив для хранения ошибок целостности
+			var aDescriptioneError = [];
 
 			for( var i = 0; i < listAllowedOf_vid.length ; i++ ){
 				_vidsDataFromViewConfig = dataFromViewConfig[listAllowedOf_vid[i]];
@@ -980,8 +1024,20 @@ function formingFlexoAndView( user, role, viewName, callback ){
 					}
 
 				} else {
-					//ToDo: логировать нарушение целостности, разрешен в правах на view для _vid
-					//ToDo: которого нет в глобальной переменной
+					//логировать нарушение целостности, разрешен в правах на view для _vid
+					//которого нет в глобальной переменной
+					aDescriptioneError.push({
+						type:'loss integrity',
+						variant: 1,
+						place: 'formingFlexoAndView',
+						time: new Date().getTime(),
+						descriptione: {
+							viewName: viewName,
+							user: user,
+							role:role
+						}
+					});
+
 					list_vidForRemove.push( listAllowedOf_vid[i] );
 				}
 			}
@@ -1011,14 +1067,11 @@ function formingFlexoAndView( user, role, viewName, callback ){
 
 									if( difference.length !== 0 ){
 										//Запрашиваются поля которые не разрешены в полях
-										//ToDo: Возможно: логировать нарушение целостности
 										list_vidForRemove.push(
 											list_vidForFlexoCheck[i].listAllowedOf_vid );
 									}
 								} else {
-
 									//Запрашиваются поля которые не разрешены в полях
-									//ToDo: Возможно: логировать нарушение целостности
 									list_vidForRemove.push(
 										list_vidForFlexoCheck[i].listAllowedOf_vid );
 
@@ -1033,13 +1086,11 @@ function formingFlexoAndView( user, role, viewName, callback ){
 
 									if( difference.length !== 0 ) {
 										//Запрашиваются поля которые не разрешены в полях
-										//ToDo: Возможно: логировать нарушение целостности
 										list_vidForRemove.push(
 											list_vidForFlexoCheck[i].listAllowedOf_vid );
 									}
 								} else {
 									//Запрашиваются поля которые не разрешены в полях
-									//ToDo: Возможно: логировать нарушение целостности
 									list_vidForRemove.push(
 										list_vidForFlexoCheck[i].listAllowedOf_vid );
 								}
@@ -1050,7 +1101,6 @@ function formingFlexoAndView( user, role, viewName, callback ){
 									//Проверяется общее разрешение на создание документа в целом
 									if ( flexoAccess[CREATEALL][list_vidForFlexoCheck[i].schemeName]
 										!== 1 ) {
-										//ToDo: Возможно: логировать нарушение целостности
 										list_vidForRemove.push(
 											list_vidForFlexoCheck[i].listAllowedOf_vid );
 									}
@@ -1064,13 +1114,11 @@ function formingFlexoAndView( user, role, viewName, callback ){
 
 										if( difference.length !== 0 ){
 											//Запрашиваются поля которые не разрешены в полях
-											//ToDo: Возможно: логировать нарушение целостности
 											list_vidForRemove.push(
 												list_vidForFlexoCheck[i].listAllowedOf_vid );
 										}
 									} else {
 										//Запрашиваются поля которые не разрешены в полях
-										//ToDo: Возможно: логировать нарушение целостности
 										list_vidForRemove.push(
 											list_vidForFlexoCheck[i].listAllowedOf_vid );
 									}
@@ -1082,7 +1130,6 @@ function formingFlexoAndView( user, role, viewName, callback ){
 								//Проверяется общее разрешение на удаление документа в целом
 								if ( flexoAccess['delete'][list_vidForFlexoCheck[i].schemeName]
 									!== 1 ) {
-									//ToDo: Возможно: логировать нарушение целостности
 									list_vidForRemove.push(
 										list_vidForFlexoCheck[i].listAllowedOf_vid );
 								}
@@ -1092,11 +1139,32 @@ function formingFlexoAndView( user, role, viewName, callback ){
 						listAllowedOf_vid = underscore.difference(
 							listAllowedOf_vid, list_vidForRemove );
 
-						callback( null, listAllowedOf_vid );
+						if(aDescriptioneError.length !== 0){
+							ModuleErrorLogging.save(client, aDescriptioneError,
+								function ( err, reply ) {
+								if ( err ) {
+									callback( err );
+								} else {
+									callback( null, listAllowedOf_vid );
+								}
+							});
+						} else {
+							callback( null, listAllowedOf_vid );
+						}
 					}
 				});
 			} else {
-				callback( null, listAllowedOf_vid );
+				if(aDescriptioneError.length !== 0){
+					ModuleErrorLogging.save(client, aDescriptioneError, function ( err, reply ) {
+						if ( err ) {
+							callback( err );
+						} else {
+							callback( null, listAllowedOf_vid );
+						}
+					});
+				} else {
+					callback( null, listAllowedOf_vid );
+				}
 			}
 
 		}
@@ -1109,7 +1177,7 @@ function crossingAccessForFlexo( user, role, flexoSchemes, callback ) {
 	async.parallel([
 		function(cb){
 			AccessModuleRoleFlexo.accessDataPreparation( client, role, globalFlexoSchemes,
-				flexoSchemes, cb );
+				flexoSchemes, cb);
 		},
 		function(cb){
 			AccessModuleUserFlexo.accessDataPreparation( client, user, globalFlexoSchemes,
@@ -1273,3 +1341,15 @@ function crossingAccess ( method, scheme, objAccessRole, objAccessUser, objAcces
 
 	return objAccess;
 }
+
+Controller.findErrorLogging = function findErrorLogging( options, callback ){
+	if ( options.all ) {
+		ModuleErrorLogging.findFromMinToMax(client, MIN_DATETIME, MAX_DATETIME, callback);
+	} else if ( options.min && options.max ) {
+		ModuleErrorLogging.findFromMinToMax(client, options.min, options.max, callback);
+	} else if ( options.min ) {
+		ModuleErrorLogging.findFromMinToMax(client, options.min, MAX_DATETIME, callback);
+	} else if ( options.max ) {
+		ModuleErrorLogging.findFromMinToMax(client, MIN_DATETIME, options.max, callback);
+	}
+};
