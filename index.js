@@ -121,60 +121,32 @@ Controller.create = function create( query, callback ) {
 		return;
 	}
 
-	/*if ( query.user ) {
+	if ( query.user ) {
 		//Запрос на создание пользователя
 
-		//Создаем модель пользователя
-		model = new ModelUser( client );
 		//Проверяем уникальность создаваемого пользователя
 		var viewName = 'viewUsers';
 		var flexoSchemeName = 'users';
-		model.checkUnique( query.user.queries[flexoSchemeName].login, function ( err ) {
+		ModuleUser.checkUnique( client, query.user.login, function ( err ) {
 			if ( err ) {
 				callback ( err );
 			} else {
 				//Создаем view
-				//ToDo: передавать имя view и flexo
-				//ToDo: передавать на socket???
-				//ToDo: валидация запроса
-				if ( globalViewConfig[viewName] ) {
-					var dbAccess = {};
-					dbAccess['insert'] = globalViewConfig[viewName];
+				//ToDo: взаимодействие c view
 
-					var viewModelUsers = new View(viewName, dbAccess, {});
+				var document = underscore.clone( query.user );
 
-					var document = underscore.clone( query.user );
-					//Удаляем пороль из сохраняемго в flexo документа
-					if ( document.queries && document.queries[flexoSchemeName] &&
-						document.queries[flexoSchemeName].pass ){
-						delete document.queries[flexoSchemeName].pass;
+				//Сохраняем документ в redis
+				ModuleUser.create( client, document, function( err ) {
+					if(err){
+						callback( err );
+					} else {
+						callback( err, true );
 					}
-
-					//Сохраняем документ вo view
-					viewModelUsers.insert( document, function( err, result ) {
-						if ( err ) {
-							callback ( err );
-						} else {
-
-							query.user.queries[flexoSchemeName]._id =
-								result[flexoSchemeName][0]._id;
-							//Сохраняем документ в redis
-							model.create( query.user.queries[flexoSchemeName], function( err ){
-								if(err){
-									callback( err );
-								} else {
-									callback( err, result );
-								}
-							} );
-						}
-					});
-				} else {
-					callback( new Error( 'No description in global object view with name:' +
-						viewName) );
-				}
+				} );
 			}
 		});
-	} else*/ if ( query.access ) {
+	} else if ( query.access ) {
 		//Запроса на создание прав
 		if ( query.access.viewName ) {
 			//Запрос на создание прав view
@@ -192,7 +164,7 @@ Controller.create = function create( query, callback ) {
 
 			} else {
 				callback( new Error( 'Controller: Not set role or login in query: '
-					+ JSON.stringify( query ) ) )
+					+ JSON.stringify( query ) ) );
 			}
 		} else if ( query.access.flexoSchemeName ) {
 			if ( query.access.role ) {
@@ -233,15 +205,14 @@ Controller.find = function find( query, callback ) {
 		return;
 	}
 
-	/*if ( query.user ) {
+	if ( query.user ) {
 		var flexoSchemeName = 'users';
 		if( query.user.login || query.user._id ){
 		    //Простой поиск одного пользователя
 			var login = query.user.login || null;
 			var _id = query.user._id || null;
-			//Создаем модель пользователя
-			model = new ModelUser( client, login, _id );
-			model.find( function(err, reply){
+
+			ModuleUser.find( client, _id, login, function(err, reply){
 				if ( err ){
 					callback( err );
 				} else {
@@ -250,36 +221,26 @@ Controller.find = function find( query, callback ) {
 					callback(null, obj);
 				}
 			} );
-		} else if (query.user.queries){
-			//Сложный поиск
-			var viewName = 'viewUsers';
-			var flexoSchemeName = 'users';
-			//Создаем view модель
-			if ( globalViewConfig[viewName] ) {
-				var dbAccess = {};
-				dbAccess['read'] = globalViewConfig[viewName];
-
-				var viewModelUsers = new View(viewName, dbAccess, {});
-
-				viewModelUsers.find( query.user, function( err, listDocuments ) {
-					if ( err ) {
-						callback ( err );
-					} else {
-						if( listDocuments.length !== 0){
-							//Создаем модель пользователя
-							var model = new ModelUser(client);
-							model.findsPass( listDocuments, callback );
-						}
-					}
-				} );
-			} else {
-				callback( new Error( 'No description in global object view with name:' +
-					viewName) );
-			}
+		} else if ( query.user.allUser ) {
+			ModuleUser.findListOfUsers(client, function( err, replies ) {
+				if ( err ) {
+					callback( err );
+				} else {
+					callback( null, replies );
+				}
+			});
+		} else if ( query.user.allRole ) {
+			ModuleUser.findListOfRoles(client, function( err, replies ) {
+				if ( err ) {
+					callback( err );
+				} else {
+					callback( null, replies );
+				}
+			});
 		} else {
 			callback( new Error( 'Unknown type of query: ' + JSON.stringify( query ) ) );
 		}
-	} else */if ( query.access ) {
+	} else if ( query.access ) {
 		//Запроса на чтение прав
 		if ( query.access.viewName ) {
 			//Запрос на чтение прав view
@@ -1312,7 +1273,6 @@ function crossingAccessForView( user, role, viewName, callback ) {
 		}
 	);
 }
-
 
 function crossingAccess ( method, scheme, objAccessRole, objAccessUser, objAccessArg ) {
 	var fields = [];

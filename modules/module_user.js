@@ -23,10 +23,20 @@ ModuleUser.create = function create( client, odjUser, callback ) {
 	multi.SET( strLoginToId( odjUser['login'] ), odjUser['_id'] );
 	//Сохраняем связку _id и логин пользователя
 	multi.SET( strIdToLogin( odjUser['_id'] ), odjUser['login'] );
+	//ToDo:Черновой вариант
+	//Сохраняем логин пользователя в справочник пользователей
+	multi.SADD( setListOfLogin(), odjUser['login'] );
+	//Сохраняем role пользователя в справочник ролей
+	if ( odjUser['role'] ) {
+		multi.SADD( setListOfRole() , odjUser['role']);
+	}
+
 	//ToDo: Временно для быстрого удаления всех прав
-	multi.SADD( setAllAccess(), strUserCache( odjUser['_id'] ), JSON.stringify( odjUser ) );
-	multi.SADD( setAllAccess(), strLoginToId( odjUser['login'] ), odjUser['_id'] );
-	multi.SADD( setAllAccess(), strIdToLogin( odjUser['_id'] ), odjUser['login'] );
+	multi.SADD( setAllAccess(), strUserCache( odjUser['_id'] ) );
+	multi.SADD( setAllAccess(), strLoginToId( odjUser['login'] ) );
+	multi.SADD( setAllAccess(), strIdToLogin( odjUser['_id'] ) );
+	multi.SADD( setListOfLogin(), odjUser['login'] );
+	multi.SADD( setListOfRole() , odjUser['role']);
 
 	multi.EXEC(function( err ){
 		if(err){
@@ -120,6 +130,26 @@ ModuleUser.findsPass = function findsPass(client, listDocuments, callback){
 	} );
 };
 
+ModuleUser.findListOfUsers = function findListOfUsers(client, callback){
+	client.SMEMBERS( setListOfLogin(), function( err, replies ){
+		if ( err ) {
+			callback( err );
+		} else {
+			callback( null, replies );
+		}
+	})
+};
+
+ModuleUser.findListOfRoles = function findListOfRoles(client, callback){
+	client.SMEMBERS( setListOfRole(), function( err, replies ){
+		if ( err ) {
+			callback( err );
+		} else {
+			callback( null, replies );
+		}
+	})
+};
+
 /**
  * Удаление пользователя
  *
@@ -139,6 +169,11 @@ ModuleUser.delete = function del(client, _id, callback){
 				multi.DEL( strUserCache( _id ) );
 				multi.DEL( strIdToLogin( _id ) );
 				multi.DEL( strLoginToId( login ) );
+				//ToDo: продумать удаление пользователя из справочника и роли
+				//ToDo: продумать как обеспечеть целостность объектов прав связанных с удаляемым
+				//ToDo: пользователем и ролью
+				multi.SREM( setListOfLogin(), login );
+
 				//ToDo: Временно зачистка ключей из множества для бытрого удаления всех прав
 				multi.SREM( setAllAccess(), strUserCache( _id ) );
 				multi.SREM( setAllAccess(), strIdToLogin( _id ) );
@@ -220,6 +255,16 @@ ModuleUser.modify = function modify(client, _id, objNewData, callback){
 		throw new Error( 'Not set _id in modify query. ' );
 	}
 };
+
+//Формирование строки ключа Redis (SET) для хранения справочника о пользователей
+function setListOfLogin( ) {
+	return 'list:users';
+}
+
+//Формирование строки ключа Redis (SET) для хранения справочника о ролях
+function setListOfRole( ) {
+	return 'list:roles';
+}
 
 //Формирование строки ключа Redis (STRING) для хранения соответствия логина и _id пользователя
 function strLoginToId( login ) {
