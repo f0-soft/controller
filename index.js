@@ -146,6 +146,15 @@ Controller.create = function create( query, callback ) {
 				} );
 			}
 		});
+	} else if ( query.role ) {
+		//Запрос на создание роли
+		ModuleUser.createRole(client, query.role, function( err ) {
+			if(err){
+				callback( err );
+			} else {
+				callback( err, true );
+			}
+		} );
 	} else if ( query.access ) {
 		//Запроса на создание прав
 		if ( query.access.viewName ) {

@@ -47,6 +47,16 @@ ModuleUser.create = function create( client, odjUser, callback ) {
 	});
 };
 
+ModuleUser.createRole = function createRole(client, role, callback) {
+	client.SADD( setListOfRole() , role, function( err, reply ) {
+		if( err ) {
+			callback( err );
+		} else {
+			callback( null, true );
+		}
+	} );
+};
+
 ModuleUser.checkUnique = function checkUnique(client, login, callback){
 	if(typeof login !== "string"){
 		throw new Error( 'In the object field login is missing: ' + JSON.stringify( odjUser ) );
