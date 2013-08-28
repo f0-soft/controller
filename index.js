@@ -312,55 +312,19 @@ Controller.delete = function del( query, callback ) {
 		return;
 	}
 
-	/*if ( query.user ) {
-		var viewName = 'viewUsers';
-		var flexoSchemeName = 'users';
+	if ( query.user ) {
+		//Простое удаление одного пользователя
+		var login = query.user.login || null;
+		var _id = query.user._id || null;
 
-		if( query.user.queries && query.user.queries[flexoSchemeName] &&
-			query.user.queries[flexoSchemeName].selector &&
-			query.user.queries[flexoSchemeName].selector._id ){
-
-			//Создаем view
-			if ( globalViewConfig[viewName] ) {
-				var dbAccess = {};
-				dbAccess['delete'] = {};
-				dbAccess['delete'][viewName] = 1;
-				dbAccess['read'] = globalViewConfig[viewName];
-
-				var viewModelUsers = new View(viewName, dbAccess, {});
-
-				viewModelUsers.find( query.user, function( err ){
-					if ( err ) {
-						callback ( err );
-					} else {
-						//Удаляем документ из mongo
-						viewModelUsers.delete(query.user, function(err, result){
-							if ( err ) {
-								callback ( err );
-							} else {
-								var model = new ModelUser(client, null,
-									result[flexoSchemeName][0]._id);
-								//ToDo:множественное удаление пользователей из Redis???
-								model.delete( function( err ) {
-									if ( err ) {
-										callback( err )
-									} else {
-										callback( null, result );
-									}
-								});
-							}
-						});
-					}
-				});
+		ModuleUser.delete( client, _id, login, function(err, reply){
+			if ( err ){
+				callback( err );
 			} else {
-				callback( new Error( 'No description in global object view with name:' +
-					viewName) );
+				callback(null, reply);
 			}
-		} else {
-			callback( new Error( 'Incorrect parameter query.selector in query: '
-				+ JSON.stringify( query ) ) );
-		}
-	} else*/ if ( query.access ) {
+		} );
+	} else if ( query.access ) {
 		//Запроса на создание прав
 		if ( query.access.viewName ) {
 			//Запрос на удаление прав view
@@ -422,67 +386,19 @@ Controller.modify = function modify( query, callback ) {
 		return;
 	}
 
-	/*if ( query.user ) {
-		var viewName = 'viewUsers';
-		var flexoSchemeName = 'users';
-		if(query.user.queries && query.user.queries[flexoSchemeName] &&
-			query.user.queries[flexoSchemeName].selector &&
-			query.user.queries[flexoSchemeName].selector._id) {
-			//Создаем flexo модель
+	if ( query.user ) {
+		//Простая модификация одного пользователя
+		var login = query.user.login || null;
+		var _id = query.user._id || null;
 
-			if ( globalViewConfig[viewName] ) {
-				var dbAccess = {};
-				dbAccess['modify'] = globalViewConfig[viewName];
-				dbAccess['read'] = globalViewConfig[viewName];
-
-				var viewModelUsers = new View(viewName, dbAccess, {});
-
-				var pass = null;
-				if (query.user.queries[flexoSchemeName].properties &&
-					query.user.queries[flexoSchemeName].properties.pass){
-					pass = query.user.queries[flexoSchemeName].properties.pass;
-					delete query.user.queries[flexoSchemeName].properties.pass;
-				}
-
-				viewModelUsers.find(query.user, function(err, reply){
-					if ( err ) {
-						callback ( err );
-					} else {
-						//Модифицируем документ в mongo
-						viewModelUsers.modify(query.user, function(err, objResult){
-							if ( err ) {
-								callback ( err );
-							} else {
-								if(pass){
-									query.user.queries[flexoSchemeName].properties.pass = pass;
-								}
-
-								var model = new ModelUser(client, null,
-									reply[flexoSchemeName][0]._id);
-
-								//Модификация в redis
-								model.modify(query.user.queries[flexoSchemeName].properties,
-									function( err ) {
-									if( err ){
-										callback( err );
-									} else {
-										callback( null, objResult );
-									}
-
-								});
-							}
-						});
-					}
-				});
+		ModuleUser.modify( client, _id, query.user, function(err, reply){
+			if ( err ){
+				callback( err );
 			} else {
-			callback( new Error( 'No description in global object view with name:' +
-				viewName) );
+				callback(null, reply);
 			}
-		} else {
-			callback( new Error( 'Incorrect parameter selector in queries: '
-				+ JSON.stringify( query ) ) );
-		}
-	} else*/ if ( query.access ) {
+		} );
+	} else if ( query.access ) {
 		//Запроса на создание прав
 		if ( query.access.viewName ) {
 			//Запрос на создание прав view

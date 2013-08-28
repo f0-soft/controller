@@ -167,10 +167,42 @@ ModuleUser.findListOfRoles = function findListOfRoles(client, callback){
  * 		err - ошибки от node_redis и ...
  * 		reply - возвращается true в случае успешного удаления
  */
-ModuleUser.delete = function del(client, _id, callback){
+ModuleUser.delete = function del(client, _id, login, callback){
 	if ( _id ) {
 		//Получаем имя пользователя
 		client.GET( strIdToLogin( _id ), function(err, login){
+			if ( err ) {
+				callback( err );
+			} else if ( login ) {
+				//Формируем команды на удаление пользователя
+				var multi = client.multi();
+				multi.DEL( strUserCache( _id ) );
+				multi.DEL( strIdToLogin( _id ) );
+				multi.DEL( strLoginToId( login ) );
+				//ToDo: продумать удаление пользователя из справочника и роли
+				//ToDo: продумать как обеспечеть целостность объектов прав связанных с удаляемым
+				//ToDo: пользователем и ролью
+				multi.SREM( setListOfLogin(), login );
+
+				//ToDo: Временно зачистка ключей из множества для бытрого удаления всех прав
+				multi.SREM( setAllAccess(), strUserCache( _id ) );
+				multi.SREM( setAllAccess(), strIdToLogin( _id ) );
+				multi.SREM( setAllAccess(), strLoginToId( login ) );
+
+				multi.EXEC(function( err, replies ) {
+					if ( err ) {
+						callback( err );
+					} else {
+						callback( null, true );
+					}
+				} );
+			} else {
+				callback( new Error( 'Removal is not an existing user with _id: ' + _id ) );
+			}
+		} );
+	} else if ( login ) {
+		//Получаем _id пользователя
+		client.GET( strIdToLogin( login ), function(err, _id){
 			if ( err ) {
 				callback( err );
 			} else if ( login ) {
@@ -252,7 +284,7 @@ ModuleUser.modify = function modify(client, _id, objNewData, callback){
 						if ( err ){
 							callback( err );
 						} else {
-							callback( null, cache );
+							callback( null, cache._id );
 						}
 					} );
 
