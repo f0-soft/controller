@@ -11,7 +11,8 @@ var ModuleUser = {};
 ModuleUser.create = function create( client, odjUser, callback ) {
 
 	if(typeof odjUser['_id'] !== "string"){
-		throw new Error( 'In the object field _id is missing: ' + JSON.stringify( odjUser ) );
+		throw new Error( 'Controller: In the object field _id is missing: ' +
+			JSON.stringify( odjUser ) );
 	}
 
 	//Сохраняем данные о пользователе в redis
@@ -26,17 +27,9 @@ ModuleUser.create = function create( client, odjUser, callback ) {
 	//ToDo:Черновой вариант
 	//Сохраняем логин пользователя в справочник пользователей
 	multi.SADD( setListOfLogin(), odjUser['login'] );
-	//Сохраняем role пользователя в справочник ролей
-	if ( odjUser['role'] ) {
-		multi.SADD( setListOfRole() , odjUser['role']);
-	}
 
-	//ToDo: Временно для быстрого удаления всех прав
-	multi.SADD( setAllAccess(), strUserCache( odjUser['_id'] ) );
-	multi.SADD( setAllAccess(), strLoginToId( odjUser['login'] ) );
-	multi.SADD( setAllAccess(), strIdToLogin( odjUser['_id'] ) );
-	multi.SADD( setListOfLogin(), odjUser['login'] );
-	multi.SADD( setListOfRole() , odjUser['role']);
+	//Сохраняем связку роли и логина пользователя
+	multi.SADD( setRoleToAllUser( odjUser['role'] ), odjUser['login'] );
 
 	multi.EXEC(function( err ){
 		if(err){
@@ -59,7 +52,8 @@ ModuleUser.createRole = function createRole(client, role, callback) {
 
 ModuleUser.checkUnique = function checkUnique(client, login, callback){
 	if(typeof login !== "string"){
-		throw new Error( 'In the object field login is missing: ' + JSON.stringify( odjUser ) );
+		throw new Error( 'Controller: In the object field login is missing: ' +
+			JSON.stringify( odjUser ) );
 	}
 
 	//Проверяем уникальность создаваемого пользователя
@@ -67,7 +61,7 @@ ModuleUser.checkUnique = function checkUnique(client, login, callback){
 		if( err ){
 			callback( err );
 		} else if (reply) {
-			callback( new Error( 'User already exists in redis with login: ' +  login ) );
+			callback( new Error( 'Controller: User already exists in redis with login: ' +  login ) );
 		} else {
 			callback(null, true);
 		}
@@ -91,7 +85,7 @@ ModuleUser.find = function find(client, _id, login, callback){
 			} else if (reply) {
 				callback( null, JSON.parse( reply ) );
 			} else {
-				callback( new Error( 'No cache in redis for the _id: '+ _id ) );
+				callback( new Error( 'Controller: No cache in redis for the _id: '+ _id ) );
 			}
 		} );
 	} else if ( login ) {
@@ -107,16 +101,16 @@ ModuleUser.find = function find(client, _id, login, callback){
 					} else if (reply) {
 						callback( null, JSON.parse( reply ) );
 					} else {
-						callback( new Error( 'No cache in redis for the login: '+ login ) );
+						callback( new Error( 'Controller: No cache in redis for the login: '+ login ) );
 					}
 				} );
 
 			} else {
-				callback( new Error( 'Requested the login does not exist: ' + login ) );
+				callback( new Error( 'Controller: Requested the login does not exist: ' + login ) );
 			}
 		});
 	} else {
-		throw new Error( 'Not set login or _id in find query. ' );
+		throw new Error( 'Controller: Not set login or _id in find query. ' );
 	}
 };
 
@@ -160,81 +154,44 @@ ModuleUser.findListOfRoles = function findListOfRoles(client, callback){
 	})
 };
 
-/**
- * Удаление пользователя
- *
- * @param callback (err, reply)
- * 		err - ошибки от node_redis и ...
- * 		reply - возвращается true в случае успешного удаления
- */
-ModuleUser.delete = function del(client, _id, login, callback){
-	if ( _id ) {
-		//Получаем имя пользователя
-		client.GET( strIdToLogin( _id ), function(err, login){
-			if ( err ) {
-				callback( err );
-			} else if ( login ) {
-				//Формируем команды на удаление пользователя
-				var multi = client.multi();
-				multi.DEL( strUserCache( _id ) );
-				multi.DEL( strIdToLogin( _id ) );
-				multi.DEL( strLoginToId( login ) );
-				//ToDo: продумать удаление пользователя из справочника и роли
-				//ToDo: продумать как обеспечеть целостность объектов прав связанных с удаляемым
-				//ToDo: пользователем и ролью
-				multi.SREM( setListOfLogin(), login );
+ModuleUser.findListOfViewsUser = function findListOfViewsUser(client, login, callback){
+	client.SMEMBERS( setUserToAllViewAccess( login ), function( err, replies ){
+		if ( err ) {
+			callback( err );
+		} else {
+			callback( null, replies );
+		}
+	})
+};
 
-				//ToDo: Временно зачистка ключей из множества для бытрого удаления всех прав
-				multi.SREM( setAllAccess(), strUserCache( _id ) );
-				multi.SREM( setAllAccess(), strIdToLogin( _id ) );
-				multi.SREM( setAllAccess(), strLoginToId( login ) );
+ModuleUser.findListOfFlexosUser = function findListOfFlexosUser(client, login, callback){
+	client.SMEMBERS( setUserToAllFlexoSchemeAccess( login ), function( err, replies ){
+		if ( err ) {
+			callback( err );
+		} else {
+			callback( null, replies );
+		}
+	})
+};
 
-				multi.EXEC(function( err, replies ) {
-					if ( err ) {
-						callback( err );
-					} else {
-						callback( null, true );
-					}
-				} );
-			} else {
-				callback( new Error( 'Removal is not an existing user with _id: ' + _id ) );
-			}
-		} );
-	} else if ( login ) {
-		//Получаем _id пользователя
-		client.GET( strIdToLogin( login ), function(err, _id){
-			if ( err ) {
-				callback( err );
-			} else if ( login ) {
-				//Формируем команды на удаление пользователя
-				var multi = client.multi();
-				multi.DEL( strUserCache( _id ) );
-				multi.DEL( strIdToLogin( _id ) );
-				multi.DEL( strLoginToId( login ) );
-				//ToDo: продумать удаление пользователя из справочника и роли
-				//ToDo: продумать как обеспечеть целостность объектов прав связанных с удаляемым
-				//ToDo: пользователем и ролью
-				multi.SREM( setListOfLogin(), login );
+ModuleUser.findListOfViewsRole = function findListOfViewsRole(client, role, callback){
+	client.SMEMBERS( setRoleToAllViewAccess( role ), function( err, replies ){
+		if ( err ) {
+			callback( err );
+		} else {
+			callback( null, replies );
+		}
+	})
+};
 
-				//ToDo: Временно зачистка ключей из множества для бытрого удаления всех прав
-				multi.SREM( setAllAccess(), strUserCache( _id ) );
-				multi.SREM( setAllAccess(), strIdToLogin( _id ) );
-				multi.SREM( setAllAccess(), strLoginToId( login ) );
-
-				multi.EXEC(function( err, replies ) {
-					if ( err ) {
-						callback( err );
-					} else {
-						callback( null, true );
-					}
-				} );
-			} else {
-				callback( new Error( 'Removal is not an existing user with _id: ' + _id ) );
-			}
-		} );
-	} else {
-		throw new Error( 'Not set _id in delete query. ' );
-	}
+ModuleUser.findListOfFlexosRole = function findListOfFlexosRole(client, role, callback){
+	client.SMEMBERS( setRoleToAllFlexoSchemeAccess( role ), function( err, replies ){
+		if ( err ) {
+			callback( err );
+		} else {
+			callback( null, replies );
+		}
+	})
 };
 
 /**
@@ -262,6 +219,7 @@ ModuleUser.modify = function modify(client, _id, objNewData, callback){
 				for( var i = 0; i < listFields.length; i++ ) {
 					//Проверяем изменение логина пользователя
 					if(listFields[i] === 'login') {
+						//ToDo:оптимизировать за счет проверки сравнением
 						var lastLogin = cache['login'];
 						var newLogin = objNewData['login'];
 
@@ -269,6 +227,16 @@ ModuleUser.modify = function modify(client, _id, objNewData, callback){
 						multi.DEL(strIdToLogin(_id));
 						multi.SET(strLoginToId(newLogin), _id);
 						multi.SET(strIdToLogin(_id), newLogin);
+						//ToDo:доделать изменение логина во всех справочниках
+					}
+
+					if(listFields[i] === 'role'){
+						//ToDo:оптимизировать за счет проверки сравнением
+						var lastRole = cache['role'];
+						var newRole = objNewData['role'];
+
+						multi.SREM( setRoleToAllUser( lastRole ), cache['login'] );
+						multi.SADD( setRoleToAllUser( newRole ), objNewData['login'] );
 					}
 
 					//Отфильтровываем изменение поля _id
@@ -281,22 +249,242 @@ ModuleUser.modify = function modify(client, _id, objNewData, callback){
 				//Сохраняем измененные кеш с данными о пользователе
 				multi.SET( strUserCache( _id ), JSON.stringify( cache ));
 				multi.EXEC( function( err ){
-						if ( err ){
-							callback( err );
-						} else {
-							callback( null, cache._id );
-						}
-					} );
+					if ( err ){
+						callback( err );
+					} else {
+						callback( null, cache._id );
+					}
+				} );
 
 			} else {
-				callback( new Error( 'Modification of data is not existing user with _id: '
+				callback( new Error( 'Controller: Modification of data is not existing user with _id: '
 					+ _id ) );
 			}
 		} );
 	} else {
-		throw new Error( 'Not set _id in modify query. ' );
+		throw new Error( 'Controller: Not set _id in modify query. ' );
 	}
 };
+
+/**
+ * Удаление пользователя
+ *
+ * @param callback (err, reply)
+ * 		err - ошибки от node_redis и ...
+ * 		reply - возвращается true в случае успешного удаления
+ */
+ModuleUser.delete = function del(client, _id, login, callback){
+	if ( _id ) {
+		//Получаем имя пользователя
+		client.GET( strIdToLogin( _id ), function(err, login){
+			if ( err ) {
+				callback( err );
+			} else if ( login ) {
+				//Формируем запросы для получения связанных c ним объектов flexo и view прав
+				var multi = client.multi();
+
+				multi.SMEMBERS( setUserToAllFlexoSchemeAccess( login ) );
+				multi.SMEMBERS( setUserToAllViewAccess( login ) );
+
+				multi.EXEC(function(err, replies){
+					if ( err ) {
+						callback( err );
+					} else {
+						//Список названий view у которых есть права связанные с данным юзером
+						var listOfFlesoScheme = replies[0] || [];
+						//Список названий view у которых есть права связанные с данным юзером
+						var listOfView = replies[1] || [];
+
+						//Формируем команды на удаление пользователя
+						var multi = client.multi();
+						multi.DEL( strUserCache( _id ) );
+						multi.DEL( strIdToLogin( _id ) );
+						multi.DEL( strLoginToId( login ) );
+						//Удаляем из списка логинов
+						multi.SREM( setListOfLogin(), login );
+						//Удаляем связанные с юзером объекты прав view
+						for( var i = 0; i < listOfView.length; i++ ) {
+							multi.DEL( strViewAccessUser( login, listOfView[i] ) );
+						}
+						multi.DEL( setUserToAllViewAccess( login ) );
+						//Удаляем связанные с юзером объекты прав flexo
+						for( var i = 0; i < listOfFlesoScheme.length; i++ ) {
+							multi.DEL( strFlexoAccessUserScheme( login, listOfFlesoScheme[i] ) );
+						}
+						multi.DEL( setUserToAllFlexoSchemeAccess( login ) );
+
+						multi.EXEC(function( err, replies ) {
+							if ( err ) {
+								callback( err );
+							} else {
+								callback( null, true );
+							}
+						} );
+					}
+				});
+
+			} else {
+				callback( new Error( 'Controller: Removal is not an existing user with _id: ' +
+					_id ) );
+			}
+		} );
+	} else if ( login ) {
+
+		var multi = client.multi();
+		//Получаем _id пользователя
+		multi.GET( strLoginToId( login ) );
+		//Формируем запросы для получения связанных c ним объектов flexo и view прав
+		multi.SMEMBERS( setUserToAllFlexoSchemeAccess( login ) );
+		multi.SMEMBERS( setUserToAllViewAccess( login ) )
+
+		multi.EXEC( function(err, replies) {
+			if ( err ) {
+				callback( err );
+			} else if ( replies[0] ) {
+				var _id = replies[0];
+				//Список названий view у которых есть права связанные с данным юзером
+				var listOfFlesoScheme = replies[1] || [];
+				//Список названий view у которых есть права связанные с данным юзером
+				var listOfView = replies[2] || [];
+
+				//Формируем команды на удаление пользователя
+				var multi = client.multi();
+				multi.DEL( strUserCache( _id ) );
+				multi.DEL( strIdToLogin( _id ) );
+				multi.DEL( strLoginToId( login ) );
+				//Удаляем из списка логинов
+				multi.SREM( setListOfLogin(), login );
+				//Удаляем связанные с юзером объекты прав view
+				for( var i = 0; i < listOfView.length; i++ ) {
+					multi.DEL( strViewAccessUser( login, listOfView[i] ) );
+				}
+				multi.DEL( setUserToAllViewAccess( login ) );
+				//Удаляем связанные с юзером объекты прав flexo
+				for( var i = 0; i < listOfFlesoScheme.length; i++ ) {
+					multi.DEL( strFlexoAccessUserScheme( login, listOfFlesoScheme[i] ) );
+				}
+				multi.DEL( setUserToAllFlexoSchemeAccess( login ) );
+
+				multi.EXEC(function( err, replies ) {
+					if ( err ) {
+						callback( err );
+					} else {
+						callback( null, true );
+					}
+				} );
+			} else {
+				callback( new Error( 'Controller: Removal is not an existing user with login: ' +
+					login ) );
+			}
+		} );
+	} else {
+		throw new Error( 'Controller: Not set _id in delete query. ' );
+	}
+};
+
+ModuleUser.deleteRole = function deleteRole(client, role, callback){
+	//Получаем список логинов пользователя связанных с этой ролью
+	client.SMEMBERS( setRoleToAllUser( role ), function( err, reply ) {
+		if ( err ) {
+			callback( err );
+		} else if ( reply.length ) {
+			//Удаление запрещено, так как есть пользователи у которых установлена эта роль
+			callback(new Error('Controller: Removing the role of prohibited, as there are users ' +
+				'that are associated with that role: ' + role), reply);
+		} else {
+			//Удаление разрешено
+			var multi = client.multi();
+			//Получаем списки связанных с этой ролью view и flexo
+			multi.SMEMBERS( setRoleToAllFlexoSchemeAccess( role ) );
+			multi.SMEMBERS( setRoleToAllViewAccess( role ) );
+
+			multi.EXEC(function( err, replies ){
+				if ( err ) {
+					callback( err );
+				} else {
+					var multi = client.multi();
+					//Формируем команды на удаление
+					var listOfFlesoScheme = replies[0];
+					var listOfView = replies[1];
+					//Удаляем роль из списка ролей
+					multi.SREM( setListOfRole() , role);
+
+					//Удаляем связанные с ролью объекты прав view
+					for( var i = 0; i < listOfView.length; i++ ) {
+						multi.DEL( strViewAccessRole( role, listOfView[i] ) );
+					}
+					multi.DEL( setRoleToAllViewAccess( role ) );
+					//Удаляем связанные с ролью объекты прав flexo
+					for( var i = 0; i < listOfFlesoScheme.length; i++ ) {
+						multi.DEL( strFlexoAccessRoleScheme( role, listOfFlesoScheme[i] ) );
+					}
+					multi.DEL( setRoleToAllFlexoSchemeAccess( role ) );
+
+					multi.EXEC(function( err, replies ) {
+						if ( err ) {
+							callback( err );
+						} else {
+							callback( null, true );
+						}
+					} );
+				}
+			})
+		}
+	} );
+
+
+};
+
+//Формирование строки ключа Redis (STRING) для прав относящиеся к заданной flexo схемы и роли
+function strFlexoAccessRoleScheme( role, flexoSchemeName ) {
+	return 'flexo:role:access:' + role + ':' + flexoSchemeName;
+}
+
+//Формирование строки ключа Redis (STRING) для прав относящиеся к view для заданной роли
+function strViewAccessRole( role, viewName ) {
+	return 'view:role:access:' + role + ':' + viewName;
+}
+
+//Формирование ключа REDIS (SET) для сохранения связки роли пользователя и названия view по
+// которым у него есть права
+function setRoleToAllViewAccess( role ) {
+	return 'role:all:viewName:' + role;
+}
+
+//Формирование ключа REDIS (SET) для сохранения связки роли юзера и названия flexo схем по
+// которым у него есть права
+function setRoleToAllFlexoSchemeAccess( role ) {
+	return 'role:all:flexoSchemeName:' + role;
+}
+
+//Формирование ключа REDIS (SET) для сохранения связки роли пользователя и логина пользователя
+function setRoleToAllUser( role ) {
+	return 'role:all:user:' + role;
+}
+
+//Формирование ключа REDIS (SET) для сохранения связки логина юзера и названия flexo схем по
+// которым у него есть права
+function setUserToAllFlexoSchemeAccess( user ) {
+	return 'user:all:flexoSchemeName:' + user;
+}
+
+//Формирование ключа REDIS (SET) для сохранения связки логина юзера и названия view по
+// которым у него есть права
+function setUserToAllViewAccess( user ) {
+	return 'user:all:viewName:' + user;
+}
+
+//Формирование строки ключа Redis (STRING) для прав относящиеся к заданной flexo схемы и логина
+//пользователя
+function strFlexoAccessUserScheme( user, flexoSchemeName ) {
+	return 'flexo:user:access:' + user + ':' + flexoSchemeName;
+}
+
+//Формирование строки ключа Redis (STRING) для прав относящиеся к view для заданной схемы и
+//пользователю
+function strViewAccessUser( user, viewName ) {
+	return 'view:user:access:' + user + ':' + viewName;
+}
 
 //Формирование строки ключа Redis (SET) для хранения справочника о пользователей
 function setListOfLogin( ) {
@@ -321,11 +509,6 @@ function strIdToLogin( _id ) {
 //Формирование строки ключа Redis (STRING) для хранения кеша данных о пользователе
 function strUserCache( _id ) {
 	return 'userCache:' + _id;
-}
-
-//Формирование ключа Redis (SET) для множества всех ключей с правами
-function setAllAccess(){
-	return 'all:access:';
 }
 
 module.exports = ModuleUser;

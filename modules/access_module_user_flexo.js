@@ -22,6 +22,9 @@ AccessModuleUserFlexo.save = function save( client, user, strFlexoSchemeName, ob
 
 	multi.SET( key, JSON.stringify( objAccess ) );
 
+	//Сохраняем связку юзера и названия flexo схем по которым есть права
+	multi.SADD( setUserToAllFlexoSchemeAccess( user ), strFlexoSchemeName );
+
 	//ToDo:Временно сохраняем ключ в множество для быстрого удаления всех прав
 	multi.SADD( setAllAccess(), key );
 
@@ -319,6 +322,8 @@ AccessModuleUserFlexo.delete = function remove( client, user, flexoSchemeName, c
 	//Формируем команды на удаление
 	key = strFlexoAccessUserScheme( user, flexoSchemeName );
 	multi.DEL( key );
+	multi.SREM( setUserToAllFlexoSchemeAccess( user ), flexoSchemeName );
+
 	//ToDo:Временно удаляем ключ в множестве предназначенного для быстрого удаления всех прав
 	multi.SREM( setAllAccess(), key );
 
@@ -330,6 +335,12 @@ AccessModuleUserFlexo.delete = function remove( client, user, flexoSchemeName, c
 		}
 	});
 };
+
+//Формирование ключа REDIS (SET) для сохранения связки логина юзера и названия flexo схем по
+// которым у него есть права
+function setUserToAllFlexoSchemeAccess( user ) {
+	return 'user:all:flexoSchemeName' + user;
+}
 
 //Формирование строки ключа Redis (STRING) для прав относящиеся к заданной flexo схемы и логина
 //пользователя

@@ -23,8 +23,7 @@ AccessModuleRoleFlexo.save = function save( client, role, strFlexoSchemeName, ob
 
 	multi.SET( key, JSON.stringify( objAccess ) );
 
-	//ToDo:Временно сохраняем ключ в множество для быстрого удаления всех прав
-	multi.SADD( setAllAccess(), key );
+	multi.SADD( setRoleToAllFlexoSchemeAccess( role ), strFlexoSchemeName );
 
 	multi.EXEC( function( err ) {
 		if ( err ) {
@@ -290,8 +289,8 @@ AccessModuleRoleFlexo.delete = function remove( client, role, flexoSchemeName, c
 	//Формируем команды на удаление
 	key = strFlexoAccessRoleScheme( role, flexoSchemeName );
 	multi.DEL( key );
-	//ToDo:Временно удаляем ключ в множестве предназначенного для быстрого удаления всех прав
-	multi.SREM( setAllAccess(), key);
+
+	multi.SREM( setRoleToAllFlexoSchemeAccess( role ), flexoSchemeName);
 
 	multi.EXEC( function( err ) {
 		if ( err ) {
@@ -301,6 +300,12 @@ AccessModuleRoleFlexo.delete = function remove( client, role, flexoSchemeName, c
 		}
 	});
 };
+
+//Формирование ключа REDIS (SET) для сохранения связки роли юзера и названия flexo схем по
+// которым у него есть права
+function setRoleToAllFlexoSchemeAccess( role ) {
+	return 'role:all:flexoSchemeName:' + role;
+}
 
 //Формирование строки ключа Redis (STRING) для прав относящиеся к заданной flexo схемы и роли
 function strFlexoAccessRoleScheme( role, flexoSchemeName ) {

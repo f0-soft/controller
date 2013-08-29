@@ -246,6 +246,38 @@ Controller.find = function find( query, callback ) {
 					callback( null, replies );
 				}
 			});
+		} else if ( query.user.allViewsUser ) {
+			ModuleUser.findListOfViewsUser(client, query.user.allViewsUser, function( err, replies ) {
+				if ( err ) {
+					callback( err );
+				} else {
+					callback( null, replies );
+				}
+			} );
+		} else if ( query.user.allFlexosUser ) {
+			ModuleUser.findListOfFlexosUser(client, query.user.allFlexosUser, function( err, replies ) {
+				if ( err ) {
+					callback( err );
+				} else {
+					callback( null, replies );
+				}
+			} );
+		} if ( query.user.allViewsRole ) {
+			ModuleUser.findListOfViewsRole(client, query.user.allViewsRole, function( err, replies ) {
+				if ( err ) {
+					callback( err );
+				} else {
+					callback( null, replies );
+				}
+			} );
+		} else if ( query.user.allFlexosRole ) {
+			ModuleUser.findListOfFlexosRole(client, query.user.allFlexosRole, function( err, replies ) {
+				if ( err ) {
+					callback( err );
+				} else {
+					callback( null, replies );
+				}
+			} );
 		} else {
 			callback( new Error( 'Unknown type of query: ' + JSON.stringify( query ) ) );
 		}
@@ -322,6 +354,16 @@ Controller.delete = function del( query, callback ) {
 				callback( err );
 			} else {
 				callback(null, reply);
+			}
+		} );
+	} else if ( query.role ) {
+	    ModuleUser.deleteRole(client, query.role, function(err, reply){
+			if ( err && reply ){
+				callback( err, reply );
+			} else if ( reply ){
+				callback(null, reply);
+			} else {
+				callback( err );
 			}
 		} );
 	} else if ( query.access ) {

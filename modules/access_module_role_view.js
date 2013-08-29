@@ -15,12 +15,11 @@ AccessModuleRoleView.save = function save( client, role, viewName, objAccess, ca
 	var key; //Формируемый ключ redis
 
 	//Сохранение объекта прав в redis
-	key = strViewAccessRole( viewName, role );
+	key = strViewAccessRole( role, viewName );
 	//ToDo:Проверка объекта objAccess
 	multi.SET( key, JSON.stringify(objAccess));
 
-	//ToDo:Временно сохраняем ключ в множество для быстрого удаления всех прав
-	multi.SADD( setAllAccess(), key );
+	multi.SADD( setRoleToAllViewAccess( role ), viewName );
 
 
 	multi.EXEC( function( err ) {
@@ -41,7 +40,7 @@ AccessModuleRoleView.save = function save( client, role, viewName, objAccess, ca
  */
 AccessModuleRoleView.find = function find( client, role, viewName, callback ) {
 
-	client.GET(  strViewAccessRole( viewName, role), function( err, reply ) {
+	client.GET(  strViewAccessRole( role, viewName ), function( err, reply ) {
 		if ( err ) {
 			callback( err );
 		} else {
@@ -69,10 +68,10 @@ AccessModuleRoleView.delete = function remove(client, role, viewName, callback){
 	var key;
 
 	//Формируем команды на удаление
-	key = strViewAccessRole( viewName, role );
+	key = strViewAccessRole( role, viewName );
 	multi.DEL( key );
-	//ToDo:Временно удаляем ключ в множестве предназначенного для быстрого удаления всех прав
-	multi.SREM( setAllAccess(), key);
+
+	multi.SREM( setRoleToAllViewAccess( role ), viewName );
 
 	multi.EXEC( function( err ) {
 		if ( err ) {
@@ -114,9 +113,15 @@ AccessModuleRoleView.accessPreparation = function accessPreparation( objAccess, 
 	return objReturnAccessForRole;
 };
 
+//Формирование ключа REDIS (SET) для сохранения связки роли пользователя и названия view по
+// которым у него есть права
+function setRoleToAllViewAccess( role ) {
+	return 'role:all:viewName:' + role;
+}
+
 //Формирование строки ключа Redis (STRING) для прав относящиеся к view для заданной роли
-function strViewAccessRole( viewName, role ) {
-	return 'view:role:access:' + viewName + ':' + role;
+function strViewAccessRole( role, viewName ) {
+	return 'view:role:access:' + role + ':' + viewName;
 }
 
 //Формирование ключа Redis (SET) для множества всех ключей с правами

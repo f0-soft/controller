@@ -14,9 +14,12 @@ AccessModuleUserView.save = function save( client, user, viewName, objAccess, ca
 	var key; //Формируемый ключ redis
 
 	//Сохранение объекта прав в redis
-	key = strViewAccessUser( viewName, user );
+	key = strViewAccessUser( user, viewName );
 	//ToDo:Проверка объекта objAccess
 	multi.SET( key, JSON.stringify(objAccess));
+
+	//Сохраняем связку юзера и названия view по которой есть права для этого юзера
+	multi.SADD( setUserToAllViewAccess( user ), viewName );
 
 	//ToDo:Временно сохраняем ключ в множество для быстрого удаления всех прав
 	multi.SADD( setAllAccess(), key );
@@ -40,7 +43,7 @@ AccessModuleUserView.save = function save( client, user, viewName, objAccess, ca
  */
 AccessModuleUserView.find = function find( client, user, viewName, callback ) {
 
-	client.GET(  strViewAccessUser( viewName, user), function( err, reply ) {
+	client.GET(  strViewAccessUser( user, viewName ), function( err, reply ) {
 		if ( err ) {
 			callback( err );
 		} else {
@@ -68,8 +71,11 @@ AccessModuleUserView.delete = function remove(client, user, viewName, callback){
 	var key;
 
 	//Формируем команды на удаление
-	key = strViewAccessUser( viewName, user );
+	key = strViewAccessUser( user, viewName );
 	multi.DEL( key );
+
+	multi.SREM( setUserToAllViewAccess( user ), viewName );
+
 	//ToDo:Временно удаляем ключ в множестве предназначенного для быстрого удаления всех прав
 	multi.SREM( setAllAccess(), key);
 
@@ -117,10 +123,16 @@ AccessModuleUserView.accessPreparation = function accessPreparation( objAccess, 
 	return objReturnAccessForUser;
 };
 
+//Формирование ключа REDIS (SET) для сохранения связки логина юзера и названия view по
+// которым у него есть права
+function setUserToAllViewAccess( user ) {
+	return 'user:all:viewName:' + user;
+}
+
 //Формирование строки ключа Redis (STRING) для прав относящиеся к view для заданной схемы и
 //пользователю
-function strViewAccessUser( viewName, user ) {
-	return 'view:user:access:' + viewName + ':' + user;
+function strViewAccessUser( user, viewName ) {
+	return 'view:user:access:' + user + ':' + viewName;
 }
 
 //Формирование ключа Redis (SET) для множества всех ключей с правами
