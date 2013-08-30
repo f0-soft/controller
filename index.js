@@ -533,7 +533,7 @@ function getTemplate(viewName, user, role, socket, callback ) {
 					//Логирование ошибки целостности, так как view обрезала список разрешенных
 					//идентификаторов
 					var objDescriptioneError = {};
-					objDescriptioneError.type = 'loss integrity';
+					objDescriptioneError.type = 'loss_integrity';
 					objDescriptioneError.variant = 1;
                     objDescriptioneError.place = 'View.getTemplate';
 					objDescriptioneError.time = new Date().getTime();
@@ -576,7 +576,7 @@ function getTemplate(viewName, user, role, socket, callback ) {
 							//Логирование ошибки целостности, так как view обрезала список
 							// разрешенных идентификаторов
 							var objDescriptioneError = {};
-							objDescriptioneError.type = 'loss integrity';
+							objDescriptioneError.type = 'loss_integrity';
 							objDescriptioneError.variant = 2;
 							objDescriptioneError.place = 'View.getTemplate';
 							objDescriptioneError.time = new Date().getTime();
@@ -955,7 +955,7 @@ function formingFlexoAndView( user, role, viewName, callback ){
 					//логировать нарушение целостности, разрешен в правах на view для _vid
 					//которого нет в глобальной переменной
 					aDescriptioneError.push({
-						type:'loss integrity',
+						type:'loss_integrity',
 						variant: 1,
 						place: 'formingFlexoAndView',
 						time: new Date().getTime(),

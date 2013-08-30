@@ -113,7 +113,7 @@ AccessModuleRoleFlexo.accessDataPreparation = function accessDataPreparation( cl
 					if( difference.length !== 0 ) {
 						//Логируем нарушение целостности
 						aDescriptioneError.push({
-							type:'loss integrity',
+							type:'loss_integrity',
 							variant: 1,
 							place: 'AccessModuleRoleFlexo.accessDataPreparation',
 							time: new Date().getTime(),
@@ -140,7 +140,7 @@ AccessModuleRoleFlexo.accessDataPreparation = function accessDataPreparation( cl
 					if( difference.length !== 0 ) {
 						//Логируем нарушение целостности
 						aDescriptioneError.push({
-							type:'loss integrity',
+							type:'loss_integrity',
 							variant: 2,
 							place: 'AccessModuleRoleFlexo.accessDataPreparation',
 							time: new Date().getTime(),
@@ -167,7 +167,7 @@ AccessModuleRoleFlexo.accessDataPreparation = function accessDataPreparation( cl
 					if( difference.length !== 0 ) {
 						//Логируем нарушение целостности
 						aDescriptioneError.push({
-							type:'loss integrity',
+							type:'loss_integrity',
 							variant: 3,
 							place: 'AccessModuleRoleFlexo.accessDataPreparation',
 							time: new Date().getTime(),

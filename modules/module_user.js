@@ -488,12 +488,12 @@ function strViewAccessUser( user, viewName ) {
 
 //Формирование строки ключа Redis (SET) для хранения справочника о пользователей
 function setListOfLogin( ) {
-	return 'list:users';
+	return 'list:users:';
 }
 
 //Формирование строки ключа Redis (SET) для хранения справочника о ролях
 function setListOfRole( ) {
-	return 'list:roles';
+	return 'list:roles:';
 }
 
 //Формирование строки ключа Redis (STRING) для хранения соответствия логина и _id пользователя

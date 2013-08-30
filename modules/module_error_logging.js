@@ -38,6 +38,7 @@ ModuleErrorLogging.findFromMinToMax = function findFromMinToMax ( client, min, m
 	} );
 };
 
+
 //Формирование строки ключа Redis (STRING) для прав относящиеся к view для заданной схемы и
 //пользователю
 function zsetErrorLoging( ) {

@@ -25,10 +25,7 @@ AccessModuleUserFlexo.save = function save( client, user, strFlexoSchemeName, ob
 	//Сохраняем связку юзера и названия flexo схем по которым есть права
 	multi.SADD( setUserToAllFlexoSchemeAccess( user ), strFlexoSchemeName );
 
-	//ToDo:Временно сохраняем ключ в множество для быстрого удаления всех прав
-	multi.SADD( setAllAccess(), key );
-
-	multi.EXEC( function( err ) {
+	multi.EXEC( function( err, replies ) {
 		if ( err ) {
 			callback( err );
 		} else {
@@ -116,7 +113,7 @@ AccessModuleUserFlexo.accessDataPreparation =
 					if( difference.length !== 0 ){
 						//Логируем нарушение целостности
 						aDescriptioneError.push({
-							type:'loss integrity',
+							type:'loss_integrity',
 							variant: 1,
 							place: 'AccessModuleUserFlexo.accessDataPreparation',
 							time: new Date().getTime(),
@@ -146,7 +143,7 @@ AccessModuleUserFlexo.accessDataPreparation =
 					if( difference.length !== 0 ) {
 						//Логируем нарушение целостности
 						aDescriptioneError.push({
-							type:'loss integrity',
+							type:'loss_integrity',
 							variant: 2,
 							place: 'AccessModuleUserFlexo.accessDataPreparation',
 							time: new Date().getTime(),
@@ -176,7 +173,7 @@ AccessModuleUserFlexo.accessDataPreparation =
 					if( difference.length !== 0 ){
 						//Логируем нарушение целостности
 						aDescriptioneError.push({
-							type:'loss integrity',
+							type:'loss_integrity',
 							variant: 3,
 							place: 'AccessModuleUserFlexo.accessDataPreparation',
 							time: new Date().getTime(),
@@ -339,7 +336,7 @@ AccessModuleUserFlexo.delete = function remove( client, user, flexoSchemeName, c
 //Формирование ключа REDIS (SET) для сохранения связки логина юзера и названия flexo схем по
 // которым у него есть права
 function setUserToAllFlexoSchemeAccess( user ) {
-	return 'user:all:flexoSchemeName' + user;
+	return 'user:all:flexoSchemeName:' + user;
 }
 
 //Формирование строки ключа Redis (STRING) для прав относящиеся к заданной flexo схемы и логина
