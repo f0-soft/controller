@@ -2,64 +2,9 @@ var underscore = require('underscore');
 
 var AccessModuleUserFlexo = {};
 
-/**
- * Сохранение модель в redis
- *
- * @param client - ссылка на клиент redis
- * @param user - строка, логин пользователя
- * @param strFlexoSchemeName - строка, имя flexo схемы
- * @param objAccess - объект с описанием прав доступа по пользователю
- * @param callback (err, reply)
- * 		err - ошибка от node_redis
- * 		reply - true в случае успешного сохранения
- */
-AccessModuleUserFlexo.save = function save( client, user, strFlexoSchemeName, objAccess, callback ){
-	var multi = client.multi();
-	var key;
 
-	//Сохранение объекта прав в redis
-	key = strFlexoAccessUserScheme( user, strFlexoSchemeName );
 
-	multi.SET( key, JSON.stringify( objAccess ) );
 
-	//Сохраняем связку юзера и названия flexo схем по которым есть права
-	multi.SADD( setUserToAllFlexoSchemeAccess( user ), strFlexoSchemeName );
-
-	multi.EXEC( function( err, replies ) {
-		if ( err ) {
-			callback( err );
-		} else {
-			callback( null, true );
-		}
-	});
-};
-
-/**
- * Поиск модели прав для flexo схемы и заданной роли в redis
- *
- * @param client - ссылка на клиент redis
- * @param user - строка, логин пользоватея
- * @param flexoSchemeName - строка, название flexo схемы
- * @param callback (err, reply)
- * 		err - ошибка от node_redis или ошибка сигнализирующая об отсутствии объекта прав
- * 		reply - искомый объект прав
- */
-AccessModuleUserFlexo.find = function find( client, user, flexoSchemeName, callback ) {
-
-	//Получаем объекты прав для заданной flexo схемы и роли
-	client.GET(  strFlexoAccessUserScheme( user, flexoSchemeName ), function( err, reply ) {
-		if ( err ) {
-			callback( err );
-		} else if ( reply ) {
-			var objAccess = JSON.parse( reply );
-
-			callback( null, objAccess );
-		} else {
-			callback(new Error( 'Controller: No requested object access (user: ' + user +', ' +
-				'flexoScheme: ' + flexoSchemeName + ')' ) );
-		}
-	});
-};
 
 /**
  * Получаем объекты прав и формируем в нужном виде права
@@ -72,8 +17,7 @@ AccessModuleUserFlexo.find = function find( client, user, flexoSchemeName, callb
  * 		err - ошибка от node_redis
  * 		reply - возвращается искомый объект прав сгруппированный по flexo схемам
  */
-AccessModuleUserFlexo.accessDataPreparation =
-	function accessDataPreparation( client, user, globalFlexoSchemes, flexoSchemesName, callback ) {
+function accessDataPreparation( client, user, globalFlexoSchemes, flexoSchemesName, callback ) {
 	var multi = client.multi();
 	//Формируем команды для получения объектов прав по указанным схемам
 	for( var i = 0; i < flexoSchemesName.length; i++ ) {
@@ -333,21 +277,5 @@ AccessModuleUserFlexo.delete = function remove( client, user, flexoSchemeName, c
 	});
 };
 
-//Формирование ключа REDIS (SET) для сохранения связки логина юзера и названия flexo схем по
-// которым у него есть права
-function setUserToAllFlexoSchemeAccess( user ) {
-	return 'user:all:flexoSchemeName:' + user;
-}
-
-//Формирование строки ключа Redis (STRING) для прав относящиеся к заданной flexo схемы и логина
-//пользователя
-function strFlexoAccessUserScheme( user, flexoSchemeName ) {
-	return 'flexo:user:access:' + user + ':' + flexoSchemeName;
-}
-
-//Формирование ключа Redis (SET) для множества всех ключей с правами
-function setAllAccess(){
-	return 'all:access:';
-}
 
 module.exports = AccessModuleUserFlexo;
