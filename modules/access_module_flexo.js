@@ -18,7 +18,7 @@ AccessModuleFlexo.saveForRole = function saveForRole( client, role, strFlexoSche
 	                                                  globalFlexo, callback ) {
 
 	//Валидация и проверка целостности объекта flexo прав по роли
-	validationAndCheckIntegrityAccess( objAccess, globalFlexo, function( err, objForSave ) {
+	validationAndCheckIntegrityAccessForRole( objAccess, globalFlexo, function( err, objForSave ) {
 		if ( err ) {
 			callback( err );
 		} else {
@@ -41,7 +41,6 @@ AccessModuleFlexo.saveForRole = function saveForRole( client, role, strFlexoSche
 			});
 		}
 	} );
-
 };
 
 /**
@@ -59,33 +58,42 @@ AccessModuleFlexo.saveForUser = function saveForUser( client, user, strFlexoSche
 													  globalFlexo, callback ){
 
 	//Валидация и проверка целостности объекта flexo прав по пользователю
-	validationAndCheckIntegrityAccess( objAccess, globalFlexo, function( err, objForSave ) {
-		var multi = client.multi();
-		var key;
+	validationAndCheckIntegrityAccessForUser( objAccess, globalFlexo, function( err, objForSave ) {
+		if ( err ) {
+			callback( err );
+		} else {
+			var multi = client.multi();
+			var key;
 
-		//Сохранение объекта прав в redis
-		key = strFlexoAccessUserScheme( user, strFlexoSchemeName );
+			//Сохранение объекта прав в redis
+			key = strFlexoAccessUserScheme( user, strFlexoSchemeName );
 
-		multi.SET( key, JSON.stringify( objForSave ) );
+			multi.SET( key, JSON.stringify( objForSave ) );
 
-		//Сохраняем связку юзера и названия flexo схем по которым есть права
-		multi.SADD( setUserToAllFlexoSchemeAccess( user ), strFlexoSchemeName );
+			//Сохраняем связку юзера и названия flexo схем по которым есть права
+			multi.SADD( setUserToAllFlexoSchemeAccess( user ), strFlexoSchemeName );
 
-		multi.EXEC( function( err, replies ) {
-			if ( err ) {
-				callback( err );
-			} else {
-				callback( null, true );
-			}
-		} );
+			multi.EXEC( function( err, replies ) {
+				if ( err ) {
+					callback( err );
+				} else {
+					callback( null, true );
+				}
+			} );
+		}
 	} );
 };
 
-//Валидация и проверка целостности объекта flexo прав
-function validationAndCheckIntegrityAccess(objectAccess, globalFlexo, callback){
+//Валидация и проверка целостности объекта flexo прав по роли
+function validationAndCheckIntegrityAccessForRole(objectAccess, globalFlexo, callback){
 
 	if ( _.isUndefined( objectAccess ) && _.isEmpty( objectAccess ) ) {
 		callback( new Error( 'Controller: incorrect parameter object access' ) );
+		return;
+	}
+
+	if ( _.isUndefined( globalFlexo.read ) || _.isUndefined( globalFlexo.modify ) ) {
+		callback( new Error( 'Controller: incorrect data in global flexo for flexo:' + globalFlexo ) );
 		return;
 	}
 
@@ -182,6 +190,146 @@ function validationAndCheckIntegrityAccess(objectAccess, globalFlexo, callback){
 	callback( null, objAccess );
 }
 
+//Валидация и проверка целостности объекта flexo прав по пользователю
+function validationAndCheckIntegrityAccessForUser(objectAccess, globalFlexo, callback){
+
+	if ( _.isUndefined( objectAccess ) || _.isEmpty( objectAccess ) ) {
+		callback( new Error( 'Controller: incorrect parameter object access' ) );
+		return;
+	}
+
+	if ( _.isUndefined( globalFlexo.read ) || _.isUndefined( globalFlexo.modify ) ) {
+		callback( new Error( 'Controller: incorrect data in global flexo for flexo:' + globalFlexo ) );
+		return;
+	}
+
+	var objAccess = _.clone( objectAccess );
+
+	var read = objAccess.read;
+
+	if ( !_.isUndefined( read ) ) {
+
+		if ( !_.isUndefined( read['(all)'] ) ){
+			if ( !_.isNumber( read['(all)'] ) ) {
+				callback(new Error('Controller: incorrect parameter read.["(all)"] in ' +
+					'object access: ' +	JSON.stringify( objAccess ) ) );
+				return;
+			}
+		}
+
+		if ( _.isUndefined( read.fieldsAdd ) && !_.isArray( read.fieldsAdd ) ) {
+			callback(new Error('Controller: incorrect parameter read.fieldsAdd in object access: ' +
+				JSON.stringify( objAccess ) ) );
+			return;
+		} else if( _.isUndefined( read.fieldsDel ) && !_.isArray( read.fieldsDel ) ) {
+			callback(new Error('Controller: error integrity in read.fieldsDel in object access: ' +
+				JSON.stringify( objAccess ) ) );
+			return;
+		} else if( _.difference( read.fieldsAdd, globalFlexo.read ).length !== 0 ) {
+			callback(new Error('Controller: error integrity in read.fieldsAdd in object access: ' +
+				JSON.stringify( objAccess ) ) );
+			return;
+		}
+	}
+
+	var modify = objAccess.modify;
+
+	if ( !_.isUndefined( modify ) ) {
+
+		if ( !_.isUndefined( modify['(all)'] ) ){
+			if ( !_.isNumber( modify['(all)'] ) ) {
+				callback(new Error('Controller: incorrect parameter modify.["(all)"] in ' +
+					'object access: ' +	JSON.stringify( objAccess ) ) );
+				return;
+			}
+		}
+
+		if ( _.isUndefined( modify.fieldsAdd ) && !_.isArray( modify.fieldsAdd ) ) {
+			callback(new Error('Controller: incorrect parameter modify.fieldsAdd in object ' +
+				'access: ' + JSON.stringify( objAccess ) ) );
+			return;
+		} else if( _.isUndefined( modify.fieldsDel ) && !_.isArray( modify.fieldsDel ) ) {
+			callback(new Error('Controller: error integrity in modify.fieldsDel in object ' +
+				'access: ' + JSON.stringify( objAccess ) ) );
+			return;
+		} else if( _.difference( modify.fieldsAdd, globalFlexo.modify ).length !== 0 ) {
+			callback(new Error('Controller: error integrity in modify.fieldsAdd in object ' +
+				'access: ' + JSON.stringify( objAccess ) ) );
+			return;
+		}
+	}
+
+	var create = objAccess.create;
+
+	if ( !_.isUndefined( create ) ) {
+
+		if ( !_.isUndefined( create['(all)'] ) ){
+			if ( !_.isNumber( create['(all)'] ) ) {
+				callback(new Error('Controller: incorrect parameter create.["(all)"] in ' +
+					'object access: ' +	JSON.stringify( objAccess ) ) );
+				return;
+			}
+		}
+
+		if ( _.isUndefined( create.fieldsAdd ) && !_.isArray( create.fieldsAdd ) ) {
+			callback(new Error('Controller: incorrect parameter create.fieldsAdd in object ' +
+				'access: ' + JSON.stringify( objAccess ) ) );
+			return;
+		} else if( _.isUndefined( create.fieldsDel ) && !_.isArray( create.fieldsDel ) ) {
+			callback(new Error('Controller: error integrity in create.fieldsDel in object ' +
+				'access: ' + JSON.stringify( objAccess ) ) );
+			return;
+		} else if( _.difference( create.fieldsAdd, globalFlexo.modify ).length !== 0 ) {
+			callback(new Error('Controller: error integrity in create.fieldsAdd in object ' +
+				'access: ' + JSON.stringify( objAccess ) ) );
+			return;
+		}
+	}
+
+	if ( _.isUndefined( objAccess.createAll ) ) {
+		if ( !_.isUndefined( create ) ) {
+			if ( !_.isUndefined( create['(all)'] ) ){
+			 	if ( create['(all)'] === 0){
+					if (create.fieldsAdd.length ) {
+						objAccess.createAll = 1;
+					} else {
+						objAccess.createAll = 0;
+					}
+				} else {
+					if (create.fieldsDel.length === globalFlexo.modify.length ) {
+						objAccess.createAll = 0;
+					} else {
+						objAccess.createAll = 1;
+					}
+				}
+			} else {
+				if (create.fieldsAdd.length ) {
+					objAccess.createAll = 1;
+				} else {
+					objAccess.createAll = 0;
+				}
+			}
+		} else {
+			objAccess.createAll = 0;
+		}
+	} else if ( !_.isNumber( objAccess.createAll ) ) {
+		callback(new Error('Controller: incorrect parameter in createAll in object access: ' +
+			JSON.stringify( objAccess ) ) );
+		return;
+	}
+
+	if ( !_.isUndefined( objAccess.delete ) ){
+
+		if ( !_.isNumber( objAccess.delete ) ) {
+			callback(new Error('Controller: incorrect parameter in delete in object access: ' +
+				JSON.stringify( objAccess ) ) );
+			return;
+		}
+	}
+
+	callback( null, objAccess );
+}
+
 
 /**
  * Поиск модели прав для flexo схемы и заданной роли в redis
@@ -237,6 +385,29 @@ AccessModuleFlexo.findForUser = function findForUser( client, user, flexoSchemeN
 	});
 };
 
+AccessModuleFlexo.accessDataPreparation = function accessDataPreparation(client, role, user,
+	flexoSchemesName, globalFlexoSchemes, callback){
+
+	//Получаем объекты прав и формируем в нужном виде права по роли
+	accessDataPreparationForRole( client, role, globalFlexoSchemes, flexoSchemesName,
+		function( err, objAccessFromRole ) {
+		if ( err ) {
+			callback ( err );
+		} else {
+			//Получаем объекты прав и формируем в нужном виде права по пользователю
+			accessDataPreparationForUser( client, user, globalFlexoSchemes, flexoSchemesName,
+				objAccessFromRole, function( err, objAccess ) {
+				if ( err ) {
+					callback ( err );
+				} else {
+					callback ( null, objAccess );
+				}
+			} );
+		}
+	} );
+
+}
+
 /**
  * Получаем объекты прав и формируем в нужном виде права
  *
@@ -280,7 +451,7 @@ function accessDataPreparationForRole( client, role, globalFlexoSchemes, flexoSc
 					var difference;
 
 					//Права на чтение
-					if ( _.isUndefined( objAccessForOneScheme.read ) ) {
+					if ( !_.isUndefined( objAccessForOneScheme.read ) ) {
 
 						if ( objAccessForOneScheme.read['(all)'] ) {
 							fields = _.difference( dataFlexoConfig.read,
@@ -296,7 +467,7 @@ function accessDataPreparationForRole( client, role, globalFlexoSchemes, flexoSc
 								aDescriptioneError.push({
 									type:'loss_integrity',
 									variant: 1,
-									place: 'AccessModuleFlexo.accessDataPreparation',
+									place: 'AccessModuleFlexo.accessDataPreparationForRole',
 									time: new Date().getTime(),
 									descriptione: {
 										flexoSchemesName: flexoSchemesName[i],
@@ -317,7 +488,7 @@ function accessDataPreparationForRole( client, role, globalFlexoSchemes, flexoSc
 					}
 
 					//Права на модификацию
-					if ( _.isUndefined( objAccessForOneScheme.modify ) ) {
+					if ( !_.isUndefined( objAccessForOneScheme.modify ) ) {
 						if ( objAccessForOneScheme.modify['(all)'] ) {
 							fields = _.difference( dataFlexoConfig.modify,
 								objAccessForOneScheme.modify.fields );
@@ -332,7 +503,7 @@ function accessDataPreparationForRole( client, role, globalFlexoSchemes, flexoSc
 								aDescriptioneError.push({
 									type:'loss_integrity',
 									variant: 2,
-									place: 'AccessModuleFlexo.accessDataPreparation',
+									place: 'AccessModuleFlexo.accessDataPreparationForRole',
 									time: new Date().getTime(),
 									descriptione: {
 										flexoSchemesName: flexoSchemesName[i],
@@ -353,7 +524,7 @@ function accessDataPreparationForRole( client, role, globalFlexoSchemes, flexoSc
 					}
 
 					//Права на создание
-					if ( _.isUndefined( objAccessForOneScheme.create ) ) {
+					if ( !_.isUndefined( objAccessForOneScheme.create ) ) {
 						if ( objAccessForOneScheme.create['(all)'] ) {
 							fields = _.difference( dataFlexoConfig.modify,
 								objAccessForOneScheme.create.fields );
@@ -367,7 +538,7 @@ function accessDataPreparationForRole( client, role, globalFlexoSchemes, flexoSc
 								aDescriptioneError.push({
 									type:'loss_integrity',
 									variant: 3,
-									place: 'AccessModuleFlexo.accessDataPreparation',
+									place: 'AccessModuleFlexo.accessDataPreparationForRole',
 									time: new Date().getTime(),
 									descriptione: {
 										flexoSchemesName: flexoSchemesName[i],
@@ -473,25 +644,54 @@ function accessDataPreparationForUser( client, user, globalFlexoSchemes, flexoSc
 					var userAccess = objAccessFromRole[flexoSchemesName[i]];
 
 					//Права на чтение
-					if ( _.isUndefined( objAccessForOneScheme.read ) ) {
+					if ( !_.isUndefined( objAccessForOneScheme.read ) ) {
 
-						if ( objAccessForOneScheme.read['(all)'] ) {
-							fields = _.difference(dataFlexoConfig.read,
-								objAccessForOneScheme.read.fields);
+						if ( !_.isUndefined( objAccessForOneScheme.read['(all)'] ) ) {
+							if ( objAccessForOneScheme.read['(all)'] === 1 ) {
+								fields = _.difference(dataFlexoConfig.read,
+									objAccessForOneScheme.read.fieldsDel);
+
+								//Сохраняем права на чтение
+								objAccess[flexoSchemesName[i]]['read'] = fields;
+							} else if ( objAccessForOneScheme.read['(all)'] === 0 ) {
+								fields = objAccessForOneScheme.read.fieldsAdd;
+
+								//Проверяем целостность прав на чтение
+								//Права на flexo не должны по полям превышать глобальных прав
+								difference = _.difference( fields, dataFlexoConfig.read );
+								if( difference.length !== 0 ) {
+									//Логируем нарушение целостности
+									aDescriptioneError.push({
+										type:'loss_integrity',
+										variant: 1,
+										place: 'AccessModuleFlexo.accessDataPreparationForUser',
+										time: new Date().getTime(),
+										descriptione: {
+											flexoSchemesName: flexoSchemesName[i],
+											user: user
+										}
+									});
+
+									//Присутствует нарушение целостности, обрезаем права
+									fields = _.difference( fields, difference );
+
+								}
+								//Сохраняем права на чтение
+								objAccess[flexoSchemesName[i]]['read'] = fields
+							}
 						} else {
-							fields = _
-							fields = [objAccessForOneScheme.read.fields, dataFlexoConfig.read];
+							fields = _.union(userAccess.read, objAccessForOneScheme.read.fieldsAdd);
+							fields = _.difference(fields, objAccessForOneScheme.read.fieldsDel);
 
 							//Проверяем целостность прав на чтение
 							//Права на flexo не должны по полям превышать глобальных прав
-							var crossingFields = _.difference( fields[0], fields[1] );
-							difference = _.difference( crossingFields, dataFlexoConfig.read );
+							difference = _.difference( fields, dataFlexoConfig.read );
 							if( difference.length !== 0 ) {
 								//Логируем нарушение целостности
 								aDescriptioneError.push({
 									type:'loss_integrity',
-									variant: 1,
-									place: 'AccessModuleFlexo.accessDataPreparation',
+									variant: 2,
+									place: 'AccessModuleFlexo.accessDataPreparationForUser',
 									time: new Date().getTime(),
 									descriptione: {
 										flexoSchemesName: flexoSchemesName[i],
@@ -500,123 +700,177 @@ function accessDataPreparationForUser( client, user, globalFlexoSchemes, flexoSc
 								});
 
 								//Присутствует нарушение целостности, обрезаем права
-								fields[0] = _.difference( fields[0], difference );
+								fields = _.difference( fields, difference );
 							}
+							//Сохраняем права на чтение
+							objAccess[flexoSchemesName[i]]['read'] = fields
 						}
-						//Сохраняем права на чтение
-						objAccess[flexoSchemesName[i]]['read'] = fields
+
 					} else {
 						objAccess[flexoSchemesName[i]]['read'] = userAccess['read'];
 					}
 
-
-
-
-					var readFields = accessDataPreparationForMethod( 'read', objAccessForOneScheme,
-						dataFromFlexoConfig['read'] );
-					//Проверяем целостность прав на чтение
-					//Права на flexo не должны по полям превышать глобальных прав
-					var resultReadFields = underscore.difference( readFields[0], readFields[1] );
-					difference = underscore.difference( resultReadFields,
-						dataFromFlexoConfig['read'] );
-					if( difference.length !== 0 ){
-						//Логируем нарушение целостности
-						aDescriptioneError.push({
-							type:'loss_integrity',
-							variant: 1,
-							place: 'AccessModuleUserFlexo.accessDataPreparation',
-							time: new Date().getTime(),
-							descriptione: {
-								flexoSchemesName: flexoSchemesName[i],
-								user: user
-							}
-						});
-
-						//Присутствует нарушение целостности, обрезаем права
-						readFields[0] = underscore.difference( readFields[0], difference );
-					}
-					//Сохраняем права на чтение
-					if( readFields[0].length !== 0 || readFields[1].length !== 0 ){
-						objAccess[flexoSchemesName[i]]['read'] = readFields;
-					}
-
 					//Права на модификацию
-					var modifyFields = accessDataPreparationForMethod( 'modify',
-						objAccessForOneScheme, dataFromFlexoConfig['modify'] );
-					//Проверяем целостность прав на модификацию
-					//Права на flexo не должны по полям превышать глобальных прав
-					var resultModifyFields = underscore.difference( modifyFields[0],
-						modifyFields[1] );
-					difference = underscore.difference( resultModifyFields,
-						dataFromFlexoConfig['modify'] );
-					if( difference.length !== 0 ) {
-						//Логируем нарушение целостности
-						aDescriptioneError.push({
-							type:'loss_integrity',
-							variant: 2,
-							place: 'AccessModuleUserFlexo.accessDataPreparation',
-							time: new Date().getTime(),
-							descriptione: {
-								flexoSchemesName: flexoSchemesName[i],
-								user: user
-							}
-						});
+					if ( !_.isUndefined( objAccessForOneScheme.modify ) ) {
 
-						//Присутствует нарушение целостности, обрезаем права
-						modifyFields[0] = underscore.difference( modifyFields[0], difference );
-					}
-					//Сохраняем права на модификацию
-					if( modifyFields[0].length !== 0 || modifyFields[1].length !== 0 ) {
-						objAccess[flexoSchemesName[i]]['modify'] = modifyFields;
+						if ( !_.isUndefined( objAccessForOneScheme.modify['(all)'] ) ) {
+							if ( objAccessForOneScheme.modify['(all)'] === 1 ) {
+								fields = _.difference(dataFlexoConfig.modify,
+									objAccessForOneScheme.modify.fieldsDel);
+
+								//Сохраняем права на чтение
+								objAccess[flexoSchemesName[i]]['modify'] = fields;
+							} else if ( objAccessForOneScheme.modify['(all)'] === 0 ) {
+								fields = objAccessForOneScheme.modify.fieldsAdd;
+
+								//Проверяем целостность прав на чтение
+								//Права на flexo не должны по полям превышать глобальных прав
+								difference = _.difference( fields, dataFlexoConfig.modify );
+								if( difference.length !== 0 ) {
+									//Логируем нарушение целостности
+									aDescriptioneError.push({
+										type:'loss_integrity',
+										variant: 3,
+										place: 'AccessModuleFlexo.accessDataPreparationForUser',
+										time: new Date().getTime(),
+										descriptione: {
+											flexoSchemesName: flexoSchemesName[i],
+											user: user
+										}
+									});
+
+									//Присутствует нарушение целостности, обрезаем права
+									fields = _.difference( fields, difference );
+
+								}
+								//Сохраняем права на чтение
+								objAccess[flexoSchemesName[i]]['modify'] = fields
+							}
+						} else {
+							fields = _.union(userAccess.modify,
+								objAccessForOneScheme.modify.fieldsAdd);
+							fields = _.difference(fields, objAccessForOneScheme.modify.fieldsDel);
+
+							//Проверяем целостность прав на чтение
+							//Права на flexo не должны по полям превышать глобальных прав
+							difference = _.difference( fields, dataFlexoConfig.modify );
+							if( difference.length !== 0 ) {
+								//Логируем нарушение целостности
+								aDescriptioneError.push({
+									type:'loss_integrity',
+									variant: 4,
+									place: 'AccessModuleFlexo.accessDataPreparationForUser',
+									time: new Date().getTime(),
+									descriptione: {
+										flexoSchemesName: flexoSchemesName[i],
+										user: user
+									}
+								});
+
+								//Присутствует нарушение целостности, обрезаем права
+								fields = _.difference( fields, difference );
+							}
+
+							//Сохраняем права на чтение
+							objAccess[flexoSchemesName[i]]['modify'] = fields
+						}
+
+					} else {
+						objAccess[flexoSchemesName[i]]['modify'] = userAccess['modify'];
 					}
 
 					//Права на создание
-					var createFields = accessDataPreparationForMethod( 'create',
-						objAccessForOneScheme, dataFromFlexoConfig['modify']);
-					//Проверяем целостность прав на создание
-					//Права на flexo не должны по полям превышать глобальных прав
-					var resultCreateFields = underscore.difference( createFields[0],
-						createFields[1] );
-					difference = underscore.difference( resultCreateFields,
-						dataFromFlexoConfig['modify'] );
-					if( difference.length !== 0 ){
-						//Логируем нарушение целостности
-						aDescriptioneError.push({
-							type:'loss_integrity',
-							variant: 3,
-							place: 'AccessModuleUserFlexo.accessDataPreparation',
-							time: new Date().getTime(),
-							descriptione: {
-								flexoSchemesName: flexoSchemesName[i],
-								user: user
-							}
-						});
+					if ( !_.isUndefined( objAccessForOneScheme.create ) ) {
 
-						//Присутствует нарушение целостности, обрезаем права
-						createFields[0] = underscore.difference( createFields[0], difference );
-					}
-					//Сохраняем права на создание
-					if( createFields[0].length !== 0 || createFields[1].length !== 0 ) {
-						objAccess[flexoSchemesName[i]]['create'] = createFields;
+						if ( !_.isUndefined( objAccessForOneScheme.create['(all)'] ) ) {
+							if ( objAccessForOneScheme.create['(all)'] === 1 ) {
+								fields = _.difference(dataFlexoConfig.modify,
+									objAccessForOneScheme.create.fieldsDel);
+
+								//Сохраняем права на чтение
+								objAccess[flexoSchemesName[i]]['create'] = fields;
+							} else if ( objAccessForOneScheme.create['(all)'] === 0 ) {
+								fields = objAccessForOneScheme.create.fieldsAdd;
+
+								//Проверяем целостность прав на чтение
+								//Права на flexo не должны по полям превышать глобальных прав
+								difference = _.difference( fields, dataFlexoConfig.modify );
+								if( difference.length !== 0 ) {
+									//Логируем нарушение целостности
+									aDescriptioneError.push({
+										type:'loss_integrity',
+										variant: 5,
+										place: 'AccessModuleFlexo.accessDataPreparationForUser',
+										time: new Date().getTime(),
+										descriptione: {
+											flexoSchemesName: flexoSchemesName[i],
+											user: user
+										}
+									});
+
+									//Присутствует нарушение целостности, обрезаем права
+									fields = _.difference( fields, difference );
+
+								}
+								//Сохраняем права на чтение
+								objAccess[flexoSchemesName[i]]['create'] = fields
+							}
+						} else {
+							fields = _.union(userAccess.create,
+								objAccessForOneScheme.create.fieldsAdd);
+							fields = _.difference(fields, objAccessForOneScheme.create.fieldsDel);
+
+							//Проверяем целостность прав на чтение
+							//Права на flexo не должны по полям превышать глобальных прав
+							difference = _.difference( fields, dataFlexoConfig.modify );
+							if( difference.length !== 0 ) {
+								//Логируем нарушение целостности
+								aDescriptioneError.push({
+									type:'loss_integrity',
+									variant: 6,
+									place: 'AccessModuleFlexo.accessDataPreparationForUser',
+									time: new Date().getTime(),
+									descriptione: {
+										flexoSchemesName: flexoSchemesName[i],
+										user: user
+									}
+								});
+
+								//Присутствует нарушение целостности, обрезаем права
+								fields = _.difference( fields, difference );
+							}
+
+							//Сохраняем права на чтение
+							objAccess[flexoSchemesName[i]]['create'] = fields
+						}
+
+					} else {
+						objAccess[flexoSchemesName[i]]['create'] = userAccess['create'];
 					}
 
 					//Права на создание всего документа
-					if( !underscore.isUndefined( objAccessForOneScheme['createAll'] ) ) {
+					if( !_.isUndefined( objAccessForOneScheme['createAll'] ) ) {
 						if( objAccessForOneScheme['createAll'] ) {
 							objAccess[flexoSchemesName[i]]['createAll'] = 1;
 						} else {
 							objAccess[flexoSchemesName[i]]['createAll'] = 0;
 						}
+					} else {
+						objAccess[flexoSchemesName[i]]['create'] = userAccess['createAll'];
 					}
 
 					//Удаление
-					if( !underscore.isUndefined( objAccessForOneScheme['delete'] ) ) {
+					if( !_.isUndefined( objAccessForOneScheme['delete'] ) ) {
 						if( objAccessForOneScheme['delete'] ) {
 							objAccess[flexoSchemesName[i]]['delete'] = 1;
 						} else {
 							objAccess[flexoSchemesName[i]]['delete'] = 0;
 						}
+					} else {
+						objAccess[flexoSchemesName[i]]['delete'] = userAccess['delete'];
 					}
+				} else {
+					objAccess[flexoSchemesName[i]] = objAccessFromRole[flexoSchemesName[i]];
 				}
 			}
 
@@ -633,9 +887,7 @@ function accessDataPreparationForUser( client, user, globalFlexoSchemes, flexoSc
 			}
 		}
 	} );
-};
-
-
+}
 
 /**
  * Удаление модели прав для flexo схемы по роли в redis
@@ -664,6 +916,35 @@ AccessModuleFlexo.deleteForRole = function deleteForRole( client, role, flexoSch
 		}
 	});
 };
+
+/**
+ * Удаление модели прав для flexo схемы и логина пользователя в redis
+ *
+ * @param client - ссылка на клиент redis
+ * @param user - строка, логин пользователя
+ * @param flexoSchemeName - строка, название flexo схемы
+ * @param callback (err, reply)
+ * 		err - ошибка от node_redis
+ * 		reply - - true в случае успешного удаления
+ */
+AccessModuleFlexo.deleteForUser = function deleteForUser( client, user, flexoSchemeName, callback ){
+	var multi = client.multi();
+	var key;
+
+	//Формируем команды на удаление
+	key = strFlexoAccessUserScheme( user, flexoSchemeName );
+	multi.DEL( key );
+	multi.SREM( setUserToAllFlexoSchemeAccess( user ), flexoSchemeName );
+
+	multi.EXEC( function( err ) {
+		if ( err ) {
+			callback( err );
+		} else {
+			callback( null, true );
+		}
+	});
+};
+
 
 //Формирование ключа REDIS (SET) для сохранения связки роли юзера и названия flexo схем по
 // которым у него есть права

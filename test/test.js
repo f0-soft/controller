@@ -167,22 +167,23 @@ exports.testInit = {
 var testData1 = {
 	testObjAccessFlexo: {
 		read: {
-			'managerName': getRandom(0,1),
-			'name': getRandom(0,1),
-			'inn':getRandom(0,1)
+			fieldsAdd:[],
+			fieldsDel:[]
 		},
 		modify: {
-			'managerName': getRandom(0,1),
-			'name': getRandom(0,1),
-			'inn':getRandom(0,1)
+			fieldsAdd:[],
+			fieldsDel:[]
 		},
-		create: {},
+		create: {
+			fieldsAdd:[],
+			fieldsDel:[]
+		},
 		createAll: getRandom(0,1),
 		delete: getRandom(0,1)
 	},
 	userLogin: generatorString(1,10),
 	userRole: generatorString(1,10),
-	flexoSchemeName: generatorString(1,20)
+	flexoSchemeName: 'testUsers'
 };
 
 //Тестирование функций админки связанной с flexo правами
@@ -190,12 +191,47 @@ exports.adminFunctionForFlexoAccess = {
 	//Сохранение flexo прав по пользователю
 	saveAccessForUser: function(test){
 		test.expect(13);
-		//Объект прав
+		//Объект прав пустой
 		var objAccess = testData1.testObjAccessFlexo;
+
 		//Логин пользователя
 		var login = testData1.userLogin;
 		//Название flexo схемы
 		var flexoSchemeName = testData1.flexoSchemeName;
+		//Описание flexo в глобальном объекте
+		var globalFlexo = globalFlexoSchemes[flexoSchemeName];
+
+
+		//Формируем объект прав на чтение
+		for( var i=0; i<globalFlexo.read.length; i++){
+			var access = getRandom(0,1);
+			if ( access ) {
+				objAccess.read.fieldsAdd.push(globalFlexo.read[i]);
+			} else {
+				objAccess.read.fieldsDel.push(globalFlexo.read[i]);
+			}
+		}
+
+		//Формируем объект прав на модификацию
+		for( var i=0; i<globalFlexo.modify.length; i++){
+			var access = getRandom(0,1);
+			if ( access ) {
+				objAccess.modify.fieldsAdd.push(globalFlexo.modify[i]);
+			} else {
+				objAccess.modify.fieldsDel.push(globalFlexo.modify[i]);
+			}
+		}
+
+		//Формируем объект прав на создание
+		for( var i=0; i<globalFlexo.modify.length; i++){
+			var access = getRandom(0,1);
+			if ( access ) {
+				objAccess.create.fieldsAdd.push(globalFlexo.modify[i]);
+			} else {
+				objAccess.create.fieldsDel.push(globalFlexo.modify[i]);
+			}
+		}
+
 
 		//Формируем объект запрос на сохранение
 		var queryForSave = {
@@ -224,18 +260,23 @@ exports.adminFunctionForFlexoAccess = {
 				var keys = Object.keys(reply);
 				test.strictEqual(keys.length, 5, 'Проверка количества типов прав возвращаемых ' +
 					'в сохраненных flexo правах на пользователя');
-				test.strictEqual(reply.read.managerName, testData1.testObjAccessFlexo.read.managerName,
+				test.strictEqual(reply.read.fieldsAdd.length,
+					testData1.testObjAccessFlexo.read.fieldsAdd.length,
 					'Проверка получили ли мы тот же объект, что сохранили');
-				test.strictEqual(reply.read.name, testData1.testObjAccessFlexo.read.name,
+				test.strictEqual(reply.read.fieldsDel.length,
+					testData1.testObjAccessFlexo.read.fieldsDel.length,
 					'Проверка получили ли мы тот же объект, что сохранили');
-				test.strictEqual(reply.read.inn, testData1.testObjAccessFlexo.read.inn,
+				test.strictEqual(reply.modify.fieldsAdd.length,
+					testData1.testObjAccessFlexo.modify.fieldsAdd.length,
 					'Проверка получили ли мы тот же объект, что сохранили');
-				test.strictEqual(reply.modify.managerName,
-					testData1.testObjAccessFlexo.modify.managerName,
+				test.strictEqual(reply.modify.fieldsDel.length,
+					testData1.testObjAccessFlexo.modify.fieldsDel.length,
 					'Проверка получили ли мы тот же объект, что сохранили');
-				test.strictEqual(reply.modify.name, testData1.testObjAccessFlexo.modify.name,
+				test.strictEqual(reply.create.fieldsAdd.length,
+					testData1.testObjAccessFlexo.create.fieldsAdd.length,
 					'Проверка получили ли мы тот же объект, что сохранили');
-				test.strictEqual(reply.modify.inn, testData1.testObjAccessFlexo.modify.inn,
+				test.strictEqual(reply.create.fieldsDel.length,
+					testData1.testObjAccessFlexo.create.fieldsDel.length,
 					'Проверка получили ли мы тот же объект, что сохранили');
 				test.strictEqual(reply.createAll, testData1.testObjAccessFlexo.createAll,
 					'Проверка получили ли мы тот же объект, что сохранили');
@@ -284,12 +325,55 @@ exports.adminFunctionForFlexoAccess = {
 	//Тестируем сохранение flexo прав по роли
 	saveAccessForRole:function(test){
 		test.expect(13);
+		//Обнуляем объект прав
+		testData1.testObjAccessFlexo = {};
 		//Объект flexo прав по роли
 		var objAccess = testData1.testObjAccessFlexo;
 		//Роль пользователя
 		var role = testData1.userRole;
 		//Название flexo схемы
 		var flexoSchemeName = testData1.flexoSchemeName;
+		//Описание flexo в глобальном объекте
+		var globalFlexo = globalFlexoSchemes[flexoSchemeName];
+
+		//Формируем объект прав на чтение
+		var all = getRandom(0,1);
+		objAccess.read = {};
+		objAccess.read['(all)'] = all;
+		objAccess.read.fields = [];
+		for( var i=0; i<globalFlexo.read.length; i++){
+			var access = getRandom(0,1);
+			if ( access ) {
+				objAccess.read.fields.push(globalFlexo.read[i]);
+			}
+		}
+
+		//Формируем объект прав на модификацию
+		var all = getRandom(0,1);
+		objAccess.modify = {};
+		objAccess.modify['(all)'] = all;
+		objAccess.modify.fields = [];
+		for( var i=0; i<globalFlexo.modify.length; i++){
+			var access = getRandom(0,1);
+			if ( access ) {
+				objAccess.modify.fields.push(globalFlexo.modify[i]);
+			}
+		}
+
+		//Формируем объект прав на создание
+		var all = getRandom(0,1);
+		objAccess.create = {};
+		objAccess.create['(all)'] = all;
+		objAccess.create.fields = [];
+		for( var i=0; i<globalFlexo.modify.length; i++){
+			var access = getRandom(0,1);
+			if ( access ) {
+				objAccess.create.fields.push(globalFlexo.modify[i]);
+			}
+		}
+
+		objAccess.createAll = getRandom(0,1);
+		objAccess.delete = getRandom(0,1);
 
 		//Формируем объект запрос на сохранение
 		var queryForSave = {
@@ -317,19 +401,24 @@ exports.adminFunctionForFlexoAccess = {
 				test.ok(reply);
 				var keys = Object.keys(reply);
 				test.strictEqual(keys.length, 5, 'Проверка количества типов прав возвращаемых ' +
-					'в сохраненных flexo правах по пользователя');
-				test.strictEqual(reply.read.managerName, testData1.testObjAccessFlexo.read.managerName,
+					'в сохраненных flexo правах на пользователя');
+				test.strictEqual(reply.read.fields.length,
+					testData1.testObjAccessFlexo.read.fields.length,
 					'Проверка получили ли мы тот же объект, что сохранили');
-				test.strictEqual(reply.read.name, testData1.testObjAccessFlexo.read.name,
+				test.strictEqual(reply.read['(all)'],
+					testData1.testObjAccessFlexo.read['(all)'],
 					'Проверка получили ли мы тот же объект, что сохранили');
-				test.strictEqual(reply.read.inn, testData1.testObjAccessFlexo.read.inn,
+				test.strictEqual(reply.modify.fields.length,
+					testData1.testObjAccessFlexo.modify.fields.length,
 					'Проверка получили ли мы тот же объект, что сохранили');
-				test.strictEqual(reply.modify.managerName,
-					testData1.testObjAccessFlexo.modify.managerName,
+				test.strictEqual(reply.modify['(all)'],
+					testData1.testObjAccessFlexo.modify['(all)'],
 					'Проверка получили ли мы тот же объект, что сохранили');
-				test.strictEqual(reply.modify.name, testData1.testObjAccessFlexo.modify.name,
+				test.strictEqual(reply.create.fields.length,
+					testData1.testObjAccessFlexo.create.fields.length,
 					'Проверка получили ли мы тот же объект, что сохранили');
-				test.strictEqual(reply.modify.inn, testData1.testObjAccessFlexo.modify.inn,
+				test.strictEqual(reply.create['(all)'],
+					testData1.testObjAccessFlexo.create['(all)'],
 					'Проверка получили ли мы тот же объект, что сохранили');
 				test.strictEqual(reply.createAll, testData1.testObjAccessFlexo.createAll,
 					'Проверка получили ли мы тот же объект, что сохранили');
@@ -612,6 +701,7 @@ exports.viewWithoutFlexo = {
 		//Запрашиваем шаблон, и по прикрепленным к socket списку идентификаторов определяем
 		// правильность нахождения разрешенных идентификаторов view
 		getTemplateFromView: function( test ) {
+			testData3.time = new Date().getTime();
 			//Название view
 			var viewName = testData3.viewName;
 			//Роль пользователя
@@ -636,7 +726,7 @@ exports.viewWithoutFlexo = {
 			test.expect( ( listAllowed_vids.length + 4 ) );
 
 			controller.getTemplate( viewName, user, role, socket, function( err, config, template ) {
-				debugger;
+
 				test.ifError(err);
 				test.ok(config);
 				test.strictEqual(template, '', 'Проверка отсутствия шаблона');
@@ -722,6 +812,7 @@ exports.viewWithoutFlexo = {
 		//Запрашиваем шаблон, и по прикрепленным к socket списку идентификаторов определяем
 		// правильность нахождения разрешенных идентификаторов view
 		getTemplateFromView: function( test ) {
+			testData3.time = new Date().getTime();
 			//Название view
 			var viewName = testData3.viewName;
 			//Роль пользователя
@@ -764,8 +855,9 @@ exports.viewWithoutFlexo = {
 		//Проверяем были ли ошибки целостности
 		checkErrorWithLossIntegrity: function ( test ) {
 			test.expect( 2 );
+			var min = testData3.time;
 
-			controller.findErrorLogging({all:true}, function ( err, replies ) {
+			controller.findErrorLogging({min:min}, function ( err, replies ) {
 				test.ifError(err);
 				test.strictEqual(replies.length, 0, 'Проверяем количество ошибок целостности');
 				test.done();
@@ -835,6 +927,7 @@ exports.viewWithoutFlexo = {
 		//Запрашиваем шаблон, и по прикрепленным к socket списку идентификаторов определяем
 		// правильность нахождения разрешенных идентификаторов view
 		getTemplateFromView: function( test ) {
+			testData3.time = new Date().getTime();
 			//Название view
 			var viewName = testData3.viewName;
 			//Название роли пользователя
@@ -881,8 +974,9 @@ exports.viewWithoutFlexo = {
 		//Проверяем были ли ошибки целостности
 		checkErrorWithLossIntegrity: function ( test ) {
 			test.expect( 2 );
+			var min = testData3.time;
 
-			controller.findErrorLogging({all:true}, function ( err, replies ) {
+			controller.findErrorLogging({min:min}, function ( err, replies ) {
 				test.ifError(err);
 				test.strictEqual(replies.length, 0, 'Проверяем количество ошибок целостности');
 				test.done();
@@ -953,6 +1047,7 @@ exports.viewWithoutFlexo = {
 		//Запрашиваем шаблон, и по прикрепленным к socket списку идентификаторов определяем
 		// правильность нахождения разрешенных идентификаторов view
 		getTemplateFromView: function( test ) {
+			testData3.time = new Date().getTime();
 			//Название view
 			var viewName = testData3.viewName;
 			//Роль пользователя
@@ -995,8 +1090,9 @@ exports.viewWithoutFlexo = {
 		//Проверяем были ли ошибки целостности
 		checkErrorWithLossIntegrity: function ( test ) {
 			test.expect( 2 );
+			var min = testData3.time;
 
-			controller.findErrorLogging({all:true}, function ( err, replies ) {
+			controller.findErrorLogging({min:min}, function ( err, replies ) {
 				test.ifError(err);
 				test.strictEqual(replies.length, 0, 'Проверяем количество ошибок целостности');
 				test.done();
@@ -1086,6 +1182,7 @@ exports.viewWithoutFlexo = {
 		//Запрашиваем шаблон, и по прикрепленным к socket списку идентификаторов определяем
 		// правильность нахождения разрешенных идентификаторов view
 		getTemplateFromView: function( test ) {
+			testData3.time = new Date().getTime();
 			//Название view
 			var viewName = testData3.viewName;
 			//Название роли
@@ -1155,8 +1252,9 @@ exports.viewWithoutFlexo = {
 		//Проверяем были ли ошибки целостности
 		checkErrorWithLossIntegrity: function ( test ) {
 			test.expect( 2 );
+			var min = testData3.time;
 
-			controller.findErrorLogging({all:true}, function ( err, replies ) {
+			controller.findErrorLogging({min:min}, function ( err, replies ) {
 				test.ifError(err);
 				test.strictEqual(replies.length, 0, 'Проверяем количество ошибок целостности');
 				test.done();
@@ -1206,11 +1304,7 @@ var testData4 = { //Наполняется генератором в тесте
 	flexoSchemeName: 'testUsers',
 	testRead:{
 		testObjAccessFlexo: {
-			read: {},
-			modify: {},
-			create: {},
-			createAll: 0,
-			delete: 0
+			read: {}
 		},
 		viewNameForRead: 'testView2',
 		testObjViewAccess: {},
@@ -1225,6 +1319,7 @@ var testData4 = { //Наполняется генератором в тесте
 exports.viewWithFlexoReadAccess = {
 	//Сохраняем flexo права по роли
 	saveFlexoReadAccessOnlyForRole: function(test){
+
 		test.expect( 2 );
 		//Объект flexo прав по роли
 		var objAccess = testData4.testRead.testObjAccessFlexo;
@@ -1237,13 +1332,8 @@ exports.viewWithFlexoReadAccess = {
 		// случайного)
 		var notAccess = getRandom(0, (globalFlexoSchemes[flexoSchemeName].read.length - 1) );
 
-		for( var i=0; i < globalFlexoSchemes[flexoSchemeName].read.length; i++ ) {
-			if (i === notAccess) {
-				objAccess.read[globalFlexoSchemes[flexoSchemeName].read[i]] = 0;
-			} else {
-				objAccess.read[globalFlexoSchemes[flexoSchemeName].read[i]] = 1;
-			}
-		}
+		objAccess.read['(all)'] = 1;
+		objAccess.read.fields = [globalFlexoSchemes[flexoSchemeName].read[notAccess]];
 
 		//Формируем запрос на сохранение прав по поли для flexo схемы
 		var queryForSave = {
@@ -1313,6 +1403,8 @@ exports.viewWithFlexoReadAccess = {
 		var objFlexoReadAccess = testData4.testRead.testObjAccessFlexo.read;
 		//Ссылка на глобальный объект с описанием view
 		var globalViewConfig = testObjGlobalViewsConfig[viewName];
+		//Название flexo схемы
+		var flexoSchemeName = testData4.flexoSchemeName;
 
 		//Определяем перечень разрешенных идентификаторов view
 		var listAllowed_vids = [];
@@ -1326,7 +1418,8 @@ exports.viewWithFlexoReadAccess = {
 
 		//Сверяем разрещения на чтение по _vids
 		var list_vidsForRemove = [];
-		var fieldsForRead = Object.keys( objFlexoReadAccess );
+		var fieldsForRead = _.difference(globalFlexoSchemes[flexoSchemeName].read,
+			objFlexoReadAccess.fields);
 		for( var i = 0; i < listAllowed_vids.length; i++ ){
 			if( globalViewConfig[listAllowed_vids[i]].flexo.length !== 0 ){
 				var field = globalViewConfig[listAllowed_vids[i]].flexo[1];
@@ -1526,11 +1619,7 @@ var testData5 = {
 	flexoSchemeName: 'testUsers',
 	testCreate:{
 		testObjAccessFlexo: {
-			read: {},
-			modify: {},
-			create: {},
-			createAll: 0,
-			delete: 0
+			create: {}
 		},
 		viewNameForCreate: 'testView3',
 		testObjViewAccess: {},
@@ -1559,13 +1648,9 @@ exports.viewWithFlexoCreateAccess = {
 		//создание, кроме одного случайного выбранного
 		var notAccess = getRandom(0, (globalFlexoSchemes[flexoSchemeName].modify.length - 1) );
 
-		for( var i=0; i < globalFlexoSchemes[flexoSchemeName].modify.length; i++ ) {
-			if (i === notAccess) {
-				objAccess.create[globalFlexoSchemes[flexoSchemeName].modify[i]] = 0;
-			} else {
-				objAccess.create[globalFlexoSchemes[flexoSchemeName].modify[i]] = 1;
-			}
-		}
+		objAccess.create['(all)'] = 1;
+		objAccess.create.fieldsAdd = [];
+		objAccess.create.fieldsDel = [globalFlexoSchemes[flexoSchemeName].modify[notAccess]];
 
 		//Разрешение на создание документа в целом на схему (используется например для кнопок формы
 		// отображение которых зависит от наличия права создания целиком на схему)
@@ -1641,6 +1726,8 @@ exports.viewWithFlexoCreateAccess = {
 		var objFlexoCreateAllAccess = testData5.testCreate.testObjAccessFlexo.createAll;
 		//Ссылка на глобальный view конфиг для данной view
 		var globalViewConfig = testObjGlobalViewsConfig[viewName];
+		//Название flexo схемы
+		var flexoSchemeName = testData5.flexoSchemeName;
 
 		//Определяем перечень разрешенных идентификаторов view
 		var listAllowed_vids = [];
@@ -1655,7 +1742,8 @@ exports.viewWithFlexoCreateAccess = {
 		//Сверяем разрещения на создание по _vids
 		var list_vidsForRemove = []; //список неразрешенных идентификаторов
 		var listNotFlexo_vids = []; //список идентификаторов не связанных с flexo полями
-		var fieldsForCreate = Object.keys( objFlexoCreateAccess );
+		var fieldsForCreate = _.difference(globalFlexoSchemes[flexoSchemeName].modify,
+			objFlexoCreateAccess.fieldsDel);
 		for( var i = 0; i < listAllowed_vids.length; i++ ){
 
 			if( globalViewConfig[listAllowed_vids[i]].flexo.length !== 0 ){
@@ -1843,17 +1931,11 @@ var testData6 = {
 	testModify:{
 		testObjAccessFlexoRole:{
 			read: {},
-			modify: {},
-			create: {},
-			createAll: 0,
-			delete: 0
+			modify: {}
+
 		},
 		testObjAccessFlexoUser:{
-			read: {},
-			modify: {},
-			create: {},
-			createAll: 0,
-			delete: 0
+			modify: {}
 		},
 		viewNameForModify: 'testView4',
 		testObjViewAccessUser: {},
@@ -1884,33 +1966,26 @@ exports.viewWithFlexoModifyAccess = {
 		//Генерируем права на чтение для роли (это нам необходимо так как поля _id и tsUpdate
 		//используемые для запроса на модификацию доступны во view на чтение и с этими
 		// идентификаторами можно вренуть результат операции модификации)
-		for( var i = 0; i < globalFlexoSchemes[flexoSchemeName].read.length; i++ ) {
-			objAccessForRole.read[globalFlexoSchemes[flexoSchemeName].read[i]] = 1;
-		}
+		objAccessForRole.read['(all)'] = 1;
+		objAccessForRole.read.fields = [];
 
 		//Генерируем права на модификацию для роли (разрешается модификация всех полей с
 		// использованием спец команды '(all)', кроме одного случайно выбранного)
 		var notAccessRole = getRandom(0, (globalFlexoSchemes[flexoSchemeName].modify.length - 1) );
+		objAccessForRole.modify.fields =
+			[globalFlexoSchemes[flexoSchemeName].modify[notAccessRole]];
 
 		//Устанавливаем спец поле '(all)'
 		objAccessForRole.modify['(all)'] = 1;
-
-		for( var i = 0; i < globalFlexoSchemes[flexoSchemeName].modify.length; i++ ) {
-			if (i === notAccessRole) {
-				objAccessForRole.modify[globalFlexoSchemes[flexoSchemeName].modify[i]] = 0;
-			}
-		}
 
 		//Генерируем права на модификацию для пользователя (запрещается модификация всех полей с
 		// использованием спец команды '(all)', кроме одного случайно выбранного)
 		var notAccessUser = getRandom(0, (globalFlexoSchemes[flexoSchemeName].modify.length - 1) );
 		objAccessForUser.modify['(all)'] = 0;
-		for( var i = 0; i < globalFlexoSchemes[flexoSchemeName].modify.length; i++ ) {
-			if (i === notAccessUser) {
-				objAccessForUser.modify[globalFlexoSchemes[flexoSchemeName].modify[i]] = 1;
-				flexoAllowedField = globalFlexoSchemes[flexoSchemeName].modify[i];
-			}
-		}
+		objAccessForUser.modify.fieldsAdd = [globalFlexoSchemes[flexoSchemeName].modify[notAccessRole]];
+		objAccessForUser.modify.fieldsDel = [];
+		flexoAllowedField = globalFlexoSchemes[flexoSchemeName].modify[notAccessRole];
+
 		//Сохраняется одно разрешенное flexo поле в правах
 		testData6.testModify.flexoAllowedField = flexoAllowedField;
 
@@ -2037,7 +2112,7 @@ exports.viewWithFlexoModifyAccess = {
 
 		//Сохраняем разрешенный идентификаторв
 		testData6.testModify._vidAllowed = _vidAllowed;
-
+		debugger
 		controller.getTemplate( viewName, user, role, socket, function( err, config, template ) {
 			test.ifError(err);
 			test.ok(config);
@@ -2222,9 +2297,6 @@ var testData7 = {
 	testDelete:{
 		testObjAccessFlexoRole:{
 			read: {},
-			modify: {},
-			create: {},
-			createAll: 0,
 			delete: 1
 		},
 		viewNameForDelete: 'testView5',
@@ -2245,13 +2317,12 @@ exports.viewWithFlexoDeleteAccess = {
 		var role = testData7.userRole;
 		//Название flexo схемы
 		var flexoSchemeName = testData7.flexoSchemeName;
-
+		debugger
 		//Устанавливаем права на чтение для всех идентификаторов по роли (это нам необходимо
 		// так как поля _id и tsUpdateиспользуемые для запроса на удаление доступны во
 		// view на чтение и с этими идентификаторами можно вернуть результат удаления)
-		for( var i = 0; i < globalFlexoSchemes[flexoSchemeName].read.length; i++ ) {
-			objAccessForRole.read[globalFlexoSchemes[flexoSchemeName].read[i]] = 1;
-		}
+		objAccessForRole.read['(all)'] = 1;
+		objAccessForRole.read.fields = [];
 
 		//Формируем запрос на сохранение прав по роли для flexo схемы
 		var queryForSave = {
@@ -2293,7 +2364,7 @@ exports.viewWithFlexoDeleteAccess = {
 				objAccess: objAccessRole
 			}
 		};
-		debugger;
+
 		controller.create(queryForSave, function( err, reply ) {
 			test.ifError(err);
 			test.ok(reply);
