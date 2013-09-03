@@ -468,26 +468,34 @@ exports.adminFunctionForFlexoAccess = {
 var testData2 = {
 	userLogin: generatorString(1,10),
 	userRole: generatorString(1,10),
-	viewName: generatorString(1,20)
+	viewName: 'testView1'
 };
 
 //Тестирование функций админки связанной с view правами
 exports.adminFunctionForViewAccess = {
 	//Сохраняем права на view по пользователю
 	saveAccessForUser: function(test){
-		//Генерируем объект прав
-		var objAccess = {};
-		var count = getRandom(1, 100);
-		for( var i = 0; i < count; i++ ) {
-			objAccess[i] = getRandom(0,1);
-		}
-
-		test.expect((count+5));
+		test.expect(6);
 
 		//Логин пользователя
 		var login = testData2.userLogin;
 		//Название view
 		var viewName = testData2.viewName;
+
+		//Генерируем объект прав
+		var objAccess = {};
+		objAccess.viewIdsAdd = [];
+		objAccess.viewIdsDel = [];
+
+		var listOfViewIds = Object.keys(testObjGlobalViewsConfig[viewName]);
+		for( var i = 0; i < listOfViewIds.length; i++ ) {
+			var access = getRandom(0,1);
+			if ( access ) {
+				objAccess.viewIdsAdd.push(listOfViewIds[i]);
+			} else {
+				objAccess.viewIdsDel.push(listOfViewIds[i]);
+			}
+		}
 
 		//Формируем объект запрос на сохранение
 		var queryForSave = {
@@ -513,13 +521,13 @@ exports.adminFunctionForViewAccess = {
 			controller.find(queryForRead, function( err, reply ) {
 				test.ifError(err);
 				test.ok(reply);
-				var keys = Object.keys(reply);
-				test.strictEqual(keys.length, count, 'Проверка количества _vids возвращаемых ' +
-					'в сохраненных view правах по пользователя');
-				for( var i = 0; i < count; i++ ) {
-					test.strictEqual(reply[i], objAccess[i],
-						'Проверка получили ли мы тот же объект, что сохранили');
-				}
+				test.strictEqual(objAccess.viewIdsAdd.length, reply.viewIdsAdd.length,
+					'Проверка количества разрешенных _vids возвращаемых в сохраненных view ' +
+						'правах по пользователя');
+				test.strictEqual(objAccess.viewIdsDel.length, reply.viewIdsDel.length,
+					'Проверка количества неразрешенных _vids возвращаемых в сохраненных view ' +
+						'правах по пользователя');
+
 				test.done();
 			});
 		});
@@ -562,18 +570,25 @@ exports.adminFunctionForViewAccess = {
 	},
 	//Тестируем сохранение view прав по роли
 	saveAccessForRole: function(test){
-		//Генерируем объект прав
-		var objAccess = {};
-		var count = getRandom(1, 100);
-		for( var i = 0; i < count; i++ ) {
-			objAccess[i] = getRandom(0,1);
-		}
+		test.expect(6);
 
-		test.expect((count+5));
 		//Роль пользователя
 		var role = testData2.userRole;
 		//Название view
 		var viewName = testData2.viewName;
+
+		//Генерируем объект прав
+		var objAccess = {};
+		objAccess['(all)'] = 1;
+		objAccess.viewIds = [];
+
+		var listOfViewIds = Object.keys(testObjGlobalViewsConfig[viewName]);
+		for( var i = 0; i < listOfViewIds.length; i++ ) {
+			var access = getRandom(0,1);
+			if ( !access ) {
+				objAccess.viewIds.push(listOfViewIds[i]);
+			}
+		}
 
 		//Формируем объект запрос на сохранение
 		var queryForSave = {
@@ -599,13 +614,10 @@ exports.adminFunctionForViewAccess = {
 			controller.find(queryForRead, function( err, reply ) {
 				test.ifError(err);
 				test.ok(reply);
-				var keys = Object.keys(reply);
-				test.strictEqual(keys.length, count, 'Проверка количества _vids возвращаемых ' +
-					'в сохраненных view правах по роли');
-				for( var i = 0; i < count; i++ ) {
-					test.strictEqual(reply[i], objAccess[i],
-						'Проверка получили ли мы тот же объект, что сохранили');
-				}
+				test.ok(reply['(all)']);
+				test.strictEqual(objAccess.viewIds.length, reply.viewIds.length,
+					'Проверка количества разрешенных _vids возвращаемых в сохраненных view ' +
+						'правах по пользователя');
 				test.done();
 			});
 		});
@@ -671,16 +683,10 @@ exports.viewWithoutFlexo = {
 			//Объект с правами (пустой)
 			var objAccess = testData3.objAccessForRole;
 
-			//Генерируем объект прав по роли для view (есть разрешения на все идентификаторы, кроме
-			// одного случайно выбранного)
+			//Генерируем объект прав по роли для view (есть разрешения на все идентификаторы)
 			var _vids = Object.keys(testObjGlobalViewsConfig[viewName]);
-
-			for( var i = 0; i < _vids.length; i++ ) {
-				objAccess[_vids[i]] = getRandom(0,1);
-				if( i === (  _vids.length - 1 ) ) {
-					objAccess[_vids[i]] = 1;
-				}
-			}
+			objAccess['(all)'] = 1;
+			objAccess.viewIds = [];
 
 			//Формируем объект запрос на сохранение прав
 			var queryForSave = {
@@ -715,16 +721,10 @@ exports.viewWithoutFlexo = {
 
 			//Анализируем объект прав и Формируем список разрешенных идентификаторов, по которому
 			//будем сверять результат
-			var _vids = Object.keys(objAccess);
-			var listAllowed_vids = [];
-			for( var i = 0; i < _vids.length; i++ ){
-				if ( objAccess[_vids[i]] === 1 ) {
-					listAllowed_vids.push(_vids[i]);
-				}
-			}
+			var listAllowed_vids = Object.keys(testObjGlobalViewsConfig[viewName]);
 
 			test.expect( ( listAllowed_vids.length + 4 ) );
-
+			debugger
 			controller.getTemplate( viewName, user, role, socket, function( err, config, template ) {
 
 				test.ifError(err);
@@ -789,7 +789,7 @@ exports.viewWithoutFlexo = {
 			objAccess['(all)'] = 1;
             //Указываем дополнительно, что один случайный идентификатор запрещен
 			var notAllowed_vid = _vids[getRandom(0, ( _vids.length - 1 ) )];
-			objAccess[notAllowed_vid] = 0;
+			objAccess.viewIds = [notAllowed_vid];
 
 			testData3.notAllowed_vid = notAllowed_vid;
 
@@ -901,10 +901,15 @@ exports.viewWithoutFlexo = {
 			//Генерируем объект прав по роли для view
 			var _vids = Object.keys(testObjGlobalViewsConfig[viewName]);
 
+			objAccess.viewIdsAdd = [];
+			objAccess.viewIdsDel = [];
+
 			for( var i = 0; i < _vids.length; i++ ) {
-				objAccess[_vids[i]] = getRandom(0,1);
-				if( i === (  _vids.length - 1 ) ) {
-					objAccess[_vids[i]] = 1;
+				var access = getRandom(0,1);
+				if ( access ) {
+					objAccess.viewIdsAdd.push( _vids[i] );
+				} else {
+					objAccess.viewIdsDel.push( _vids[i] );
 				}
 			}
 
@@ -941,13 +946,7 @@ exports.viewWithoutFlexo = {
 
 			//Формируем список разрешенных идентификаторов по объекту прав для будущего сравнения с
 			//результами прикрепленными к socket
-			var _vids = Object.keys(objAccess);
-			var listAllowed_vids = [];
-			for( var i = 0; i < _vids.length; i++ ){
-				if ( objAccess[_vids[i]] === 1 ) {
-					listAllowed_vids.push(_vids[i]);
-				}
-			}
+			var listAllowed_vids = objAccess.viewIdsAdd;
 
 			test.expect( ( listAllowed_vids.length + 4 ) );
 
@@ -1024,7 +1023,8 @@ exports.viewWithoutFlexo = {
 			objAccess['(all)'] = 1;
 			//Указываем дополнительно, что один идентификатор запрещен
 			var notAllowed_vid = _vids[getRandom(0, ( _vids.length - 1 ) )];
-			objAccess[notAllowed_vid] = 0;
+			objAccess.viewIdsDel = [notAllowed_vid];
+			objAccess.viewIdsAdd = [];
 
 			testData3.notAllowed_vid = notAllowed_vid;
 
@@ -1144,9 +1144,18 @@ exports.viewWithoutFlexo = {
 			//Генерируем объект прав по роли и по пользователю для view
 			var _vids = Object.keys(testObjGlobalViewsConfig[viewName]);
 
+			objAccessRole['(all)'] = 1;
+			objAccessRole.viewIds = [];
+			objAccessUser.viewIdsAdd = [];
+			objAccessUser.viewIdsDel = [];
+
 			for( var i = 0; i < _vids.length; i++ ) {
-				objAccessRole[_vids[i]] = getRandom(0,1);
-				objAccessUser[_vids[i]] = getRandom(0,1);
+				var access = getRandom(0,1);
+				if ( access ) {
+					objAccessUser.viewIdsAdd.push(_vids[i]);
+				} else {
+					objAccessUser.viewIdsDel.push(_vids[i]);
+				}
 			}
 
 			//Формируем объект запрос на сохранение прав
@@ -1197,35 +1206,14 @@ exports.viewWithoutFlexo = {
 			var socket = {};
 
 			//Формируем список разрешенных идентификаторов по объекту прав
-			var _vidsFromRole = Object.keys(objAccessRole);
-			var _vidsFromUser = Object.keys(objAccessUser);
+			var _vidsFromRole = Object.keys(testObjGlobalViewsConfig[viewName]);
+
 			//Общий список разрешенных идентификаторов
 			var listAllowed_vids = [];
-			//Списка разрешенных и запрещенных идентификаторов view по роли и по пользователю
-			var addRole = [];
-			var delRole = [];
-			var addUser = [];
-			var delUser = [];
 
-			for( var i = 0; i < _vidsFromRole.length; i++ ){
-				if ( objAccessRole[_vidsFromRole[i]] === 1 ) {
-					addRole.push(_vidsFromRole[i]);
-				} else {
-					delRole.push(_vidsFromRole[i]);
-				}
-			}
-
-			for( var i = 0; i < _vidsFromUser.length; i++ ){
-				if ( objAccessUser[_vidsFromUser[i]] === 1 ) {
-					addUser.push(_vidsFromUser[i]);
-				} else {
-					delUser.push(_vidsFromUser[i]);
-				}
-			}
 			//Пересекаем права на view
-			listAllowed_vids = underscore.difference(addRole, delRole);
-			listAllowed_vids = underscore.union(listAllowed_vids, addUser);
-			listAllowed_vids = underscore.difference(listAllowed_vids, delUser);
+			listAllowed_vids = underscore.union(_vidsFromRole, objAccessUser.viewIdsAdd);
+			listAllowed_vids = underscore.difference(listAllowed_vids, objAccessUser.viewIdsDel);
 
 			test.expect( ( listAllowed_vids.length + 4 ) );
 
@@ -1363,11 +1351,9 @@ exports.viewWithFlexoReadAccess = {
 
 		//Наполняем разрешениями view (все идентификаторы из глобальной переменной разрешены на
 		// чтение)
-		var listOf_vids = Object.keys(testObjGlobalViewsConfig[viewName]);
+		objAccess['(all)'] = 1;
+		objAccess.viewIds = [];
 
-		for(var i = 0; i < listOf_vids.length; i++ ) {
-			objAccess[listOf_vids[i]] = 1;
-		}
 
 		//Формируем объект запрос на сохранение прав
 		var queryForSave = {
@@ -1407,14 +1393,8 @@ exports.viewWithFlexoReadAccess = {
 		var flexoSchemeName = testData4.flexoSchemeName;
 
 		//Определяем перечень разрешенных идентификаторов view
-		var listAllowed_vids = [];
-		var _vids = Object.keys(objViewAccess);
+		var listAllowed_vids = Object.keys(globalViewConfig);
 
-		for( var i = 0; i < _vids.length; i++ ){
-			if( objViewAccess[_vids[i]] === 1 ) {
-				listAllowed_vids.push(_vids[i]);
-			}
-		}
 
 		//Сверяем разрещения на чтение по _vids
 		var list_vidsForRemove = [];
@@ -1684,11 +1664,9 @@ exports.viewWithFlexoCreateAccess = {
 
 		//Наполняем разрешениями view (разрешены все идентификаторы входящие в глобальное описание
 		// данной view
-		var listOf_vids = Object.keys(testObjGlobalViewsConfig[viewName]);
-
-		for(var i = 0; i < listOf_vids.length; i++ ) {
-			objAccess[listOf_vids[i]] = 1;
-		}
+        objAccess['(all)'] = 1;
+		objAccess.viewIdsAdd = [];
+		objAccess.viewIdsDel = [];
 
 		//Формируем объект запрос на сохранение прав
 		var queryForSave = {
@@ -1730,14 +1708,7 @@ exports.viewWithFlexoCreateAccess = {
 		var flexoSchemeName = testData5.flexoSchemeName;
 
 		//Определяем перечень разрешенных идентификаторов view
-		var listAllowed_vids = [];
-		var _vids = Object.keys(objViewAccess);
-
-		for( var i = 0; i < _vids.length; i++ ){
-			if( objViewAccess[_vids[i]] === 1 ) {
-				listAllowed_vids.push(_vids[i]);
-			}
-		}
+		var listAllowed_vids = Object.keys(globalViewConfig);
 
 		//Сверяем разрещения на создание по _vids
 		var list_vidsForRemove = []; //список неразрешенных идентификаторов
@@ -2035,14 +2006,21 @@ exports.viewWithFlexoModifyAccess = {
 
 		//Наполняем разрешениями view для роли случайным образом
 		var listOf_vids = Object.keys(testObjGlobalViewsConfig[viewName]);
+		objAccessRole['(all)'] = 0;
+		objAccessRole.viewIds = [];
 
 		for(var i = 0; i < listOf_vids.length; i++ ) {
-			objAccessRole[listOf_vids[i]] = getRandom(0, 1);
+			var access = getRandom(0, 1);
+			if (access){
+				objAccessRole.viewIds.push(listOf_vids[i]);
+			}
 		}
 
 		//Наполняем разрешениями view для пользователя (разрешены все идентификаторы с
 		// использованием спец команды '(all)'
 		objAccessUser['(all)'] = 1;
+		objAccessUser.viewIdsAdd = [];
+		objAccessUser.viewIdsDel = [];
 
 		//Формируем объект запрос на сохранение прав по пользователю
 		var queryForSave = {
@@ -2350,11 +2328,8 @@ exports.viewWithFlexoDeleteAccess = {
 		var viewName = testData7.testDelete.viewNameForDelete;
 
 		//Наполняем разрешениями view для роли (все идентификаторы разрешены)
-		var listOf_vids = Object.keys(testObjGlobalViewsConfig[viewName]);
-
-		for(var i = 0; i < listOf_vids.length; i++ ) {
-			objAccessRole[listOf_vids[i]] = 1;
-		}
+		objAccessRole['(all)'] = 1;
+		objAccessRole.viewIds = [];
 
 		//Формируем объект запрос на сохранение прав по роли
 		var queryForSave = {

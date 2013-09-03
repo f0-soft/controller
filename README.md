@@ -36,11 +36,11 @@ var Controller = require('controller');
     * reply - логическое, возвращается true в случае успешной инициализации контроллера.
 
 ## Примеры объектов прав для view и flexo
-Шаблон объекта прав для view (объект прав обезательно содержит спец. команду '(all)', и 'viewIds'):
+Шаблон объекта прав для view по роли (объект прав обезательно содержит спец. команду '(all)', и 'viewIds'):
 * '(all)' - число, 0 - если запрещены все viewId, 1 - если разрешены все viewId
 * 'viewIds' - массив, содержит в себе список идентификаторов которые выступают в качестве исключения из правила установленное командой '(all)'
 
-Примеры объекта прав для view:
+Примеры объекта прав для view по роли:
 '''
     var testObjAccess1 = {
         '(all)':0,
@@ -52,7 +52,30 @@ var Controller = require('controller');
     };
 '''
 
-Шаблон объекта прав для одной flexo схемы:
+Шаблон объекта прав для view по пользователю (объект прав обезательно содержит 'viewIdsAdd' и 'viewIdsDel'):
+* ['(all)'] - число, 0 - если запрещены все viewId, 1 - если разрешены все viewId
+* 'viewIdsAdd' - массив, содержит в себе список идентификаторов которые разрешены
+* 'viewIdsDel' - массив, содержит в себе список идентификаторов которые запрещены
+
+Примеры объекта прав для view по пользователю:
+'''
+    var testObjAccess1 = {
+        '(all)':0,
+        'viewIdsAdd':['a1', 'f2', ...],
+        'viewIdsDel':[]
+    };
+    var testObjAccess2 = {
+        '(all)':1,
+        'viewIdsAdd':[],
+        'viewIdsDel':['a1', 'f2', ...]
+    };
+    var testObjAccess3 = {
+        'viewIdsAdd':['b1', 'g2', ...],
+        'viewIdsDel':['a1', 'f2', ...]
+    };
+'''
+
+Шаблон объекта прав для одной flexo схемы по роли:
 {read: { '(all)': access, 'fields': [] }, modify: { '(all)': access, 'fields': [] }, create: { '(all)': access, 'fields': [] }, createAll:access, delete: access}, где:
 * [read] - объект, содержащий в себе поля flexo c указанием доступа на чтение (обезательно содержит спец. команду '(all)'  и 'fields')
 * [modify] - объект, содержащий в себе поля flexo c указанием доступа на модификацию (обезательно содержит спец. команду '(all)' и 'fields')
@@ -76,6 +99,40 @@ var Controller = require('controller');
         create: {
             '(all)':1,
             'fields':['field1', 'field2', ...]
+        },
+        createAll: 0,
+        delete: 1
+    };
+'''
+
+Шаблон объекта прав для одной flexo схемы по пользоватлю:
+{read: { '(all)': access, 'fieldsAdd': [], 'fieldsDel': [] }, modify: { '(all)': access, 'fieldsAdd': [], 'fieldsDel': [] }, create: { '(all)': access, 'fieldsAdd': [], 'fieldsDel': [] }, createAll:access, delete: access}, где:
+* [read] - объект, содержащий в себе поля flexo c указанием доступа на чтение (обезательно содержит спец. команду '(all)'  и 'fields')
+* [modify] - объект, содержащий в себе поля flexo c указанием доступа на модификацию (обезательно содержит спец. команду '(all)' и 'fields')
+* [create] - объект, содержащий в себе поля flexo c указанием доступа на создание (обезательно содержит спец. команду '(all)' и 'fields')
+* [createAll] - числовой, содержит в себе разрешение на создание flexo документа в целом (если явно не указан, значение будет проставлено автоматически)
+* [delete] - числовой, содержит в себе разрешение на удаление flexo документа в целом
+* ['(all)']  - число, 0 - если запрещены все поля flexo, 1 - если разрешены все поля flexo
+* 'fieldsAdd' - массив, содержит в себе список flexo полей которые разрешены
+* 'fieldsDel' - массив, содержит в себе список flexo полей которые запрещены
+
+
+Пример объекта прав для flexo:
+'''
+    var testObjAccess = {
+        read: {
+            '(all)':0,
+            'fieldsAdd':['field1', 'field2', ...],
+            'fieldsDel':[]
+        },
+        modify: {
+            'fieldsAdd':['field1', 'field2', ...],
+            'fieldsDel':['field8', 'field9', ...]
+        },
+        create: {
+            '(all)':1,
+            'fieldsAdd':[],
+            'fieldsDel':['field1', 'field2', ...]
         },
         createAll: 0,
         delete: 1

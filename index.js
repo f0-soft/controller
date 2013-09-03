@@ -3,8 +3,7 @@ var sys = require('sys');
 var async = require('async');
 var underscore = require('underscore');
 
-var AccessModuleRoleView = require('./modules/access_module_role_view.js');
-var AccessModuleUserView = require('./modules/access_module_user_view.js');
+var AccessModuleView = require('./modules/access_module_view.js');
 var AccessModuleFlexo = require('./modules/access_module_flexo.js');
 
 var ModuleErrorLogging = require('./modules/module_error_logging.js');
@@ -27,7 +26,6 @@ var DELETE = 'delete';
 
 var MIN_DATETIME = 1359662400000;
 var MAX_DATETIME = 1517428800000;
-
 
 module.exports = Controller;
 
@@ -159,16 +157,15 @@ Controller.create = function create( query, callback ) {
 		if ( query.access.viewName ) {
 			//Запрос на создание прав view
 			if ( query.access.role ) {
+
 				//Запрос на создание прав view по роли
-				//ToDo:проверка на целостность пришедших данных
-				AccessModuleRoleView.save( client, query.access.role, query.access.viewName,
-					query.access.objAccess, callback );
+				AccessModuleView.saveForRole( client, query.access.role, query.access.viewName,
+					query.access.objAccess, globalViewConfig[query.access.viewName], callback );
 			} else if ( query.access.login ) {
+
 				//Запрос на создание прав view по пользователю
-				//ToDo:проверка на целостность пришедших данных
-				//Создаем модель прав по пользователю для view
-				AccessModuleUserView.save( client, query.access.login, query.access.viewName,
-					query.access.objAccess, callback );
+				AccessModuleView.saveForUser( client, query.access.login, query.access.viewName,
+					query.access.objAccess, globalViewConfig[query.access.viewName], callback );
 
 			} else {
 				callback( new Error( 'Controller: Not set role or login in query: '
@@ -289,12 +286,12 @@ Controller.find = function find( query, callback ) {
 				//Запрос на чтение прав view по роли
 
 				//Запрашиваемый искомый объект прав
-				AccessModuleRoleView.find( client, query.access.role, query.access.viewName,
+				AccessModuleView.findForRole( client, query.access.role, query.access.viewName,
 					callback );
 			} else if ( query.access.login ) {
 				//Запрос на чтение прав view по пользователю
 				//Запрашиваемый искомый объект прав
-				AccessModuleUserView.find( client, query.access.login, query.access.viewName,
+				AccessModuleView.findForUser( client, query.access.login, query.access.viewName,
 					callback );
 
 			} else {
@@ -373,12 +370,12 @@ Controller.delete = function del( query, callback ) {
 			if ( query.access.role ) {
 				//Запрос на удаление прав view по роли
 				//Создаем модель прав по роли для view
-				AccessModuleRoleView.delete( client, query.access.role, query.access.viewName,
+				AccessModuleView.deleteForRole( client, query.access.role, query.access.viewName,
 					callback );
 			} else if ( query.access.login ) {
 				//Запрос на удаление прав view по пользователю
 				//Удаляем запрашиваемый объект прав
-				AccessModuleUserView.delete( client, query.access.login, query.access.viewName,
+				AccessModuleView.deleteForUser( client, query.access.login, query.access.viewName,
 					callback );
 			} else {
 				callback( new Error( 'Controller: Not set role or login in query: '
@@ -446,16 +443,12 @@ Controller.modify = function modify( query, callback ) {
 			//Запрос на создание прав view
 			if ( query.access.role ) {
 				//Запрос на создание прав view по роли
-
-				//Создаем модель прав по роли для view
-				AccessModuleRoleView.save( client, query.access.role, query.access.viewName,
-					query.access.objAccess, callback );
+				AccessModuleView.save( client, query.access.role, query.access.viewName,
+					query.access.objAccess, globalViewConfig[query.access.viewName], callback );
 			} else if ( query.access.login ) {
 				//Запрос на создание прав view по пользователю
-
-				//Создаем модель прав по пользователю для view
-				AccessModuleUserView.save( client, query.access.login, query.access.viewName,
-					query.access.objAccess, callback );
+				AccessModuleView.save( client, query.access.login, query.access.viewName,
+					query.access.objAccess, globalViewConfig[query.access.viewName], callback );
 			} else {
 				callback( new Error( 'Not set role or login in query: '
 					+ JSON.stringify( query ) ) );
@@ -463,8 +456,6 @@ Controller.modify = function modify( query, callback ) {
 		} else if ( query.access.flexoSchemeName ) {
 			if ( query.access.role ) {
 				//Запрос на создание прав flexo по роли
-
-				//Создаем модель прав по роли для flexo схемы
 				AccessModuleFlexo.saveForRole( client, query.access.role,
 					query.access.flexoSchemeName, query.access.objAccess, callback );
 			} else if ( query.access.login ) {
@@ -910,7 +901,8 @@ function checkDelete( viewName, queries, listOfAllowed_vids ) {
 function formingFlexoAndView( user, role, viewName, callback ){
 
 	//Формируем объект с правами для view
-	crossingAccessForView( user, role, viewName, function( err, listAllowedOf_vid ) {
+	AccessModuleView.accessPreparation( client, role, user, viewName, globalViewConfig[viewName],
+		function( err, listAllowedOf_vid ) {
 		if( err ) {
 			callback ( err );
 		} else if ( listAllowedOf_vid.length === 0 ) {
@@ -975,7 +967,8 @@ function formingFlexoAndView( user, role, viewName, callback ){
 
 			if ( listOfFlexoSchemes.length ) {
 				//Подготавливаем объект с правами для view
-				crossingAccessForFlexo( user, role, listOfFlexoSchemes, function(err, flexoAccess ){
+				AccessModuleFlexo.accessDataPreparation( client, role, user, listOfFlexoSchemes,
+					globalFlexoSchemes, function( err, flexoAccess ){
 					if( err ){
 						callback( err );
 					} else {
@@ -1079,97 +1072,6 @@ function formingFlexoAndView( user, role, viewName, callback ){
 
 		}
 	} );
-}
-
-function crossingAccessForFlexo( user, role, flexoSchemes, callback ) {
-
-	//Запрашиваемый данные о правах для определения пересечения
-	AccessModuleFlexo.accessDataPreparation( client, role, user, flexoSchemes, globalFlexoSchemes,
-		function( err, objAccess ) {
-		if( err ) {
-			callback ( err )
-		} else {
-			callback( null, objAccess );
-		}
-	} );
-}
-
-function crossingAccessForView( user, role, viewName, callback ) {
-	//Запрашиваемый данные о правах для определения пересечения
-	async.parallel( [
-		function(cb){
-			AccessModuleRoleView.find( client, role, viewName, function( err, objAccess ) {
-				if ( err && err.message === 'Controller: No requested object access (role: ' +
-					role +', viewName: ' + viewName + ')' ) {
-					cb( null, {add:[], del:[]} );
-				} else if ( err ) {
-					cb( err );
-				} else {
-					cb( null, AccessModuleRoleView.accessPreparation( objAccess,
-						globalViewConfig[viewName] ) );
-				}
-			} );
-		},
-		function(cb){
-			AccessModuleUserView.find( client, user, viewName, function( err, objAccess ) {
-				if ( err && err.message === 'Controller: No requested object access (user: ' +
-					user +', viewName: ' + viewName + ')' ) {
-					cb( null, {add:[], del:[]});
-				} else if ( err ) {
-					cb( err );
-				} else {
-					cb( null, AccessModuleUserView.accessPreparation( objAccess,
-						globalViewConfig[viewName] ) );
-				}
-			} );
-		}
-	],
-		function( err, replies ) {
-			if( err ) {
-				callback ( err )
-			} else {
-				//Определение пересечения прав
-				var objAccessRole = replies[0];
-				var objAccessUser = replies[1];
-				//Объект хранящий готовое пересечение прав
-				var listOf_vid = objAccessRole.add;
-				listOf_vid = underscore.difference( listOf_vid, objAccessRole.del );
-				listOf_vid = underscore.union( listOf_vid, objAccessUser.add );
-				listOf_vid = underscore.difference( listOf_vid, objAccessUser.del );
-
-				callback( null, listOf_vid );
-
-			}
-		}
-	);
-}
-
-function crossingAccess ( method, scheme, objAccessRole, objAccessUser, objAccessArg ) {
-	var fields = [];
-	var addFields = [];
-	var removeFields = [];
-	var objAccess = underscore.clone( objAccessArg );
-
-	if( objAccessRole[scheme] && objAccessRole[scheme][method] ) {
-		fields = objAccessRole[scheme][method];
-	}
-
-	if( objAccessUser[scheme] && objAccessUser[scheme][method] ) {
-		addFields = objAccessUser[scheme][method][0];
-		removeFields = objAccessUser[scheme][method][1];
-	}
-
-	var permisionFields = underscore.union( fields, addFields );
-	permisionFields = underscore.difference( permisionFields, removeFields );
-
-	if( permisionFields.length !== 0 ) {
-		if ( !objAccess[method] ) {
-			objAccess[method] = {};
-		}
-		objAccess[method][scheme] = permisionFields;
-	}
-
-	return objAccess;
 }
 
 Controller.findErrorLogging = function findErrorLogging( options, callback ){
