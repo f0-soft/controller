@@ -259,7 +259,7 @@ Controller.find = function find( query, callback ) {
 					callback( null, replies );
 				}
 			} );
-		} if ( query.user.allViewsRole ) {
+		} else if ( query.user.allViewsRole ) {
 			ModuleUser.findListOfViewsRole(client, query.user.allViewsRole, function( err, replies ) {
 				if ( err ) {
 					callback( err );

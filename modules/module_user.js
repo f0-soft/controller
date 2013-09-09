@@ -285,6 +285,7 @@ ModuleUser.delete = function del(client, _id, login, callback){
 
 				multi.SMEMBERS( setUserToAllFlexoSchemeAccess( login ) );
 				multi.SMEMBERS( setUserToAllViewAccess( login ) );
+				multi.GET( strUserCache( _id ) );
 
 				multi.EXEC(function(err, replies){
 					if ( err ) {
@@ -294,6 +295,8 @@ ModuleUser.delete = function del(client, _id, login, callback){
 						var listOfFlesoScheme = replies[0] || [];
 						//Список названий view у которых есть права связанные с данным юзером
 						var listOfView = replies[1] || [];
+						//Объект с данными о пользователе
+						var cache = JSON.parse(replies[2]);
 
 						//Формируем команды на удаление пользователя
 						var multi = client.multi();
@@ -313,6 +316,9 @@ ModuleUser.delete = function del(client, _id, login, callback){
 						}
 						multi.DEL( setUserToAllFlexoSchemeAccess( login ) );
 
+						//Удаляем привязку роли и пользователя
+						multi.SREM( setRoleToAllUser( cache['role'] ), login );
+
 						multi.EXEC(function( err, replies ) {
 							if ( err ) {
 								callback( err );
@@ -330,46 +336,55 @@ ModuleUser.delete = function del(client, _id, login, callback){
 		} );
 	} else if ( login ) {
 
-		var multi = client.multi();
-		//Получаем _id пользователя
-		multi.GET( strLoginToId( login ) );
-		//Формируем запросы для получения связанных c ним объектов flexo и view прав
-		multi.SMEMBERS( setUserToAllFlexoSchemeAccess( login ) );
-		multi.SMEMBERS( setUserToAllViewAccess( login ) )
-
-		multi.EXEC( function(err, replies) {
+		client.GET( strLoginToId( login ), function( err, _id) {
 			if ( err ) {
 				callback( err );
-			} else if ( replies[0] ) {
-				var _id = replies[0];
-				//Список названий view у которых есть права связанные с данным юзером
-				var listOfFlesoScheme = replies[1] || [];
-				//Список названий view у которых есть права связанные с данным юзером
-				var listOfView = replies[2] || [];
-
-				//Формируем команды на удаление пользователя
+			} else if ( _id ) {
 				var multi = client.multi();
-				multi.DEL( strUserCache( _id ) );
-				multi.DEL( strIdToLogin( _id ) );
-				multi.DEL( strLoginToId( login ) );
-				//Удаляем из списка логинов
-				multi.SREM( setListOfLogin(), login );
-				//Удаляем связанные с юзером объекты прав view
-				for( var i = 0; i < listOfView.length; i++ ) {
-					multi.DEL( strViewAccessUser( login, listOfView[i] ) );
-				}
-				multi.DEL( setUserToAllViewAccess( login ) );
-				//Удаляем связанные с юзером объекты прав flexo
-				for( var i = 0; i < listOfFlesoScheme.length; i++ ) {
-					multi.DEL( strFlexoAccessUserScheme( login, listOfFlesoScheme[i] ) );
-				}
-				multi.DEL( setUserToAllFlexoSchemeAccess( login ) );
+				//Формируем запросы для получения связанных c ним объектов flexo и view прав
+				multi.SMEMBERS( setUserToAllFlexoSchemeAccess( login ) );
+				multi.SMEMBERS( setUserToAllViewAccess( login ) );
+				multi.GET( strUserCache( _id ) );
 
-				multi.EXEC(function( err, replies ) {
+				multi.EXEC( function(err, replies) {
 					if ( err ) {
 						callback( err );
 					} else {
-						callback( null, true );
+						//Список названий view у которых есть права связанные с данным юзером
+						var listOfFlesoScheme = replies[0] || [];
+						//Список названий view у которых есть права связанные с данным юзером
+						var listOfView = replies[1] || [];
+						//Объект с данными о пользователе
+						var cache = JSON.parse(replies[2]);
+
+						//Формируем команды на удаление пользователя
+						var multi = client.multi();
+						multi.DEL( strUserCache( _id ) );
+						multi.DEL( strIdToLogin( _id ) );
+						multi.DEL( strLoginToId( login ) );
+						//Удаляем из списка логинов
+						multi.SREM( setListOfLogin(), login );
+						//Удаляем связанные с юзером объекты прав view
+						for( var i = 0; i < listOfView.length; i++ ) {
+							multi.DEL( strViewAccessUser( login, listOfView[i] ) );
+						}
+						multi.DEL( setUserToAllViewAccess( login ) );
+						//Удаляем связанные с юзером объекты прав flexo
+						for( var i = 0; i < listOfFlesoScheme.length; i++ ) {
+							multi.DEL( strFlexoAccessUserScheme( login, listOfFlesoScheme[i] ) );
+						}
+						multi.DEL( setUserToAllFlexoSchemeAccess( login ) );
+
+						//Удаляем привязку роли и пользователя
+						multi.SREM( setRoleToAllUser( cache['role'] ), login );
+
+						multi.EXEC(function( err, replies ) {
+							if ( err ) {
+								callback( err );
+							} else {
+								callback( null, true );
+							}
+						} );
 					}
 				} );
 			} else {
@@ -378,7 +393,7 @@ ModuleUser.delete = function del(client, _id, login, callback){
 			}
 		} );
 	} else {
-		throw new Error( 'Controller: Not set _id in delete query. ' );
+		throw new Error( 'Controller: Not set _id or login in delete query. ' );
 	}
 };
 
