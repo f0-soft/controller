@@ -11,14 +11,27 @@ ModuleErrorLogging.save = function save( client, aDescriptionesErrors, callback 
 	for( var i = 0; i < aDescriptionesErrors.length; i++ ) {
 		multi.ZADD( key, aDescriptionesErrors[i].time, JSON.stringify(aDescriptionesErrors[i]));
 	}
-	//ToDo:Временно сохраняем ключ в множество для быстрого удаления всех прав
-	multi.SADD( setAllAccess, key );
 
     multi.EXEC( function( err ) {
 		if ( err ) {
 			callback( err );
 		} else {
 			callback( null, true );
+		}
+	});
+};
+
+ModuleErrorLogging.saveAndReturnError = function save( client, aDescriptioneError, callback ){
+	//Сохранение объекта прав в redis
+	var key = zsetErrorLoging();
+	//ToDo:Проверка объекта objDescriptioneError
+
+	client.ZADD( key, aDescriptioneError.time, JSON.stringify(aDescriptioneError),
+		function( err ) {
+		if ( err ) {
+			callback( err );
+		} else {
+			callback( new Error( aDescriptioneError.descriptione.title ) );
 		}
 	});
 };

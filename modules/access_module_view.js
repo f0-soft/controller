@@ -1,5 +1,5 @@
 var _ = require('underscore');
-
+var ModuleErrorLogging = require('./module_error_logging.js');
 var AccessModuleView = {};
 
 /**
@@ -10,15 +10,37 @@ var AccessModuleView = {};
  * 		err - ошибка от node_redis
  * 		reply - true в случае успешного сохранения
  */
-AccessModuleView.saveForRole = function saveForRole( client, role, viewName, objAccess, globalView,
-													 callback ){
+AccessModuleView.saveForRole = function saveForRole( client, sender, role, viewName, objAccess,
+													 globalView, callback ){
 	var multi = client.multi();
 	var key; //Формируемый ключ redis
 
 	//Валидация и проверка целостности объекта view прав по роли
-	validationAndCheckIntegrityAccessForRole(objAccess, globalView, function( err ){
-		if ( err ) {
-			callback( err );
+	validationAndCheckIntegrityAccessForRole(objAccess, globalView, function( errTitle, type, variant,
+																			  textError ){
+		if ( errTitle ) {
+
+			//Логирование ошибки
+			objDescriptioneError = {
+				type: type,
+				variant: variant,
+				place: 'Controller.AccessModuleView.saveForRole',
+				time: new Date().getTime(),
+				sender:sender,
+				arguments:{
+					role:role,
+					viewName:viewName,
+					objAccess:objAccess,
+					globalView:globalView
+				},
+				descriptione: {
+					title:errTitle,
+					text:textError
+				}
+			};
+
+			ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+
 		} else {
 			//Сохранение объекта прав в redis
 			key = strViewAccessRole( role, viewName );
@@ -46,15 +68,38 @@ AccessModuleView.saveForRole = function saveForRole( client, role, viewName, obj
  * 		err - ошибка от node_redis
  * 		reply - true в случае успешного сохранения
  */
-AccessModuleView.saveForUser = function saveForUser( client, user, viewName, objAccess, globalView,
-													 callback ){
+AccessModuleView.saveForUser = function saveForUser( client, sender, user, viewName, objAccess,
+													 globalView, callback ){
 	var multi = client.multi();
 	var key; //Формируемый ключ redis
 
 	//Валидация и проверка целостности объекта view прав по пользователю
-	validationAndCheckIntegrityAccessForUser(objAccess, globalView, function( err ){
-		if ( err ) {
-			callback( err );
+	validationAndCheckIntegrityAccessForUser(objAccess, globalView,	function( errTitle, type,
+																				 variant,
+																				 textError ) {
+		if ( errTitle ) {
+
+			//Логирование ошибки
+			objDescriptioneError = {
+				type: type,
+				variant: variant,
+				place: 'Controller.AccessModuleView.saveForUser',
+				time: new Date().getTime(),
+				sender:sender,
+				arguments:{
+					user:user,
+					viewName:viewName,
+					objAccess:objAccess,
+					globalView:globalView
+				},
+				descriptione: {
+					title:errTitle,
+					text:textError
+				}
+			};
+
+			ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+
 		} else {
 			//Сохранение объекта прав в redis
 			key = strViewAccessUser( user, viewName );
@@ -80,28 +125,42 @@ AccessModuleView.saveForUser = function saveForUser( client, user, viewName, obj
 function validationAndCheckIntegrityAccessForRole(objectAccess, globalView, callback){
 
 	if ( _.isUndefined( objectAccess ) && _.isEmpty( objectAccess ) ) {
-		callback( new Error( 'Controller: incorrect parameter object access' ) );
-		return;
-	}
-
-	if ( _.isUndefined( globalView ) || _.isEmpty( globalView ) ) {
-		callback( new Error( 'Controller: incorrect data in global view for view:' + globalView ) );
+		callback( 'Controller: incorrect parameter query.access.objAccess',
+			'invalid_function_arguments', 1,
+			'Объект прав query.access.objAccess неопределен или пуст' );
 		return;
 	}
 
 	if ( _.isUndefined( objectAccess['(all)'] ) && !_.isNumber( objectAccess['(all)'] ) ){
-		callback(new Error('Controller: incorrect parameter ["(all)"] in object access: ' +
-			JSON.stringify( objectAccess ) ) );
+		callback( 'Controller: incorrect parameter ["(all)"] in query.access.objAccess',
+			'invalid_function_arguments', 2, 'В объекте прав query.access.objAccess спец. ' +
+				'параметр (all) не определен или не является числом');
 		return;
 	} else if ( _.isUndefined( objectAccess.viewIds ) && !_.isArray( objectAccess.viewIds ) ){
-		callback(new Error('Controller: incorrect parameter viewIds in object access: ' +
-			JSON.stringify( objectAccess ) ) );
-		return;
-	} else if( _.difference( objectAccess.viewIds, Object.keys(globalView) ).length !== 0 ) {
-		callback(new Error('Controller: error integrity in viewIds in object access: ' +
-			JSON.stringify( objectAccess ) ) );
+		callback('Controller: incorrect parameter viewIds in query.access.objAccess',
+			'invalid_function_arguments', 3, 'В объекте прав query.access.objAccess ' +
+				'параметр viewIds не определен или не является массивом');
 		return;
 	}
+
+	if ( _.isUndefined( globalView ) || _.isEmpty( globalView ) ) {
+		if( _.difference( objectAccess.viewIds, Object.keys({}) ).length !== 0 ) {
+			callback('Controller: error integrity in viewIds in query.access.objAccess',
+				'loss_integrity', 1, 'В глобальном объекте прав нет идентификаторов, ' +
+					'а следовательно в объекте прав query.access.objAccess параметр viewIds' +
+					'содержит идентификаторы, которых нет в глобальном описании');
+			return;
+		}
+	} else {
+		if( _.difference( objectAccess.viewIds, Object.keys(globalView) ).length !== 0 ) {
+			callback('Controller: error integrity in viewIds in query.access.objAccess',
+				'loss_integrity', 2, 'В объекте прав query.access.objAccess параметр viewIds' +
+					'содержит идентификаторы, которых нет в глобальном описании');
+			return;
+		}
+	}
+
+
 
 	callback( null );
 }
@@ -110,34 +169,60 @@ function validationAndCheckIntegrityAccessForRole(objectAccess, globalView, call
 function validationAndCheckIntegrityAccessForUser(objectAccess, globalView, callback){
 
 	if ( _.isUndefined( objectAccess ) && _.isEmpty( objectAccess ) ) {
-		callback( new Error( 'Controller: incorrect parameter object access' ) );
+		callback( 'Controller: incorrect parameter query.access.objAccess',
+			'invalid_function_arguments', 1,
+			'Объект прав query.access.objAccess неопределен или пуст' );
+		return;
+	}
+
+	if ( !_.isUndefined( objectAccess['(all)'] ) ){
+		if( !_.isNumber( objectAccess['(all)'] ) ){
+			callback( 'Controller: incorrect parameter ["(all)"] in query.access.objAccess',
+				'invalid_function_arguments', 2, 'В объекте прав query.access.objAccess спец. ' +
+					'параметр (all) определен, но не является числом');
+
+			return;
+		}
+	}
+
+	if ( _.isUndefined( objectAccess.viewIdsAdd ) && !_.isArray( objectAccess.viewIdsAdd ) ){
+		callback('Controller: incorrect parameter viewIdsAdd in query.access.objAccess',
+			'invalid_function_arguments', 3, 'В объекте прав query.access.objAccess ' +
+				'параметр viewIdsAdd не определен или не является массивом');
+		return;
+	} else if ( _.isUndefined( objectAccess.viewIdsDel ) && !_.isArray( objectAccess.viewIdsDel ) ){
+		callback('Controller: incorrect parameter viewIdsDel in query.access.objAccess',
+			'invalid_function_arguments', 4, 'В объекте прав query.access.objAccess ' +
+				'параметр viewIdsDel не определен или не является массивом');
 		return;
 	}
 
 	if ( _.isUndefined( globalView ) || _.isEmpty( globalView ) ) {
-		callback( new Error( 'Controller: incorrect data in global view for view:' + globalView ) );
-		return;
-	}
-
-	if ( !_.isUndefined( objectAccess['(all)'] ) )
-		if( !_.isNumber( objectAccess['(all)'] ) ){
-		callback(new Error('Controller: incorrect parameter ["(all)"] in object access: ' +
-			JSON.stringify( objectAccess ) ) );
-		return;
-	}
-
-	if ( _.isUndefined( objectAccess.viewIdsAdd ) && !_.isArray( objectAccess.viewIdsAdd ) ){
-		callback(new Error('Controller: incorrect parameter viewIdsAdd in object access: ' +
-			JSON.stringify( objectAccess ) ) );
-		return;
-	} else if ( _.isUndefined( objectAccess.viewIdsDel ) && !_.isArray( objectAccess.viewIdsDel ) ){
-		callback(new Error('Controller: incorrect parameter viewIdsDel in object access: ' +
-			JSON.stringify( objectAccess ) ) );
-		return;
-	} else if( _.difference( objectAccess.viewIdsAdd, Object.keys(globalView) ).length !== 0 ) {
-		callback(new Error('Controller: error integrity in viewIdsAdd in object access: ' +
-			JSON.stringify( objectAccess ) ) );
-		return;
+		if( _.difference( objectAccess.viewIdsAdd, Object.keys({}) ).length !== 0 ) {
+			callback('Controller: error integrity in viewIdsAdd in query.access.objAccess',
+				'loss_integrity', 1, 'В глобальном объекте прав нет идентификаторов, ' +
+					'а следовательно в объекте прав query.access.objAccess параметр viewIdsAdd' +
+					'содержит идентификаторы, которых нет в глобальном описании');
+			return;
+		} else if ( _.difference( objectAccess.viewIdsDel, Object.keys({}) ).length !== 0 ) {
+			callback('Controller: error integrity in viewIdsDel in query.access.objAccess',
+				'loss_integrity', 2, 'В глобальном объекте прав нет идентификаторов, ' +
+					'а следовательно в объекте прав query.access.objAccess параметр viewIdsDel' +
+					'содержит идентификаторы, которых нет в глобальном описании');
+			return;
+		}
+	} else {
+		if( _.difference( objectAccess.viewIdsAdd, Object.keys(globalView) ).length !== 0 ) {
+			callback('Controller: error integrity in viewIdsAdd in query.access.objAccess',
+				'loss_integrity', 3, 'В объекте прав query.access.objAccess параметр viewIdsAdd' +
+					'содержит идентификаторы, которых нет в глобальном описании');
+			return;
+		} else if ( _.difference( objectAccess.viewIdsDel, Object.keys(globalView) ).length !== 0 ) {
+			callback('Controller: error integrity in viewIdsDel in query.access.objAccess',
+				'loss_integrity', 4, 'В объекте прав query.access.objAccess параметр viewIdsDel' +
+					'содержит идентификаторы, которых нет в глобальном описании');
+			return;
+		}
 	}
 
 	callback( null );
@@ -152,7 +237,7 @@ function validationAndCheckIntegrityAccessForUser(objectAccess, globalView, call
  * 		err - ошибка от node_redis
  * 		reply - возвращается искомый объект прав
  */
-AccessModuleView.findForRole = function findForRole( client, role, viewName, callback ) {
+AccessModuleView.findForRole = function findForRole( client, sender, role, viewName, callback ) {
 
 	client.GET(  strViewAccessRole( role, viewName ), function( err, reply ) {
 		if ( err ) {
@@ -163,8 +248,24 @@ AccessModuleView.findForRole = function findForRole( client, role, viewName, cal
 
 				callback( null, objAccess );
 			} else {
-				callback(new Error('Controller: No requested object access (role: ' + role +', ' +
-					'viewName: ' + viewName + ')'))
+				//Логирование ошибки
+				objDescriptioneError = {
+					type: "non-existent_data",
+					variant: 1,
+					place: 'Controller.AccessModuleView.findForRole',
+					time: new Date().getTime(),
+					sender:sender,
+					arguments:{
+						role:role,
+						viewName:viewName
+					},
+					descriptione: {
+						title:'Controller: No requested object access',
+						text:'Запрашивается не существующий объект прав на view по роли'
+					}
+				};
+
+				ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 			}
 		}
 	});
@@ -177,7 +278,7 @@ AccessModuleView.findForRole = function findForRole( client, role, viewName, cal
  * 		err - ошибка от node_redis
  * 		reply - возвращается искомый объект прав
  */
-AccessModuleView.findForUser = function findForUser( client, user, viewName, callback ) {
+AccessModuleView.findForUser = function findForUser( client, sender, user, viewName, callback ) {
 
 	client.GET(  strViewAccessUser( user, viewName ), function( err, reply ) {
 		if ( err ) {
@@ -188,8 +289,24 @@ AccessModuleView.findForUser = function findForUser( client, user, viewName, cal
 
 				callback( null, objAccess );
 			} else {
-				callback(new Error('Controller: No requested object access (user: ' + user +', ' +
-					'viewName: ' + viewName + ')'))
+				//Логирование ошибки
+				objDescriptioneError = {
+					type: "non-existent_data",
+					variant: 1,
+					place: 'Controller.AccessModuleView.findForUser',
+					time: new Date().getTime(),
+					sender:sender,
+					arguments:{
+						user:user,
+						viewName:viewName
+					},
+					descriptione: {
+						title:'Controller: No requested object access',
+						text:'Запрашивается не существующий объект прав на view по пользователю'
+					}
+				};
+
+				ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 			}
 		}
 	});

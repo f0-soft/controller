@@ -102,23 +102,48 @@ Controller.init = function init( config, callback ) {
 	}
 };
 
-Controller.create = function create( query, callback ) {
+Controller.create = function create( query, sender, callback ) {
+	//Переменная для хранения описания ошибки
+	var objDescriptioneError;
 
 	if ( !underscore.isFunction( callback ) ) {
 		throw new Error( 'Controller: callback not a function' );
-	}
+	} else if ( !INITIALIZED ) {
 
-	if ( !INITIALIZED ) {
-		callback(new Error( 'Controller: Flexo initialization required' ));
-		return;
-	}
+		//Логирование ошибки
+		objDescriptioneError = {
+			type: 'initialization',
+			variant: 1,
+			place: 'Controller.create',
+			time: new Date().getTime(),
+			sender: sender,
+			arguments:{
+				query:query
+			},
+			descriptione: {
+				title:'Controller: initialization required',
+				text:'Вызвана функция create контроллера до его инициализации'
+			}
+		};
 
-	if ( !query ) {
-		callback(new Error( 'Controller: Parameter query is not set' ));
-		return;
-	}
+		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+	} else if ( !query ) {
 
-	if ( query.user ) {
+		//Логирование ошибки
+		objDescriptioneError = {
+			type: 'invalid_function_arguments',
+			variant: 1,
+			place: 'Controller.create',
+			time: new Date().getTime(),
+			sender:sender,
+			descriptione: {
+				title:'Controller: Parameter query is not set',
+				text:'Вызвана функция create с неопределенным или равным нулю аргументом query'
+			}
+		};
+
+		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+	} else if ( query.user ) {
 		//Запрос на создание пользователя
 
 		//Проверяем уникальность создаваемого пользователя
@@ -159,17 +184,36 @@ Controller.create = function create( query, callback ) {
 			if ( query.access.role ) {
 
 				//Запрос на создание прав view по роли
-				AccessModuleView.saveForRole( client, query.access.role, query.access.viewName,
-					query.access.objAccess, globalViewConfig[query.access.viewName], callback );
+				AccessModuleView.saveForRole( client, sender, query.access.role,
+					query.access.viewName,	query.access.objAccess,
+					globalViewConfig[query.access.viewName], callback );
 			} else if ( query.access.login ) {
 
 				//Запрос на создание прав view по пользователю
-				AccessModuleView.saveForUser( client, query.access.login, query.access.viewName,
-					query.access.objAccess, globalViewConfig[query.access.viewName], callback );
+				AccessModuleView.saveForUser( client, sender, query.access.login,
+					query.access.viewName, query.access.objAccess,
+					globalViewConfig[query.access.viewName], callback );
 
 			} else {
-				callback( new Error( 'Controller: Not set role or login in query: '
-					+ JSON.stringify( query ) ) );
+
+				//Логирование ошибки
+				objDescriptioneError = {
+					type: 'invalid_function_arguments',
+					variant: 2,
+					place: 'Controller.create',
+					time: new Date().getTime(),
+					sender:sender,
+					arguments:{
+						query:query
+					},
+					descriptione: {
+						title:'Controller: Not set role or login in query.access',
+						text:'Вызвана функция create, без указания в query.access логина или ' +
+							'роли пользователя при указанном параметре viewName'
+					}
+				};
+
+				ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 			}
 		} else if ( query.access.flexoSchemeName ) {
 			if ( query.access.role ) {
@@ -183,35 +227,109 @@ Controller.create = function create( query, callback ) {
 					query.access.flexoSchemeName, query.access.objAccess,
 					globalFlexoSchemes[query.access.flexoSchemeName], callback );
 			} else {
-				callback( new Error( 'Controller: Not set role or login in query: '
-					+ JSON.stringify( query ) ) );
+				//Логирование ошибки
+				objDescriptioneError = {
+					type: 'invalid_function_arguments',
+					variant: 3,
+					place: 'Controller.create',
+					time: new Date().getTime(),
+					sender:sender,
+					arguments:{
+						query:query
+					},
+					descriptione: {
+						title:'Controller: Not set role or login in query',
+						text:'Вызвана функция create, без указания в query.access логина или ' +
+							'роли пользователя при указанном параметре flexoSchemeName'
+					}
+				};
+
+				ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 			}
 		} else {
-			callback( new Error( 'Controller: Incorrect parameter access in query: '
-				+ JSON.stringify( query ) ) );
+			//Логирование ошибки
+			objDescriptioneError = {
+				type: 'invalid_function_arguments',
+				variant: 4,
+				place: 'Controller.create',
+				time: new Date().getTime(),
+				sender:sender,
+				arguments:{
+					query:query
+				},
+				descriptione: {
+					title:'Controller: Incorrect parameter access in query',
+					text:'Вызвана функция create, без указания в query.access параметра viewName или ' +
+						'flexoSchemeName'
+				}
+			};
+
+			ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 		}
 	} else {
-		callback( new Error( 'Controller: Invalid query: ' + JSON.stringify( query ) ) );
+		//Логирование ошибки
+		objDescriptioneError = {
+			type: 'invalid_function_arguments',
+			variant: 5,
+			place: 'Controller.create',
+			time: new Date().getTime(),
+			sender:sender,
+			arguments:{
+				query:query
+			},
+			descriptione: {
+				title:'Controller: Incorrect parameter query',
+				text:'Вызвана функция create, без указания в query параметров access, user или ' +
+					'role'
+			}
+		};
+
+		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 	}
 };
 
-Controller.find = function find( query, callback ) {
+Controller.find = function find( query, sender, callback ) {
+	//Переменная для хранения описания ошибки
+	var objDescriptioneError;
 
 	if (!underscore.isFunction( callback ) ) {
 		throw new Error( 'Controller: callback not a function' );
-	}
+	} else if ( !INITIALIZED ) {
+		//Логирование ошибки
+		objDescriptioneError = {
+			type: 'initialization',
+			variant: 1,
+			place: 'Controller.find',
+			time: new Date().getTime(),
+			sender: sender,
+			arguments:{
+				query:query
+			},
+			descriptione: {
+				title:'Controller: initialization required',
+				text:'Вызвана функция find контроллера до его инициализации'
 
-	if ( !INITIALIZED ) {
-		callback(new Error( 'Controller: Flexo initialization required' ));
-		return;
-	}
+			}
+		};
 
-	if ( !query ) {
-		callback(new Error( 'Controller: Parameter query is not set' ));
-		return;
-	}
+		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+	} else if ( !query ) {
 
-	if ( query.user ) {
+		//Логирование ошибки
+		objDescriptioneError = {
+			type: 'invalid_function_arguments',
+			variant: 1,
+			place: 'Controller.find',
+			time: new Date().getTime(),
+			sender:sender,
+			descriptione: {
+				title:'Controller: Parameter query is not set',
+				text:'Вызвана функция find с неопределенным или равным нулю аргументом query'
+			}
+		};
+
+		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+	} else if ( query.user ) {
 		var flexoSchemeName = 'users';
 		if( query.user.login || query.user._id ){
 		    //Простой поиск одного пользователя
@@ -276,7 +394,24 @@ Controller.find = function find( query, callback ) {
 				}
 			} );
 		} else {
-			callback( new Error( 'Unknown type of query: ' + JSON.stringify( query ) ) );
+			//Логирование ошибки
+			objDescriptioneError = {
+				type: 'invalid_function_arguments',
+				variant: 2,
+				place: 'Controller.find',
+				time: new Date().getTime(),
+				sender:sender,
+				arguments:{
+					query:query
+				},
+				descriptione: {
+					title:'Controller: Unknown type of query in query.user',
+					text:'Вызвана функция find, без указания в query.user какого либо ' +
+						'дополнительного параметра определяющего тип поиска'
+				}
+			};
+
+			ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 		}
 	} else if ( query.access ) {
 		//Запроса на чтение прав
@@ -284,19 +419,34 @@ Controller.find = function find( query, callback ) {
 			//Запрос на чтение прав view
 			if ( query.access.role ) {
 				//Запрос на чтение прав view по роли
-
 				//Запрашиваемый искомый объект прав
-				AccessModuleView.findForRole( client, query.access.role, query.access.viewName,
-					callback );
+				AccessModuleView.findForRole( client, sender, query.access.role,
+					query.access.viewName, callback );
 			} else if ( query.access.login ) {
 				//Запрос на чтение прав view по пользователю
 				//Запрашиваемый искомый объект прав
-				AccessModuleView.findForUser( client, query.access.login, query.access.viewName,
-					callback );
+				AccessModuleView.findForUser( client, sender, query.access.login,
+					query.access.viewName, callback );
 
 			} else {
-				callback( new Error( 'Controller: Not set role or login in query: '
-					+ JSON.stringify( query ) ) )
+				//Логирование ошибки
+				objDescriptioneError = {
+					type: 'invalid_function_arguments',
+					variant: 3,
+					place: 'Controller.find',
+					time: new Date().getTime(),
+					sender:sender,
+					arguments:{
+						query:query
+					},
+					descriptione: {
+						title:'Controller: Not set role or login in query',
+						text:'Вызвана функция find, без указания в query.access параметров ' +
+							'логина или роли пользователя при указанном параметре viewName'
+					}
+				};
+
+				ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 			}
 		} else if ( query.access.flexoSchemeName ) {
 			if ( query.access.role ) {
@@ -313,35 +463,107 @@ Controller.find = function find( query, callback ) {
 					query.access.flexoSchemeName, callback );
 
 			} else {
-				callback( new Error( 'Controller: Not set role or login in query: '
-					+ JSON.stringify( query ) ) );
+
+				//Логирование ошибки
+				objDescriptioneError = {
+					type: 'invalid_function_arguments',
+					variant: 4,
+					place: 'Controller.find',
+					time: new Date().getTime(),
+					sender:sender,
+					arguments:{
+						query:query
+					},
+					descriptione: {
+						title:'Controller: Not set role or login in query',
+						text:'Вызвана функция find, без указания в query.access параметров ' +
+							'логина или роли пользователя при указанном параметре flexoSchemeName'
+					}
+				};
+
+				ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 			}
 		} else {
-			callback( new Error( 'Controller: Incorrect parameter access in query: '
-				+ JSON.stringify( query ) ) );
+			//Логирование ошибки
+			objDescriptioneError = {
+				type: 'invalid_function_arguments',
+				variant: 5,
+				place: 'Controller.find',
+				time: new Date().getTime(),
+				sender:sender,
+				arguments:{
+					query:query
+				},
+				descriptione: {
+					title:'Controller: Incorrect parameter access in query',
+					text:'Вызвана функция find, без указания в query.access параметра viewName ' +
+						'или flexoSchemeName'
+				}
+			};
+
+			ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 		}
 	} else {
-		callback( new Error( 'Controller: Invalid query: ' + JSON.stringify( query ) ) );
+		//Логирование ошибки
+		objDescriptioneError = {
+			type: 'invalid_function_arguments',
+			variant: 6,
+			place: 'Controller.find',
+			time: new Date().getTime(),
+			sender:sender,
+			arguments:{
+				query:query
+			},
+			descriptione: {
+				title:'Controller: Incorrect parameter query',
+				text:'Вызвана функция create, без указания в query параметров access или user'
+			}
+		};
+
+		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 	}
 };
 
-Controller.delete = function del( query, callback ) {
+Controller.delete = function del( query, sender, callback ) {
+	//Переменная для хранения описания ошибки
+	var objDescriptioneError;
 
 	if (!underscore.isFunction( callback ) ) {
 		throw new Error( 'Controller: callback not a function' );
-	}
+	} else if ( !INITIALIZED ) {
+		//Логирование ошибки
+		objDescriptioneError = {
+			type: 'initialization',
+			variant: 1,
+			place: 'Controller.delete',
+			time: new Date().getTime(),
+			sender: sender,
+			arguments:{
+				query:query
+			},
+			descriptione: {
+				title:'Controller: initialization required',
+				text:'Вызвана функция delete контроллера до его инициализации'
+			}
+		};
 
-	if ( !INITIALIZED ) {
-		callback(new Error( 'Controller: Flexo initialization required' ));
-		return;
-	}
+		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+	} else if ( !query ) {
+		//Логирование ошибки
+		objDescriptioneError = {
+			type: 'invalid_function_arguments',
+			variant: 1,
+			place: 'Controller.delete',
+			time: new Date().getTime(),
+			sender:sender,
+			descriptione: {
+				title:'Controller: Parameter query is not set',
+				text:'Вызвана функция delete с неопределенным или равным нулю аргументом query'
+			}
+		};
 
-	if ( !query ) {
-		callback(new Error( 'Controller: Parameter query is not set' ));
-		return;
-	}
-
-	if ( query.user ) {
+		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+	} else if ( query.user ) {
 		//Простое удаление одного пользователя
 		var login = query.user.login || null;
 		var _id = query.user._id || null;
@@ -378,8 +600,25 @@ Controller.delete = function del( query, callback ) {
 				AccessModuleView.deleteForUser( client, query.access.login, query.access.viewName,
 					callback );
 			} else {
-				callback( new Error( 'Controller: Not set role or login in query: '
-					+ JSON.stringify( query ) ) );
+
+				//Логирование ошибки
+				objDescriptioneError = {
+					type: 'invalid_function_arguments',
+					variant: 2,
+					place: 'Controller.delete',
+					time: new Date().getTime(),
+					sender:sender,
+					arguments:{
+						query:query
+					},
+					descriptione: {
+						title:'Controller: Not set role or login in query',
+						text:'Вызвана функция delete, без указания в query.access параметров ' +
+							'логина или роли пользователя при указанном параметре viewName'
+					}
+				};
+
+				ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 			}
 		} else if ( query.access.flexoSchemeName ) {
 			if ( query.access.role ) {
@@ -397,35 +636,106 @@ Controller.delete = function del( query, callback ) {
 					query.access.flexoSchemeName, callback );
 
 			} else {
-				callback( new Error( 'Controller: Not set role or login in query: '
-					+ JSON.stringify( query ) ) );
+				//Логирование ошибки
+				objDescriptioneError = {
+					type: 'invalid_function_arguments',
+					variant: 3,
+					place: 'Controller.delete',
+					time: new Date().getTime(),
+					sender:sender,
+					arguments:{
+						query:query
+					},
+					descriptione: {
+						title:'Controller: Not set role or login in query',
+						text:'Вызвана функция delete, без указания в query.access параметров ' +
+							'логина или роли пользователя при указанном параметре flexoSchemeName'
+					}
+				};
+
+				ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 			}
 		} else {
-			callback( new Error( 'Controller: Incorrect parameter access in query: '
-				+ JSON.stringify( query ) ) );
+			//Логирование ошибки
+			objDescriptioneError = {
+				type: 'invalid_function_arguments',
+				variant: 4,
+				place: 'Controller.delete',
+				time: new Date().getTime(),
+				sender:sender,
+				arguments:{
+					query:query
+				},
+				descriptione: {
+					title:'Controller: Incorrect parameter access in query',
+					text:'Вызвана функция delete, без указания в query.access параметра viewName ' +
+						'или flexoSchemeName'
+				}
+			};
+
+			ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 		}
 	} else {
-		callback( new Error( 'Controller: Invalid query: ' + JSON.stringify( query ) ) );
+		//Логирование ошибки
+		objDescriptioneError = {
+			type: 'invalid_function_arguments',
+			variant: 5,
+			place: 'Controller.delete',
+			time: new Date().getTime(),
+			sender:sender,
+			arguments:{
+				query:query
+			},
+			descriptione: {
+				title:'Controller: Incorrect parameter query',
+				test:'Вызвана функция delete, без указания в query параметров access, role или user'
+			}
+		};
+
+		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 	}
 };
 
-Controller.modify = function modify( query, callback ) {
+Controller.modify = function modify( query, sender, callback ) {
+	//Переменная для хранения описания ошибки
+	var objDescriptioneError;
 
 	if ( !underscore.isFunction( callback ) ){
 		throw new Error( 'Controller: callback not a function' );
-	}
+	} else if ( !INITIALIZED ) {
+		//Логирование ошибки
+		objDescriptioneError = {
+			type: 'initialization',
+			variant: 1,
+			place: 'Controller.modify',
+			time: new Date().getTime(),
+			sender: sender,
+			arguments:{
+				query:query
+			},
+			descriptione: {
+				title:'Controller: initialization required',
+				text:'Вызвана функция modify контроллера до его инициализации'
+			}
+		};
 
-	if ( !INITIALIZED ) {
-		callback( new Error( 'Controller: Flexo initialization required' ) );
-		return;
-	}
+		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+	} else if ( !query ) {
+		//Логирование ошибки
+		objDescriptioneError = {
+			type: 'invalid_function_arguments',
+			variant: 1,
+			place: 'Controller.modify',
+			time: new Date().getTime(),
+			sender:sender,
+			descriptione: {
+				title:'Controller: Parameter query is not set',
+				text:'Вызвана функция modify с неопределенным или равным нулю аргументом query'
+			}
+		};
 
-	if ( !query ) {
-		callback( new Error( 'Controller: Parameter query is not set' ) );
-		return;
-	}
-
-	if ( query.user ) {
+		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+	} else if ( query.user ) {
 		//Простая модификация одного пользователя
 		var login = query.user.login || null;
 		var _id = query.user._id || null;
@@ -450,8 +760,24 @@ Controller.modify = function modify( query, callback ) {
 				AccessModuleView.save( client, query.access.login, query.access.viewName,
 					query.access.objAccess, globalViewConfig[query.access.viewName], callback );
 			} else {
-				callback( new Error( 'Not set role or login in query: '
-					+ JSON.stringify( query ) ) );
+				//Логирование ошибки
+				objDescriptioneError = {
+					type: 'invalid_function_arguments',
+					variant: 2,
+					place: 'Controller.modify',
+					time: new Date().getTime(),
+					sender:sender,
+					arguments:{
+						query:query
+					},
+					descriptione: {
+						title:'Controller: Not set role or login in query',
+						text:'Вызвана функция modify, без указания в query.access параметров ' +
+							'логина или роли пользователя при указанном параметре viewName'
+					}
+				};
+
+				ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 			}
 		} else if ( query.access.flexoSchemeName ) {
 			if ( query.access.role ) {
@@ -463,57 +789,195 @@ Controller.modify = function modify( query, callback ) {
 				AccessModuleFlexo.saveForUser( client, query.access.login,
 					query.access.flexoSchemeName, query.access.objAccess, callback );
 			} else {
-				callback( new Error( 'Not set role or login in query: '
-					+ JSON.stringify( query ) ) );
+				//Логирование ошибки
+				objDescriptioneError = {
+					type: 'invalid_function_arguments',
+					variant: 3,
+					place: 'Controller.modify',
+					time: new Date().getTime(),
+					sender:sender,
+					arguments:{
+						query:query
+					},
+					descriptione: {
+						title:'Controller: Not set role or login in query',
+						text:'Вызвана функция modify, без указания в query.access параметров ' +
+							'логина или роли пользователя при указанном параметре flexoSchemeName'
+					}
+				};
+
+				ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 			}
 		} else {
-			callback( new Error( 'Incorrect parameter access in query: '
-				+ JSON.stringify( query ) ) );
+			//Логирование ошибки
+			objDescriptioneError = {
+				type: 'invalid_function_arguments',
+				variant: 4,
+				place: 'Controller.modify',
+				time: new Date().getTime(),
+				sender:sender,
+				arguments:{
+					query:query
+				},
+				descriptione: {
+					title:'Controller: Incorrect parameter access in query',
+					text:'Вызвана функция modify, без указания в query.access параметра viewName ' +
+						'или flexoSchemeName'
+				}
+			};
+
+			ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 		}
 	} else {
-		callback( new Error( 'Invalid query: ' + JSON.stringify( query ) ) );
+		//Логирование ошибки
+		objDescriptioneError = {
+			type: 'invalid_function_arguments',
+			variant: 5,
+			place: 'Controller.modify',
+			time: new Date().getTime(),
+			sender:sender,
+			arguments:{
+				query:query
+			},
+			descriptione: {
+				title:'Controller: Incorrect parameter query',
+				test:'Вызвана функция modify, без указания в query параметров access или user'
+			}
+		};
+
+		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 	}
 };
 
 Controller.getTemplate = getTemplate;
 
-function getTemplate(viewName, user, role, socket, callback ) {
+function getTemplate(viewName, sender, socket, callback ) {
 
 	if (!underscore.isFunction(callback)){
 		throw new Error( 'Controller: callback not a function' );
-	}
+	} else if ( !INITIALIZED ) {
+		//Логирование ошибки
+		objDescriptioneError = {
+			type: 'initialization',
+			variant: 1,
+			place: 'Controller.getTemplate',
+			time: new Date().getTime(),
+			sender: sender,
+			arguments:{
+				viewName:viewName
+			},
+			descriptione: {
+				title:'Controller: initialization required',
+				text:'Вызвана функция getTemplate контроллера до его инициализации'
+			}
+		};
 
-	if ( !INITIALIZED ) {
-		callback(new Error( 'Controller: Flexo initialization required' ));
-		return;
-	}
+		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+	} else if ( !underscore.isString( viewName ) ) {
+		//Логирование ошибки
+		objDescriptioneError = {
+			type: 'invalid_function_arguments',
+			variant: 1,
+			place: 'Controller.getTemplate',
+			time: new Date().getTime(),
+			sender:sender,
+			descriptione: {
+				title:'Controller: Parameter viewName is not set',
+				text:'Вызвана функция getTemplate с неопределенным или равным нулю аргументом ' +
+					'viewName'
+			}
+		};
 
-	if ( !underscore.isString( viewName ) ) {
-		callback(new Error( 'Controller: Parameter viewName is not set' ));
-		return;
-	}
+		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+	} else if ( !underscore.isString( sender.user ) ) {
+		//Логирование ошибки
+		objDescriptioneError = {
+			type: 'invalid_function_arguments',
+			variant: 2,
+			place: 'Controller.getTemplate',
+			time: new Date().getTime(),
+			sender:sender,
+			arguments:{
+				viewName:viewName
+			},
+			descriptione: {
+				title:'Controller: Parameter user is not set in sender',
+				text:'Вызвана функция getTemplate с неопределенным или равным нулю параметром ' +
+					'user в аргументе sender'
+			}
+		};
 
-	if ( !underscore.isString( user ) ) {
-		callback(new Error( 'Controller: Parameter user is not set' ));
-		return;
-	}
+		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+	} else if ( !underscore.isString( sender.role ) ) {
+		//Логирование ошибки
+		objDescriptioneError = {
+			type: 'invalid_function_arguments',
+			variant: 3,
+			place: 'Controller.getTemplate',
+			time: new Date().getTime(),
+			sender:sender,
+			arguments:{
+				viewName:viewName
+			},
+			descriptione: {
+				title:'Controller: Parameter role is not set in sender',
+				text:'Вызвана функция getTemplate с неопределенным или равным нулю параметром ' +
+					'role в аргументе sender'
+			}
+		};
 
-	if ( !underscore.isString( role ) ) {
-		callback(new Error( 'Controller: Parameter role is not set' ));
-		return;
-	}
+		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+	} else if ( !socket ) {
+		//Логирование ошибки
+		objDescriptioneError = {
+			type: 'invalid_function_arguments',
+			variant: 4,
+			place: 'Controller.getTemplate',
+			time: new Date().getTime(),
+			sender:sender,
+			arguments:{
+				viewName:viewName
+			},
+			descriptione: {
+				title:'Controller: Parameter socket is not set',
+				text:'Вызвана функция getTemplate с неопределенным или равным нулю аргументом ' +
+					'socket'
+			}
+		};
 
-	if ( !socket ) {
-		callback(new Error( 'Controller: Parameter socket is not set' ));
-		return;
-	}
-
+		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+	} else
 	//Проверяем есть ли уже готовый список разрешенных мдентификаторов для view
 	if( socket.view && socket.view[viewName] ) {
 		//Подготовленный список _vid есть
 		//Запрашиваем шаблон view c необходимыми параметрами
 		View.getTemplate( viewName, socket.view[viewName], function( err, ids, config, template ) {
 			if( err ) {
+
+				if ( err ) {
+					//Логирование ошибки
+					objDescriptioneError = {
+						type: 'unknown_error',
+						variant: 1,
+						place: 'View.getTemplate',
+						time: new Date().getTime(),
+						sender:sender,
+						arguments:{
+							viewName:viewName,
+							list_vidsFromSocket:socket.view[viewName]
+						},
+						descriptione: {
+							title: err.message,
+							text:'Ошибка полученная в функции обратного вызова при вызове ' +
+								'функции view.getTemplate'
+						}
+					};
+
+					ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+				} else {
+					callback( null, documents, count );
+				}
+
 				callback( err );
 			} else {
 
@@ -523,16 +987,26 @@ function getTemplate(viewName, user, role, socket, callback ) {
 
 					//Логирование ошибки целостности, так как view обрезала список разрешенных
 					//идентификаторов
-					var objDescriptioneError = {};
-					objDescriptioneError.type = 'loss_integrity';
-					objDescriptioneError.variant = 1;
-                    objDescriptioneError.place = 'View.getTemplate';
-					objDescriptioneError.time = new Date().getTime();
-					objDescriptioneError.descriptione = {};
-					objDescriptioneError.descriptione.viewName = viewName;
-					objDescriptioneError.descriptione.list_vidsFromSocket = socket.view[viewName];
-					objDescriptioneError.descriptione.user = user;
-					objDescriptioneError.descriptione.role = role;
+					var objDescriptioneError = {
+						type:'loss_integrity',
+						variant:1,
+						place:'View.getTemplate',
+						time:new Date().getTime(),
+						sender:sender,
+						arguments:{
+							viewName:viewName,
+							list_vidsFromSocket:socket.view[viewName]
+						},
+						results:{
+							vidsFromView:ids
+						},
+						descriptione: {
+							text:'Ошибка целостности, так как view обрезала список разрешенных ' +
+								'идентификаторов при наличии списка разрешенных идентификаторов' +
+								'прикрепленных к socket'
+						}
+					};
+
 					ModuleErrorLogging.save(client, [objDescriptioneError], function( err, reply ) {
 						if ( err ) {
 							callback( err );
@@ -547,7 +1021,7 @@ function getTemplate(viewName, user, role, socket, callback ) {
 		});
 	} else {
 		//Нет прав подготавливаем права и flexo модели
-		formingFlexoAndView( user, role, viewName, function ( err, listAllowedOf_vid ) {
+		formingFlexoAndView( sender, viewName, function ( err, listAllowedOf_vid ) {
 			if ( err ) {
 				callback( err );
 			} else {
@@ -555,7 +1029,26 @@ function getTemplate(viewName, user, role, socket, callback ) {
 
 				View.getTemplate( viewName, listAllowedOf_vid, function( err, ids, config, template ) {
 					if( err ) {
-						callback( err );
+
+						//Логирование ошибки
+						objDescriptioneError = {
+							type: 'unknown_error',
+							variant: 2,
+							place: 'View.getTemplate',
+							time: new Date().getTime(),
+							sender:sender,
+							arguments:{
+								viewName:viewName,
+								listAllowedOf_vid:listAllowedOf_vid
+							},
+							descriptione: {
+								title: err.message,
+								text:'Ошибка полученная в функции обратного вызова при вызове ' +
+									'функции view.getTemplate'
+							}
+						};
+
+						ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 					} else {
 						if ( !socket.view ) {
 							socket.view = {};
@@ -566,15 +1059,25 @@ function getTemplate(viewName, user, role, socket, callback ) {
 						if( listAllowedOf_vid.length !== ids.length ){
 							//Логирование ошибки целостности, так как view обрезала список
 							// разрешенных идентификаторов
-							var objDescriptioneError = {};
-							objDescriptioneError.type = 'loss_integrity';
-							objDescriptioneError.variant = 2;
-							objDescriptioneError.place = 'View.getTemplate';
-							objDescriptioneError.time = new Date().getTime();
-							objDescriptioneError.descriptione = {};
-							objDescriptioneError.descriptione.viewName = viewName;
-							objDescriptioneError.descriptione.user = user;
-							objDescriptioneError.descriptione.role = role;
+							var objDescriptioneError = {
+								type:'loss_integrity',
+								variant:2,
+								place:'View.getTemplate',
+								time:new Date().getTime(),
+								sender:sender,
+								arguments:{
+									viewName:viewName,
+									listAllowedOf_vid:listAllowedOf_vid
+								},
+								results:{
+									vidsFromView:ids
+								},
+								descriptione: {
+									text:'Ошибка целостности, так как view обрезала сформированный ' +
+										'список разрешенных идентификаторов'
+								}
+							};
+
 							ModuleErrorLogging.save(client, [objDescriptioneError],
 								function( err, reply ) {
 								if ( err ) {
@@ -595,33 +1098,116 @@ function getTemplate(viewName, user, role, socket, callback ) {
 	}
 }
 
-Controller.queryToView = function queryToView( type, request, viewName, socket, callback ) {
+Controller.queryToView = function queryToView( type, sender, request, viewName, socket, callback ) {
 
 	if ( !underscore.isFunction( callback ) ) {
 		throw new Error( 'Controller: callback not a function' );
-	}
+	} else if ( !socket ) {
+		//Логирование ошибки
+		objDescriptioneError = {
+			type: 'invalid_function_arguments',
+			variant: 1,
+			place: 'Controller.queryToView',
+			time: new Date().getTime(),
+			sender:sender,
+			arguments:{
+				type:type,
+				request:request,
+				viewName:viewName
+			},
+			descriptione: {
+				title:'Controller: Parameter socket is not set',
+				text:'Вызвана функция queryToView с неопределенным или равным нулю аргументом ' +
+					'socket'
+			}
+		};
 
-	if ( !INITIALIZED ) {
-		callback(new Error( 'Controller: Flexo initialization required' ));
-		return;
-	}
+		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+	} else if ( !INITIALIZED ) {
+		//Логирование ошибки
+		objDescriptioneError = {
+			type: 'initialization',
+			variant: 1,
+			place: 'Controller.queryToView',
+			time: new Date().getTime(),
+			sender: sender,
+			arguments:{
+				type:type,
+				request:request,
+				viewName:viewName,
+				socketViews:socket.view
+			},
+			descriptione: {
+				title:'Controller: initialization required',
+				text:'Вызвана функция queryToView контроллера до его инициализации'
+			}
+		};
 
-	if ( !underscore.isString( viewName ) ) {
-		callback(new Error( 'Controller: Parameter viewName is not set' ));
-		return;
-	}
+		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+	} else if ( !underscore.isString( viewName ) ) {
+		//Логирование ошибки
+		objDescriptioneError = {
+			type: 'invalid_function_arguments',
+			variant: 2,
+			place: 'Controller.queryToView',
+			time: new Date().getTime(),
+			sender:sender,
+			arguments:{
+				type:type,
+				request:request,
+				socketViews:socket.view
+			},
+			descriptione: {
+				title:'Controller: Parameter viewName is not set',
+				text:'Вызвана функция queryToView с неопределенным или равным нулю аргументом ' +
+					'viewName'
+			}
+		};
 
-	if ( !socket ) {
-		callback(new Error( 'Controller: Parameter socket is not set' ));
-		return;
-	}
+		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+	} else if ( !request ) {
+		//Логирование ошибки
+		objDescriptioneError = {
+			type: 'invalid_function_arguments',
+			variant: 3,
+			place: 'Controller.queryToView',
+			time: new Date().getTime(),
+			sender:sender,
+			arguments:{
+				type:type,
+				viewName:viewName,
+				socketViews:socket.view
+			},
+			descriptione: {
+				title:'Controller: Parameter request is not set',
+				text:'Вызвана функция queryToView с неопределенным или равным нулю аргументом ' +
+					'request'
+			}
+		};
 
-	if ( !request ) {
-		callback(new Error( 'Controller: Parameter request is not set' ));
-		return;
+		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 	} else if ( type !== READ && !underscore.isArray( request ) ) {
-		callback(new Error( 'Controller: Parameter request is not array' ));
-		return;
+		//Логирование ошибки
+		objDescriptioneError = {
+			type: 'invalid_function_arguments',
+			variant: 4,
+			place: 'Controller.queryToView',
+			time: new Date().getTime(),
+			sender:sender,
+			arguments:{
+				type:type,
+				viewName:viewName,
+				socketViews:socket.view,
+				request:request
+			},
+			descriptione: {
+				title:'Controller: Parameter request is not array',
+				text:'Вызвана функция queryToView с типом запроса который подразумевает, что ' +
+					'аргумент request должен быть массивом'
+			}
+		};
+
+		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 	}
 
 	if( socket.view && socket.view[viewName] ) {
@@ -630,45 +1216,258 @@ Controller.queryToView = function queryToView( type, request, viewName, socket, 
 
 			if( checkRead( viewName, request, socket.view[viewName] ) ) {
 				//Вызываем view c необходимыми параметрами
-				View.find( viewName, socket.view[viewName], request, callback );
+				View.find( viewName, socket.view[viewName], request,
+					function ( err, documents, count ) {
+					if ( err ) {
+						//Логирование ошибки
+						objDescriptioneError = {
+							type: 'unknown_error',
+							variant: 1,
+							place: 'View.find',
+							time: new Date().getTime(),
+							sender:sender,
+							arguments:{
+								viewName:viewName,
+								list_vidsFromSocket:socket.view[viewName],
+								request:request
+							},
+							descriptione: {
+								title: err.message,
+								text:'Ошибка полученная в функции обратного вызова при вызове ' +
+									'функции view.find'
+							}
+						};
+
+						ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+					} else {
+						callback( null, documents, count );
+					}
+				} );
 
 			} else {
-				callback( new Error( 'Controller: Requested more fields than allowed to read' ) );
+				//Логирование ошибки
+				objDescriptioneError = {
+					type: 'access_violation',
+					variant: 1,
+					place: 'Controller.checkRead',
+					time: new Date().getTime(),
+					sender:sender,
+					arguments:{
+						viewName:viewName,
+						list_vidsFromSocket:socket.view[viewName],
+						request:request
+					},
+					descriptione: {
+						title:'Controller: No permission to read in view',
+						text:'Запрашиваются несуществующие или неразрешенные идентификаторы на ' +
+							'чтение view в requested'
+					}
+				};
+
+				ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 			}
 
 		} else if ( type === CREATE ) {
 
 			if( checkCreate( viewName, request, socket.view[viewName] ) ) {
 				//Вызываем view c необходимыми параметрами
-				//Вызываем view c необходимыми параметрами
-				View.insert( viewName, socket.view[viewName], request, callback );
+				View.insert( viewName, socket.view[viewName], request, function ( err, documents ) {
+					if ( err ) {
+						//Логирование ошибки
+						objDescriptioneError = {
+							type: 'unknown_error',
+							variant: 1,
+							place: 'View.insert',
+							time: new Date().getTime(),
+							sender:sender,
+							arguments:{
+								viewName:viewName,
+								list_vidsFromSocket:socket.view[viewName],
+								request:request
+							},
+							descriptione: {
+								title: err.message,
+								text:'Ошибка полученная в функции обратного вызова при вызове ' +
+									'функции view.insert'
+							}
+						};
+
+						ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+					} else {
+						callback( null, documents );
+					}
+				} );
 			} else {
-				callback( new Error( 'Controller: No permission to create in view' ) );
+				//Логирование ошибки
+				objDescriptioneError = {
+					type: 'access_violation',
+					variant: 1,
+					place: 'Controller.checkCreate',
+					time: new Date().getTime(),
+					sender:sender,
+					arguments:{
+						viewName:viewName,
+						list_vidsFromSocket:socket.view[viewName],
+						request:request
+					},
+					descriptione: {
+						title:'Controller: No permission to create in view',
+						text:'Запрашиваются несуществующие или неразрешенные идентификаторы на' +
+							'создание view в requested'
+					}
+				};
+
+				ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 			}
 
 		} else if ( type === MODIFY ) {
 
 			if( checkModify( viewName, request, socket.view[viewName] ) ) {
 				//Вызываем view c необходимыми параметрами
-				View.modify( viewName, request, callback );
+				View.modify( viewName, request, function ( err, documents ) {
+					if ( err ) {
+						//Логирование ошибки
+						objDescriptioneError = {
+							type: 'unknown_error',
+							variant: 1,
+							place: 'View.modify',
+							time: new Date().getTime(),
+							sender:sender,
+							arguments:{
+								viewName:viewName,
+								request:request
+							},
+							descriptione: {
+								title: err.message,
+								text:'Ошибка полученная в функции обратного вызова при вызове ' +
+									'функции view.modify'
+							}
+						};
+
+						ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+					} else {
+						callback( null, documents );
+					}
+				} );
 			} else {
-				callback( new Error( 'Controller: No permission to modify in view' ) );
+				//Логирование ошибки
+				objDescriptioneError = {
+					type: 'access_violation',
+					variant: 1,
+					place: 'Controller.checkModify',
+					time: new Date().getTime(),
+					sender:sender,
+					arguments:{
+						viewName:viewName,
+						list_vidsFromSocket:socket.view[viewName],
+						request:request
+					},
+					descriptione: {
+						title:'Controller: No permission to modify in view',
+						text:'Запрашиваются несуществующие или неразрешенные идентификаторы на' +
+							'модификацию view в requested'
+					}
+				};
+
+				ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 			}
 
 		} else if ( type === DELETE ) {
 
 			if( checkDelete( viewName, request, socket.view[viewName] ) ) {
-				View.delete( viewName, request, callback );
+				View.delete( viewName, request, function ( err, documents ) {
+					if ( err ) {
+						//Логирование ошибки
+						objDescriptioneError = {
+							type: 'unknown_error',
+							variant: 1,
+							place: 'View.delete',
+							time: new Date().getTime(),
+							sender:sender,
+							arguments:{
+								viewName:viewName,
+								request:request
+							},
+							descriptione: {
+								title: err.message,
+								text:'Ошибка полученная в функции обратного вызова при вызове ' +
+									'функции view.delete'
+							}
+						};
+
+						ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+					} else {
+						callback( null, documents );
+					}
+				} );
 			} else {
-				callback( new Error( 'Controller: No permission to delete in view' ) );
+				//Логирование ошибки
+				objDescriptioneError = {
+					type: 'access_violation',
+					variant: 1,
+					place: 'Controller.checkDelete',
+					time: new Date().getTime(),
+					sender:sender,
+					arguments:{
+						viewName:viewName,
+						list_vidsFromSocket:socket.view[viewName],
+						request:request
+					},
+					descriptione: {
+						title:'Controller: No permission to delete in view',
+						text:'Запрашиваются неразрешенная операция на удаление view в requested'
+					}
+				};
+
+				ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 			}
 
 		} else {
-			callback( new Error( 'Controller: Unknown type of request' ) );
+			//Логирование ошибки
+			objDescriptioneError = {
+				type: 'invalid_function_arguments',
+				variant: 5,
+				place: 'Controller.queryToView',
+				time: new Date().getTime(),
+				sender:sender,
+				arguments:{
+					type:type,
+					viewName:viewName,
+					socketViews:socket.view,
+					request:request
+				},
+				descriptione: {
+					title:'Controller: Unknown type of request',
+					text:'Вызвана функция queryToView с неизвестным значением параметра type'
+				}
+			};
+
+			ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 		}
 
 	} else {
-		callback( new Error( 'Controller: Requested data without requiring a template or config' ) );
+		//Логирование ошибки
+		objDescriptioneError = {
+			type: 'invalid_function_arguments',
+			variant: 6,
+			place: 'Controller.queryToView',
+			time: new Date().getTime(),
+			sender:sender,
+			arguments:{
+				type:type,
+				viewName:viewName,
+				socketViews:socket.view,
+				request:request
+			},
+			descriptione: {
+				title:'Controller: There is no list of approved viewIDs in socket or ' +
+					'requested data without requiring a template or config',
+				text:'Вызвана функция queryToView до вызова шаблона для данной view, иначе говоря' +
+					'отсутствует список разрешенных идентификаторов прикрепленных к socket'
+			}
+		};
+
+		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 	}
 };
 
@@ -898,15 +1697,35 @@ function checkDelete( viewName, queries, listOfAllowed_vids ) {
 	return true;
 }
 
-function formingFlexoAndView( user, role, viewName, callback ){
+function formingFlexoAndView( sender, viewName, callback ){
+	var user = sender.user;
+	var role = sender.role;
 
 	//Формируем объект с правами для view
 	AccessModuleView.accessPreparation( client, role, user, viewName, globalViewConfig[viewName],
 		function( err, listAllowedOf_vid ) {
 		if( err ) {
+			//ToDo: возможно логирование ошибки от redis
 			callback ( err );
 		} else if ( listAllowedOf_vid.length === 0 ) {
-		    callback ( new Error( 'Controller: No permissions access to view' ) );
+			//Логирование ошибки
+			objDescriptioneError = {
+				type: 'access_violation',
+				variant: 1,
+				place: 'Controller.AccessModuleView.accessPreparation',
+				time: new Date().getTime(),
+				sender:sender,
+				arguments:{
+					viewName:viewName,
+					globalView:globalViewConfig[viewName]
+				},
+				descriptione: {
+					title:'Controller: No permissions access to view',
+					text:'Нет разрешений на view в redis для данного пользователя и роли'
+				}
+			};
+
+			ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 		} else {
 			//Формируем список необходимых flexo схем
 			var listOfFlexoSchemes = [];
@@ -944,19 +1763,28 @@ function formingFlexoAndView( user, role, viewName, callback ){
 					}
 
 				} else {
-					//логировать нарушение целостности, разрешен в правах на view для _vid
+					//Логирование ошибки целостности, разрешен в правах на view для _vid
 					//которого нет в глобальной переменной
-					aDescriptioneError.push({
+					var objDescriptioneError = {
 						type:'loss_integrity',
-						variant: 1,
-						place: 'formingFlexoAndView',
+						variant:1,
+						place: 'Controller.AccessModuleView.accessPreparation',
 						time: new Date().getTime(),
+						sender:sender,
+						arguments:{
+							viewName:viewName,
+							globalView:globalViewConfig[viewName]
+						},
+						results:{
+							listAllowedOf_vid:listAllowedOf_vid
+						},
 						descriptione: {
-							viewName: viewName,
-							user: user,
-							role:role
+							text:'Ошибка целостности, так как есть разрешения на элемент view ' +
+								'которого нет в глобальной переменной'
 						}
-					});
+					};
+
+					aDescriptioneError.push(objDescriptioneError);
 
 					list_vidForRemove.push( listAllowedOf_vid[i] );
 				}
