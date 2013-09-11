@@ -51,6 +51,15 @@ ModuleErrorLogging.findFromMinToMax = function findFromMinToMax ( client, min, m
 	} );
 };
 
+ModuleErrorLogging.deleteErrorLogging = function deleteErrorLogging(client, time, callback) {
+	client.ZREMRANGEBYSCORE(zsetErrorLoging( ), time, time, function(err, reply){
+		if ( err ) {
+			callback( err );
+		} else {
+			callback( null, true );
+		}
+	});
+};
 
 //Формирование строки ключа Redis (STRING) для прав относящиеся к view для заданной схемы и
 //пользователю

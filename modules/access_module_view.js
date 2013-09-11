@@ -14,7 +14,7 @@ AccessModuleView.saveForRole = function saveForRole( client, sender, role, viewN
 													 globalView, callback ){
 	var multi = client.multi();
 	var key; //Формируемый ключ redis
-
+	var objDescriptioneError;
 	//Валидация и проверка целостности объекта view прав по роли
 	validationAndCheckIntegrityAccessForRole(objAccess, globalView, function( errTitle, type, variant,
 																			  textError ){
@@ -30,12 +30,12 @@ AccessModuleView.saveForRole = function saveForRole( client, sender, role, viewN
 				arguments:{
 					role:role,
 					viewName:viewName,
-					objAccess:objAccess,
-					globalView:globalView
+					objAccess:objAccess
 				},
 				descriptione: {
 					title:errTitle,
-					text:textError
+					text:textError,
+					globalView:globalView
 				}
 			};
 
@@ -72,7 +72,7 @@ AccessModuleView.saveForUser = function saveForUser( client, sender, user, viewN
 													 globalView, callback ){
 	var multi = client.multi();
 	var key; //Формируемый ключ redis
-
+	var objDescriptioneError;
 	//Валидация и проверка целостности объекта view прав по пользователю
 	validationAndCheckIntegrityAccessForUser(objAccess, globalView,	function( errTitle, type,
 																				 variant,
@@ -89,12 +89,12 @@ AccessModuleView.saveForUser = function saveForUser( client, sender, user, viewN
 				arguments:{
 					user:user,
 					viewName:viewName,
-					objAccess:objAccess,
-					globalView:globalView
+					objAccess:objAccess
 				},
 				descriptione: {
 					title:errTitle,
-					text:textError
+					text:textError,
+					globalView:globalView
 				}
 			};
 
@@ -159,8 +159,6 @@ function validationAndCheckIntegrityAccessForRole(objectAccess, globalView, call
 			return;
 		}
 	}
-
-
 
 	callback( null );
 }
@@ -238,7 +236,7 @@ function validationAndCheckIntegrityAccessForUser(objectAccess, globalView, call
  * 		reply - возвращается искомый объект прав
  */
 AccessModuleView.findForRole = function findForRole( client, sender, role, viewName, callback ) {
-
+	var objDescriptioneError;
 	client.GET(  strViewAccessRole( role, viewName ), function( err, reply ) {
 		if ( err ) {
 			callback( err );
@@ -279,7 +277,7 @@ AccessModuleView.findForRole = function findForRole( client, sender, role, viewN
  * 		reply - возвращается искомый объект прав
  */
 AccessModuleView.findForUser = function findForUser( client, sender, user, viewName, callback ) {
-
+	var objDescriptioneError;
 	client.GET(  strViewAccessUser( user, viewName ), function( err, reply ) {
 		if ( err ) {
 			callback( err );

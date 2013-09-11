@@ -149,7 +149,7 @@ Controller.create = function create( query, sender, callback ) {
 		//Проверяем уникальность создаваемого пользователя
 		var viewName = 'viewUsers';
 		var flexoSchemeName = 'users';
-		ModuleUser.checkUnique( client, query.user.login, function ( err ) {
+		ModuleUser.checkUnique( client, sender, query.user.login, function ( err ) {
 			if ( err ) {
 				callback ( err );
 			} else {
@@ -159,7 +159,7 @@ Controller.create = function create( query, sender, callback ) {
 				var document = underscore.clone( query.user );
 
 				//Сохраняем документ в redis
-				ModuleUser.create( client, document, function( err ) {
+				ModuleUser.create( client, sender, document, function( err ) {
 					if(err){
 						callback( err );
 					} else {
@@ -218,12 +218,12 @@ Controller.create = function create( query, sender, callback ) {
 		} else if ( query.access.flexoSchemeName ) {
 			if ( query.access.role ) {
 				//Запрос на создание прав flexo по роли
-				AccessModuleFlexo.saveForRole( client, query.access.role, query.access.flexoSchemeName,
-					query.access.objAccess, globalFlexoSchemes[query.access.flexoSchemeName], callback );
-
+				AccessModuleFlexo.saveForRole( client, sender, query.access.role,
+					query.access.flexoSchemeName, query.access.objAccess,
+					globalFlexoSchemes[query.access.flexoSchemeName], callback );
 			} else if ( query.access.login ) {
 				//Запрос на создание прав view по пользователю
-				AccessModuleFlexo.saveForUser( client, query.access.login,
+				AccessModuleFlexo.saveForUser( client, sender, query.access.login,
 					query.access.flexoSchemeName, query.access.objAccess,
 					globalFlexoSchemes[query.access.flexoSchemeName], callback );
 			} else {
@@ -336,7 +336,7 @@ Controller.find = function find( query, sender, callback ) {
 			var login = query.user.login || null;
 			var _id = query.user._id || null;
 
-			ModuleUser.find( client, _id, login, function(err, reply){
+			ModuleUser.find( client, sender, _id, login, function(err, reply){
 				if ( err ){
 					callback( err );
 				} else {
@@ -453,13 +453,13 @@ Controller.find = function find( query, sender, callback ) {
 				//Запрос на чтение прав flexo по роли
 
 				//Запрашиваемый искомый объект прав
-				AccessModuleFlexo.findForRole( client, query.access.role,
+				AccessModuleFlexo.findForRole( client, sender, query.access.role,
 					query.access.flexoSchemeName,	callback );
 
 			} else if ( query.access.login ) {
 				//Запрос на чтение прав view по пользователю
 				//Запрашиваемый искомый объект прав
-				AccessModuleFlexo.findForUser( client, query.access.login,
+				AccessModuleFlexo.findForUser( client, sender, query.access.login,
 					query.access.flexoSchemeName, callback );
 
 			} else {
@@ -568,7 +568,7 @@ Controller.delete = function del( query, sender, callback ) {
 		var login = query.user.login || null;
 		var _id = query.user._id || null;
 
-		ModuleUser.delete( client, _id, login, function(err, reply){
+		ModuleUser.delete( client, sender, _id, login, function(err, reply){
 			if ( err ){
 				callback( err );
 			} else {
@@ -576,7 +576,7 @@ Controller.delete = function del( query, sender, callback ) {
 			}
 		} );
 	} else if ( query.role ) {
-	    ModuleUser.deleteRole(client, query.role, function(err, reply){
+	    ModuleUser.deleteRole(client, sender, query.role, function(err, reply){
 			if ( err && reply ){
 				callback( err, reply );
 			} else if ( reply ){
@@ -737,10 +737,9 @@ Controller.modify = function modify( query, sender, callback ) {
 		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 	} else if ( query.user ) {
 		//Простая модификация одного пользователя
-		var login = query.user.login || null;
 		var _id = query.user._id || null;
 
-		ModuleUser.modify( client, _id, query.user, function(err, reply){
+		ModuleUser.modify( client, sender, _id, query.user, function(err, reply){
 			if ( err ){
 				callback( err );
 			} else {
@@ -782,11 +781,11 @@ Controller.modify = function modify( query, sender, callback ) {
 		} else if ( query.access.flexoSchemeName ) {
 			if ( query.access.role ) {
 				//Запрос на создание прав flexo по роли
-				AccessModuleFlexo.saveForRole( client, query.access.role,
+				AccessModuleFlexo.saveForRole( client, sender, query.access.role,
 					query.access.flexoSchemeName, query.access.objAccess, callback );
 			} else if ( query.access.login ) {
 				//Запрос на создание прав view по пользователю
-				AccessModuleFlexo.saveForUser( client, query.access.login,
+				AccessModuleFlexo.saveForUser( client, sender, query.access.login,
 					query.access.flexoSchemeName, query.access.objAccess, callback );
 			} else {
 				//Логирование ошибки
@@ -852,7 +851,7 @@ Controller.modify = function modify( query, sender, callback ) {
 Controller.getTemplate = getTemplate;
 
 function getTemplate(viewName, sender, socket, callback ) {
-
+	var objDescriptioneError;
 	if (!underscore.isFunction(callback)){
 		throw new Error( 'Controller: callback not a function' );
 	} else if ( !INITIALIZED ) {
@@ -889,7 +888,7 @@ function getTemplate(viewName, sender, socket, callback ) {
 		};
 
 		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
-	} else if ( !underscore.isString( sender.user ) ) {
+	} else if ( !underscore.isString( sender.login ) ) {
 		//Логирование ошибки
 		objDescriptioneError = {
 			type: 'invalid_function_arguments',
@@ -901,9 +900,9 @@ function getTemplate(viewName, sender, socket, callback ) {
 				viewName:viewName
 			},
 			descriptione: {
-				title:'Controller: Parameter user is not set in sender',
+				title:'Controller: Parameter login is not set in sender',
 				text:'Вызвана функция getTemplate с неопределенным или равным нулю параметром ' +
-					'user в аргументе sender'
+					'login в аргументе sender'
 			}
 		};
 
@@ -997,13 +996,11 @@ function getTemplate(viewName, sender, socket, callback ) {
 							viewName:viewName,
 							list_vidsFromSocket:socket.view[viewName]
 						},
-						results:{
-							vidsFromView:ids
-						},
 						descriptione: {
 							text:'Ошибка целостности, так как view обрезала список разрешенных ' +
 								'идентификаторов при наличии списка разрешенных идентификаторов' +
-								'прикрепленных к socket'
+								'прикрепленных к socket',
+							vidsFromView:ids
 						}
 					};
 
@@ -1069,12 +1066,10 @@ function getTemplate(viewName, sender, socket, callback ) {
 									viewName:viewName,
 									listAllowedOf_vid:listAllowedOf_vid
 								},
-								results:{
-									vidsFromView:ids
-								},
 								descriptione: {
 									text:'Ошибка целостности, так как view обрезала сформированный ' +
-										'список разрешенных идентификаторов'
+										'список разрешенных идентификаторов',
+									vidsFromView:ids
 								}
 							};
 
@@ -1099,7 +1094,7 @@ function getTemplate(viewName, sender, socket, callback ) {
 }
 
 Controller.queryToView = function queryToView( type, sender, request, viewName, socket, callback ) {
-
+	var objDescriptioneError;
 	if ( !underscore.isFunction( callback ) ) {
 		throw new Error( 'Controller: callback not a function' );
 	} else if ( !socket ) {
@@ -1698,7 +1693,7 @@ function checkDelete( viewName, queries, listOfAllowed_vids ) {
 }
 
 function formingFlexoAndView( sender, viewName, callback ){
-	var user = sender.user;
+	var user = sender.login;
 	var role = sender.role;
 
 	//Формируем объект с правами для view
@@ -1716,12 +1711,12 @@ function formingFlexoAndView( sender, viewName, callback ){
 				time: new Date().getTime(),
 				sender:sender,
 				arguments:{
-					viewName:viewName,
-					globalView:globalViewConfig[viewName]
+					viewName:viewName
 				},
 				descriptione: {
 					title:'Controller: No permissions access to view',
-					text:'Нет разрешений на view в redis для данного пользователя и роли'
+					text:'Нет разрешений на view в redis для данного пользователя и роли',
+					globalView:globalViewConfig[viewName]
 				}
 			};
 
@@ -1772,15 +1767,13 @@ function formingFlexoAndView( sender, viewName, callback ){
 						time: new Date().getTime(),
 						sender:sender,
 						arguments:{
-							viewName:viewName,
-							globalView:globalViewConfig[viewName]
-						},
-						results:{
-							listAllowedOf_vid:listAllowedOf_vid
+							viewName:viewName
 						},
 						descriptione: {
 							text:'Ошибка целостности, так как есть разрешения на элемент view ' +
-								'которого нет в глобальной переменной'
+								'которого нет в глобальной переменной',
+							allowedOf_vid:listAllowedOf_vid[i],
+							globalView:globalViewConfig[viewName]
 						}
 					};
 
@@ -1795,7 +1788,7 @@ function formingFlexoAndView( sender, viewName, callback ){
 
 			if ( listOfFlexoSchemes.length ) {
 				//Подготавливаем объект с правами для view
-				AccessModuleFlexo.accessDataPreparation( client, role, user, listOfFlexoSchemes,
+				AccessModuleFlexo.accessDataPreparation( client, sender, listOfFlexoSchemes,
 					globalFlexoSchemes, function( err, flexoAccess ){
 					if( err ){
 						callback( err );
@@ -1902,14 +1895,74 @@ function formingFlexoAndView( sender, viewName, callback ){
 	} );
 }
 
-Controller.findErrorLogging = function findErrorLogging( options, callback ){
-	if ( options.all ) {
-		ModuleErrorLogging.findFromMinToMax(client, MIN_DATETIME, MAX_DATETIME, callback);
-	} else if ( options.min && options.max ) {
-		ModuleErrorLogging.findFromMinToMax(client, options.min, options.max, callback);
-	} else if ( options.min ) {
-		ModuleErrorLogging.findFromMinToMax(client, options.min, MAX_DATETIME, callback);
-	} else if ( options.max ) {
-		ModuleErrorLogging.findFromMinToMax(client, MIN_DATETIME, options.max, callback);
+Controller.findErrorLogging = function findErrorLogging( options, sender, callback ){
+	var objDescriptioneError;
+
+	if ( options ) {
+		if ( options.all ) {
+			ModuleErrorLogging.findFromMinToMax(client, MIN_DATETIME, MAX_DATETIME, callback);
+		} else if ( options.min && options.max ) {
+			ModuleErrorLogging.findFromMinToMax(client, options.min, options.max, callback);
+		} else if ( options.min ) {
+			ModuleErrorLogging.findFromMinToMax(client, options.min, MAX_DATETIME, callback);
+		} else if ( options.max ) {
+			ModuleErrorLogging.findFromMinToMax(client, MIN_DATETIME, options.max, callback);
+		} else {
+			//Логирование ошибки
+			objDescriptioneError = {
+				type: 'invalid_function_arguments',
+				variant: 1,
+				place: 'Controller.findErrorLogging',
+				time: new Date().getTime(),
+				sender:sender,
+				arguments:{
+					options:options
+				},
+				descriptione: {
+					title:'Controller: Incorrect parameters in options',
+					text:'Не указаны параметры поиска ошибки в объекте options'
+				}
+			};
+
+			ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+		}
+	} else {
+		//Логирование ошибки
+		objDescriptioneError = {
+			type: 'invalid_function_arguments',
+			variant: 2,
+			place: 'Controller.findErrorLogging',
+			time: new Date().getTime(),
+			sender:sender,
+			descriptione: {
+				title:'Controller: Not set argument options',
+				text:'Не определен или равен нулю аргумент функции options'
+			}
+		};
+
+		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 	}
 };
+
+Controller.deleteErrorLogging = function deleteErrorLogging( time, sender, callback ){
+	var objDescriptioneError;
+
+	if ( time ) {
+		ModuleErrorLogging.deleteErrorLogging(client, time, callback);
+	} else {
+		//Логирование ошибки
+		objDescriptioneError = {
+			type: 'invalid_function_arguments',
+			variant: 1,
+			place: 'Controller.deleteErrorLogging',
+			time: new Date().getTime(),
+			sender:sender,
+			descriptione: {
+				title:'Controller: Not set argument time',
+				text:'Не определен или равен нулю аргумент функции time'
+			}
+		};
+
+		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+	}
+}

@@ -1,4 +1,5 @@
 var ModuleUser = {};
+var ModuleErrorLogging = require('./module_error_logging.js');
 
 /**
  * Создаем нового пользователя и сохраняем в redis
@@ -8,11 +9,29 @@ var ModuleUser = {};
  * 		err - ошибки от node_redis и ...
  * 		reply - возвращается true в случае успешного создания
  */
-ModuleUser.create = function create( client, odjUser, callback ) {
+ModuleUser.create = function create( client, sender, odjUser, callback ) {
+	var objDescriptioneError;
 
 	if(typeof odjUser['_id'] !== "string"){
-		throw new Error( 'Controller: In the object field _id is missing: ' +
-			JSON.stringify( odjUser ) );
+
+		objDescriptioneError = {
+			type: 'invalid_function_arguments',
+			variant: 1,
+			place: 'Controller.ModuleUser.create',
+			time: new Date().getTime(),
+			sender:sender,
+			arguments:{
+				odjUser:odjUser
+			},
+			descriptione: {
+				title:'Controller: In the query.user field _id is missing',
+				text:'При создании пользователя, в объекте query.user не  ' +
+					'указан идентификатор пользователя'
+			}
+		};
+
+		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+		return;
 	}
 
 	//Сохраняем данные о пользователе в redis
@@ -50,10 +69,26 @@ ModuleUser.createRole = function createRole(client, role, callback) {
 	} );
 };
 
-ModuleUser.checkUnique = function checkUnique(client, login, callback){
+ModuleUser.checkUnique = function checkUnique(client, sender, login, callback){
+	var objDescriptioneError;
+
 	if(typeof login !== "string"){
-		throw new Error( 'Controller: In the object field login is missing: ' +
-			JSON.stringify( odjUser ) );
+
+		objDescriptioneError = {
+			type: 'invalid_function_arguments',
+			variant: 1,
+			place: 'Controller.ModuleUser.checkUnique',
+			time: new Date().getTime(),
+			sender:sender,
+			descriptione: {
+				title:'Controller:  In the query.user field login is missing',
+				text:'При создании пользователя, в объекте query.user не  ' +
+					'указан логин пользователя'
+			}
+		};
+
+		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+		return;
 	}
 
 	//Проверяем уникальность создаваемого пользователя
@@ -61,7 +96,23 @@ ModuleUser.checkUnique = function checkUnique(client, login, callback){
 		if( err ){
 			callback( err );
 		} else if (reply) {
-			callback( new Error( 'Controller: User already exists in redis with login: ' +  login ) );
+			objDescriptioneError = {
+				type: 'non-existent_data',
+				variant: 1,
+				place: 'Controller.ModuleUser.checkUnique',
+				time: new Date().getTime(),
+				sender:sender,
+				arguments:{
+					login:login
+				},
+				descriptione: {
+					title:'Controller:  User already exists in redis',
+					text:'При создании пользователя проверка уникальности логина показала, что' +
+						'пользователь с таким логином уже существует'
+				}
+			};
+
+			ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 		} else {
 			callback(null, true);
 		}
@@ -75,7 +126,8 @@ ModuleUser.checkUnique = function checkUnique(client, login, callback){
  * 		err - ошибки от node_redis и ...
  * 		reply - объект с информацией о пользователе	в виде {fieldName:value}
  */
-ModuleUser.find = function find(client, _id, login, callback){
+ModuleUser.find = function find(client, sender, _id, login, callback){
+	var objDescriptioneError;
 	//Простой поиск пользователя
 	if( _id ) {
 		//Получаем кеш с данными пользователя
@@ -85,7 +137,23 @@ ModuleUser.find = function find(client, _id, login, callback){
 			} else if (reply) {
 				callback( null, JSON.parse( reply ) );
 			} else {
-				callback( new Error( 'Controller: No cache in redis for the _id: '+ _id ) );
+				objDescriptioneError = {
+					type: 'non-existent_data',
+					variant: 1,
+					place: 'Controller.ModuleUser.find',
+					time: new Date().getTime(),
+					sender:sender,
+					arguments:{
+						_idUser:_id
+					},
+					descriptione: {
+						title:'Controller: No cache in redis',
+						text:'Не существует данных о пользователе в redis, поиск осуществляется по' +
+							'идентификатору пользователя'
+					}
+				};
+
+				ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 			}
 		} );
 	} else if ( login ) {
@@ -101,16 +169,62 @@ ModuleUser.find = function find(client, _id, login, callback){
 					} else if (reply) {
 						callback( null, JSON.parse( reply ) );
 					} else {
-						callback( new Error( 'Controller: No cache in redis for the login: '+ login ) );
+						objDescriptioneError = {
+							type: 'non-existent_data',
+							variant: 2,
+							place: 'Controller.ModuleUser.find',
+							time: new Date().getTime(),
+							sender:sender,
+							arguments:{
+								login:login
+							},
+							descriptione: {
+								title:'Controller: No cache in redis',
+								text:'Не существует данных о пользователе в redis, поиск ' +
+									'осуществляется по логину пользователя',
+								_idUser:_id
+							}
+						};
+
+						ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 					}
 				} );
 
 			} else {
-				callback( new Error( 'Controller: Requested the login does not exist: ' + login ) );
+				objDescriptioneError = {
+					type: 'non-existent_data',
+					variant: 3,
+					place: 'Controller.ModuleUser.find',
+					time: new Date().getTime(),
+					sender:sender,
+					arguments:{
+						login:login
+					},
+					descriptione: {
+						title:'Controller: Requested the login does not exist',
+						text:'Не существует в redis пользователя с указанным логином ' +
+							'(не удается найти _id пользователя по его логину)'
+					}
+				};
+
+				ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 			}
 		});
 	} else {
-		throw new Error( 'Controller: Not set login or _id in find query. ' );
+		objDescriptioneError = {
+			type: 'invalid_function_arguments',
+			variant: 1,
+			place: 'Controller.ModuleUser.find',
+			time: new Date().getTime(),
+			sender:sender,
+			descriptione: {
+				title:'Controller: Not set login or _id in query.user',
+				text:'При поиске данных о пользователе в объекте query.user не указан параметр' +
+					'login или _id пользователя'
+			}
+		};
+
+		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 	}
 };
 
@@ -203,7 +317,8 @@ ModuleUser.findListOfFlexosRole = function findListOfFlexosRole(client, role, ca
  * 		err - ошибки от node_redis и ...
  * 		reply - возвращается true в случае успешного удаления
  */
-ModuleUser.modify = function modify(client, _id, objNewData, callback){
+ModuleUser.modify = function modify(client, sender, _id, objNewData, callback){
+	var objDescriptioneError;
 
 	if ( _id ) {
 		//Получаем кеш из redis по _id
@@ -257,12 +372,45 @@ ModuleUser.modify = function modify(client, _id, objNewData, callback){
 				} );
 
 			} else {
-				callback( new Error( 'Controller: Modification of data is not existing user with _id: '
-					+ _id ) );
+
+				objDescriptioneError = {
+					type: 'non-existent_data',
+					variant: 1,
+					place: 'Controller.ModuleUser.modify',
+					time: new Date().getTime(),
+					sender:sender,
+					arguments:{
+						_idUser:_id,
+						odjUser:objNewData
+					},
+					descriptione: {
+						title:'Controller:Modification of data is not existing user',
+						text:'Попытка модификировать не существующего в redis пользователя ' +
+							'с указанным идентификатором'
+					}
+				};
+
+				ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 			}
 		} );
 	} else {
-		throw new Error( 'Controller: Not set _id in modify query. ' );
+		objDescriptioneError = {
+			type: 'invalid_function_arguments',
+			variant: 1,
+			place: 'Controller.ModuleUser.modify',
+			time: new Date().getTime(),
+			sender:sender,
+			arguments:{
+				odjUser:objNewData
+			},
+			descriptione: {
+				title:'Controller: Not set _id in query.user',
+				text:'При модификации данных о пользователе в объекте query.user не указан обезательный ' +
+					'параметр _id пользователя'
+			}
+		};
+
+		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 	}
 };
 
@@ -273,7 +421,7 @@ ModuleUser.modify = function modify(client, _id, objNewData, callback){
  * 		err - ошибки от node_redis и ...
  * 		reply - возвращается true в случае успешного удаления
  */
-ModuleUser.delete = function del(client, _id, login, callback){
+ModuleUser.delete = function del(client, sender, _id, login, callback){
 	if ( _id ) {
 		//Получаем имя пользователя
 		client.GET( strIdToLogin( _id ), function(err, login){
@@ -330,8 +478,24 @@ ModuleUser.delete = function del(client, _id, login, callback){
 				});
 
 			} else {
-				callback( new Error( 'Controller: Removal is not an existing user with _id: ' +
-					_id ) );
+				objDescriptioneError = {
+					type: 'non-existent_data',
+					variant: 1,
+					place: 'Controller.ModuleUser.delete',
+					time: new Date().getTime(),
+					sender:sender,
+					arguments:{
+						_idUser:_id
+					},
+					descriptione: {
+						title:'Controller:Removal is not an existing user',
+						text:'Попытка удалить не существующего в redis пользователя (удаление ' +
+							'производится по идентификатору, и не был найден в redis ' +
+							'логин соответствующий данному идентификатору) '
+					}
+				};
+
+				ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 			}
 		} );
 	} else if ( login ) {
@@ -388,24 +552,72 @@ ModuleUser.delete = function del(client, _id, login, callback){
 					}
 				} );
 			} else {
-				callback( new Error( 'Controller: Removal is not an existing user with login: ' +
-					login ) );
+				objDescriptioneError = {
+					type: 'non-existent_data',
+					variant: 2,
+					place: 'Controller.ModuleUser.delete',
+					time: new Date().getTime(),
+					sender:sender,
+					arguments:{
+						login:login
+					},
+					descriptione: {
+						title:'Controller:Removal is not an existing user',
+						text:'Попытка удалить не существующего в redis пользователя (удаление ' +
+							'производится по логину, и не был найден в redis ' +
+							'идентификатор соответствующий данному логину пользователя) '
+					}
+				};
+
+				ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 			}
 		} );
 	} else {
-		throw new Error( 'Controller: Not set _id or login in delete query. ' );
+		objDescriptioneError = {
+			type: 'invalid_function_arguments',
+			variant: 1,
+			place: 'Controller.ModuleUser.delete',
+			time: new Date().getTime(),
+			sender:sender,
+			descriptione: {
+				title:'Controller: Not set _id or login in query.user',
+				text:'При удалении данных о пользователе в объекте query.user не указан ' +
+					'обезательный параметр _id или login пользователя'
+			}
+		};
+
+		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 	}
 };
 
-ModuleUser.deleteRole = function deleteRole(client, role, callback){
+ModuleUser.deleteRole = function deleteRole(client, sender, role, callback){
 	//Получаем список логинов пользователя связанных с этой ролью
 	client.SMEMBERS( setRoleToAllUser( role ), function( err, reply ) {
 		if ( err ) {
 			callback( err );
 		} else if ( reply.length ) {
-			//Удаление запрещено, так как есть пользователи у которых установлена эта роль
-			callback(new Error('Controller: Removing the role of prohibited, as there are users ' +
-				'that are associated with that role: ' + role), reply);
+
+			objDescriptioneError = {
+				type: 'operation_prohibited',
+				variant: 1,
+				place: 'Controller.ModuleUser.delete',
+				time: new Date().getTime(),
+				sender:sender,
+				arguments:{
+					role:role
+				},
+				descriptione: {
+					title:'Controller: Removing the role of prohibited, as there are users ' +
+						'that are associated with that role',
+					text:'Операция удаления роли запрещена так как есть пользователи с ' +
+						'которыми ассоциирована эта роль ',
+					users:reply
+				}
+			};
+
+			ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, function( err ){
+				callback(new Error( err.message + ': ' + role ), reply);
+			});
 		} else {
 			//Удаление разрешено
 			var multi = client.multi();
