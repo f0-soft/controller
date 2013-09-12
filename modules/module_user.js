@@ -46,7 +46,7 @@ ModuleUser.create = function create( client, sender, odjUser, callback ) {
 	//ToDo:Черновой вариант
 	//Сохраняем логин пользователя в справочник пользователей
 	multi.SADD( setListOfLogin(), odjUser['login'] );
-
+	//ToDo:Проверять сещестование такой роли в справочнике
 	//Сохраняем связку роли и логина пользователя
 	multi.SADD( setRoleToAllUser( odjUser['role'] ), odjUser['login'] );
 
@@ -60,7 +60,13 @@ ModuleUser.create = function create( client, sender, odjUser, callback ) {
 };
 
 ModuleUser.createRole = function createRole(client, role, callback) {
-	client.SADD( setListOfRole() , role, function( err, reply ) {
+	var multi = client.multi();
+	var key = strObjOfRole( role.roleName );
+	var value = JSON.stringify(role);
+	multi.SET( key, value );
+	multi.SADD( setListOfRole() , role.roleName );
+
+	multi.EXEC( function( err, reply ) {
 		if( err ) {
 			callback( err );
 		} else {
@@ -255,6 +261,48 @@ ModuleUser.findListOfUsers = function findListOfUsers(client, callback){
 		} else {
 			callback( null, replies );
 		}
+	});
+};
+
+ModuleUser.findObjUsers = function findObjUsers(client, callback){
+	//ToDo:логирование ошибок связанных с запросом не существующих даных
+	client.SMEMBERS( setListOfLogin(), function( err, listOfLogins ){
+		if ( err ) {
+			callback( err );
+		} else {
+			var multi = client.multi();
+
+			for( var i = 0; i < listOfLogins.length; i++ ) {
+				multi.GET(strLoginToId(listOfLogins[i]));
+			}
+
+			multi.EXEC(function( err, listOfUserId ){
+				if ( err ) {
+					callback( err );
+				} else {
+					var multi = client.multi();
+
+					for( var i = 0; i < listOfUserId.length; i++ ) {
+						multi.GET(strUserCache(listOfUserId[i]));
+					}
+
+					multi.EXEC(function( err, replies ){
+						if ( err ) {
+							callback( err );
+						} else {
+
+							var aResilt = [];
+							for( var i = 0; i<replies.length; i++ ) {
+								if ( replies[i] )
+								aResilt.push(JSON.parse( replies[i] ));
+							}
+
+							callback( null, aResilt );
+						}
+					});
+				}
+			});
+		}
 	})
 };
 
@@ -264,6 +312,41 @@ ModuleUser.findListOfRoles = function findListOfRoles(client, callback){
 			callback( err );
 		} else {
 			callback( null, replies );
+		}
+	})
+};
+
+ModuleUser.findObjRoles = function findObjRoles(client, callback){
+	client.SMEMBERS( setListOfRole(), function( err, listOfRoles ){
+		if ( err ) {
+			callback( err );
+		} else {
+			if ( listOfRoles.length ) {
+				var multi = client.multi();
+
+				for( var i=0; i<listOfRoles.length; i++ ){
+					var key = strObjOfRole( listOfRoles[i] );
+					multi.GET( key );
+				}
+
+				multi.EXEC( function( err, replies ){
+					if ( err ) {
+						callback( err );
+					} else {
+
+						var result = [];
+
+						for( var i=0; i<replies.length; i++ ) {
+							if ( replies[i] )
+							result.push(JSON.parse(replies[i]));
+						}
+
+						callback( null, result );
+					}
+				});
+			} else {
+				callback( null, [] );
+			}
 		}
 	})
 };
@@ -633,8 +716,9 @@ ModuleUser.deleteRole = function deleteRole(client, sender, role, callback){
 					//Формируем команды на удаление
 					var listOfFlesoScheme = replies[0];
 					var listOfView = replies[1];
-					//Удаляем роль из списка ролей
+					//Удаляем роль из списка ролей и его описание
 					multi.SREM( setListOfRole() , role);
+					multi.DEL( strObjOfRole( role ) );
 
 					//Удаляем связанные с ролью объекты прав view
 					for( var i = 0; i < listOfView.length; i++ ) {
@@ -721,6 +805,11 @@ function setListOfLogin( ) {
 //Формирование строки ключа Redis (SET) для хранения справочника о ролях
 function setListOfRole( ) {
 	return 'list:roles:';
+}
+
+//Формирование строки ключа Redis (SET) для хранения справочника о ролях
+function strObjOfRole( role ) {
+	return 'obj:role:'+ role;
 }
 
 //Формирование строки ключа Redis (STRING) для хранения соответствия логина и _id пользователя

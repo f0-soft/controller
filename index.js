@@ -169,6 +169,7 @@ Controller.create = function create( query, sender, callback ) {
 			}
 		});
 	} else if ( query.role ) {
+		//ToDo:валидация объекта роли
 		//Запрос на создание роли
 		ModuleUser.createRole(client, query.role, function( err ) {
 			if(err){
@@ -349,12 +350,36 @@ Controller.find = function find( query, sender, callback ) {
 			ModuleUser.findListOfUsers(client, function( err, replies ) {
 				if ( err ) {
 					callback( err );
+				} else if ( query.user.allView ) {
+					callback( null, replies, Object.keys( globalViewConfig ) );
+				} else if ( query.user.allFlexo ) {
+					callback( null, replies, Object.keys( globalFlexoSchemes ) );
+				} else {
+					callback( null, replies );
+				}
+			});
+		} else if ( query.user.allObjUser ) {
+			ModuleUser.findObjUsers(client, function( err, replies ) {
+				if ( err ) {
+					callback( err );
 				} else {
 					callback( null, replies );
 				}
 			});
 		} else if ( query.user.allRole ) {
 			ModuleUser.findListOfRoles(client, function( err, replies ) {
+				if ( err ) {
+					callback( err );
+				} else if ( query.user.allView ) {
+					callback( null, replies, Object.keys( globalViewConfig ) );
+				} else if ( query.user.allFlexo ) {
+					callback( null, replies, Object.keys( globalFlexoSchemes ) );
+				} else {
+					callback( null, replies );
+				}
+			});
+		} else if ( query.user.allObjRole ) {
+			ModuleUser.findObjRoles(client, function( err, replies ) {
 				if ( err ) {
 					callback( err );
 				} else {
@@ -421,12 +446,16 @@ Controller.find = function find( query, sender, callback ) {
 				//Запрос на чтение прав view по роли
 				//Запрашиваемый искомый объект прав
 				AccessModuleView.findForRole( client, sender, query.access.role,
-					query.access.viewName, callback );
+					query.access.viewName, function( err, reply ) {
+						callback( err, reply, Object.keys(globalViewConfig[query.access.viewName]));
+					} );
 			} else if ( query.access.login ) {
 				//Запрос на чтение прав view по пользователю
 				//Запрашиваемый искомый объект прав
 				AccessModuleView.findForUser( client, sender, query.access.login,
-					query.access.viewName, callback );
+					query.access.viewName, function( err, reply ) {
+						callback( err, reply, Object.keys(globalViewConfig[query.access.viewName]));
+					} );
 
 			} else {
 				//Логирование ошибки
@@ -454,13 +483,17 @@ Controller.find = function find( query, sender, callback ) {
 
 				//Запрашиваемый искомый объект прав
 				AccessModuleFlexo.findForRole( client, sender, query.access.role,
-					query.access.flexoSchemeName,	callback );
+					query.access.flexoSchemeName, function( err, reply ) {
+						callback( err, reply, globalFlexoSchemes[query.access.flexoSchemeName] )
+					} );
 
 			} else if ( query.access.login ) {
 				//Запрос на чтение прав view по пользователю
 				//Запрашиваемый искомый объект прав
 				AccessModuleFlexo.findForUser( client, sender, query.access.login,
-					query.access.flexoSchemeName, callback );
+					query.access.flexoSchemeName, function( err, reply ) {
+						callback( err, reply, globalFlexoSchemes[query.access.flexoSchemeName] )
+					} );
 
 			} else {
 
@@ -516,7 +549,7 @@ Controller.find = function find( query, sender, callback ) {
 			},
 			descriptione: {
 				title:'Controller: Incorrect parameter query',
-				text:'Вызвана функция create, без указания в query параметров access или user'
+				text:'Вызвана функция find, без указания в query параметров access или user'
 			}
 		};
 
@@ -950,7 +983,7 @@ function getTemplate(viewName, sender, socket, callback ) {
 	if( socket.view && socket.view[viewName] ) {
 		//Подготовленный список _vid есть
 		//Запрашиваем шаблон view c необходимыми параметрами
-		View.getTemplate( viewName, socket.view[viewName], function( err, ids, config, template ) {
+		View.getTemplate( viewName, socket.view[viewName].ids, function( err, ids, config, template ) {
 			if( err ) {
 
 				if ( err ) {
@@ -963,7 +996,7 @@ function getTemplate(viewName, sender, socket, callback ) {
 						sender:sender,
 						arguments:{
 							viewName:viewName,
-							list_vidsFromSocket:socket.view[viewName]
+							list_vidsFromSocket:socket.view[viewName].ids
 						},
 						descriptione: {
 							title: err.message,
@@ -980,9 +1013,9 @@ function getTemplate(viewName, sender, socket, callback ) {
 				callback( err );
 			} else {
 
-				if( socket.view[viewName].length !== ids.length ) {
+				if( socket.view[viewName].ids.length !== ids.length ) {
 					//Перезапись разрешенного списка _vid
-					socket.view[viewName] = ids;
+					socket.view[viewName].ids = ids;
 
 					//Логирование ошибки целостности, так как view обрезала список разрешенных
 					//идентификаторов
@@ -994,7 +1027,7 @@ function getTemplate(viewName, sender, socket, callback ) {
 						sender:sender,
 						arguments:{
 							viewName:viewName,
-							list_vidsFromSocket:socket.view[viewName]
+							list_vidsFromSocket:socket.view[viewName].ids
 						},
 						descriptione: {
 							text:'Ошибка целостности, так как view обрезала список разрешенных ' +
@@ -1018,7 +1051,7 @@ function getTemplate(viewName, sender, socket, callback ) {
 		});
 	} else {
 		//Нет прав подготавливаем права и flexo модели
-		formingFlexoAndView( sender, viewName, function ( err, listAllowedOf_vid ) {
+		formingFlexoAndView( sender, viewName, function ( err, listAllowedOf_vid, useId ) {
 			if ( err ) {
 				callback( err );
 			} else {
@@ -1051,7 +1084,7 @@ function getTemplate(viewName, sender, socket, callback ) {
 							socket.view = {};
 						}
 
-						socket.view[viewName] = ids;
+						socket.view[viewName] = {ids:ids, useId:!!useId};
 
 						if( listAllowedOf_vid.length !== ids.length ){
 							//Логирование ошибки целостности, так как view обрезала список
@@ -1209,9 +1242,16 @@ Controller.queryToView = function queryToView( type, sender, request, viewName, 
 		//Подготовленный список разрешенных _vid есть
 		if( type === READ ) {
 
-			if( checkRead( viewName, request, socket.view[viewName] ) ) {
+			if( checkRead( viewName, request, socket.view[viewName].ids ) ) {
 				//Вызываем view c необходимыми параметрами
-				View.find( viewName, socket.view[viewName], request,
+				//Формируем объект параметров для View
+				var options = {
+					insert_user_id: socket.view[viewName].useId,
+					user_id: sender.user_id,
+					role: sender.role
+				};
+
+				View.find( viewName, socket.view[viewName].ids, request, options,
 					function ( err, documents, count ) {
 					if ( err ) {
 						//Логирование ошибки
@@ -1223,8 +1263,9 @@ Controller.queryToView = function queryToView( type, sender, request, viewName, 
 							sender:sender,
 							arguments:{
 								viewName:viewName,
-								list_vidsFromSocket:socket.view[viewName],
-								request:request
+								list_vidsFromSocket:socket.view[viewName].ids,
+								request:request,
+								optionsView:options
 							},
 							descriptione: {
 								title: err.message,
@@ -1249,7 +1290,7 @@ Controller.queryToView = function queryToView( type, sender, request, viewName, 
 					sender:sender,
 					arguments:{
 						viewName:viewName,
-						list_vidsFromSocket:socket.view[viewName],
+						list_vidsFromSocket:socket.view[viewName].ids,
 						request:request
 					},
 					descriptione: {
@@ -1264,9 +1305,17 @@ Controller.queryToView = function queryToView( type, sender, request, viewName, 
 
 		} else if ( type === CREATE ) {
 
-			if( checkCreate( viewName, request, socket.view[viewName] ) ) {
+			if( checkCreate( viewName, request, socket.view[viewName].ids ) ) {
 				//Вызываем view c необходимыми параметрами
-				View.insert( viewName, socket.view[viewName], request, function ( err, documents ) {
+				//Формируем объект параметров для View
+				var options = {
+					insert_user_id: socket.view[viewName].useId,
+					user_id: sender.user_id,
+					role: sender.role
+				};
+
+				View.insert( viewName, socket.view[viewName].ids, request, options,
+					function ( err, documents ) {
 					if ( err ) {
 						//Логирование ошибки
 						objDescriptioneError = {
@@ -1277,8 +1326,9 @@ Controller.queryToView = function queryToView( type, sender, request, viewName, 
 							sender:sender,
 							arguments:{
 								viewName:viewName,
-								list_vidsFromSocket:socket.view[viewName],
-								request:request
+								list_vidsFromSocket:socket.view[viewName].ids,
+								request:request,
+								optionsView:options
 							},
 							descriptione: {
 								title: err.message,
@@ -1302,7 +1352,7 @@ Controller.queryToView = function queryToView( type, sender, request, viewName, 
 					sender:sender,
 					arguments:{
 						viewName:viewName,
-						list_vidsFromSocket:socket.view[viewName],
+						list_vidsFromSocket:socket.view[viewName].ids,
 						request:request
 					},
 					descriptione: {
@@ -1317,9 +1367,16 @@ Controller.queryToView = function queryToView( type, sender, request, viewName, 
 
 		} else if ( type === MODIFY ) {
 
-			if( checkModify( viewName, request, socket.view[viewName] ) ) {
+			if( checkModify( viewName, request, socket.view[viewName].ids ) ) {
 				//Вызываем view c необходимыми параметрами
-				View.modify( viewName, request, function ( err, documents ) {
+				//Формируем объект параметров для View
+				var options = {
+					insert_user_id: socket.view[viewName].useId,
+					user_id: sender.user_id,
+					role: sender.role
+				};
+
+				View.modify( viewName, request, options, function ( err, documents ) {
 					if ( err ) {
 						//Логирование ошибки
 						objDescriptioneError = {
@@ -1330,7 +1387,8 @@ Controller.queryToView = function queryToView( type, sender, request, viewName, 
 							sender:sender,
 							arguments:{
 								viewName:viewName,
-								request:request
+								request:request,
+								optionsView:options
 							},
 							descriptione: {
 								title: err.message,
@@ -1354,7 +1412,7 @@ Controller.queryToView = function queryToView( type, sender, request, viewName, 
 					sender:sender,
 					arguments:{
 						viewName:viewName,
-						list_vidsFromSocket:socket.view[viewName],
+						list_vidsFromSocket:socket.view[viewName].ids,
 						request:request
 					},
 					descriptione: {
@@ -1369,8 +1427,15 @@ Controller.queryToView = function queryToView( type, sender, request, viewName, 
 
 		} else if ( type === DELETE ) {
 
-			if( checkDelete( viewName, request, socket.view[viewName] ) ) {
-				View.delete( viewName, request, function ( err, documents ) {
+			if( checkDelete( viewName, request, socket.view[viewName].ids ) ) {
+				//Формируем объект параметров для View
+				var options = {
+					insert_user_id: socket.view[viewName].useId,
+					user_id: sender.user_id,
+					role: sender.role
+				};
+
+				View.delete( viewName, request, options, function ( err, documents ) {
 					if ( err ) {
 						//Логирование ошибки
 						objDescriptioneError = {
@@ -1381,7 +1446,8 @@ Controller.queryToView = function queryToView( type, sender, request, viewName, 
 							sender:sender,
 							arguments:{
 								viewName:viewName,
-								request:request
+								request:request,
+								optionsView:options
 							},
 							descriptione: {
 								title: err.message,
@@ -1405,7 +1471,7 @@ Controller.queryToView = function queryToView( type, sender, request, viewName, 
 					sender:sender,
 					arguments:{
 						viewName:viewName,
-						list_vidsFromSocket:socket.view[viewName],
+						list_vidsFromSocket:socket.view[viewName].ids,
 						request:request
 					},
 					descriptione: {
@@ -1698,7 +1764,7 @@ function formingFlexoAndView( sender, viewName, callback ){
 
 	//Формируем объект с правами для view
 	AccessModuleView.accessPreparation( client, role, user, viewName, globalViewConfig[viewName],
-		function( err, listAllowedOf_vid ) {
+		function( err, listAllowedOf_vid, useId ) {
 		if( err ) {
 			//ToDo: возможно логирование ошибки от redis
 			callback ( err );
@@ -1869,11 +1935,11 @@ function formingFlexoAndView( sender, viewName, callback ){
 								if ( err ) {
 									callback( err );
 								} else {
-									callback( null, listAllowedOf_vid );
+									callback( null, listAllowedOf_vid, useId );
 								}
 							});
 						} else {
-							callback( null, listAllowedOf_vid );
+							callback( null, listAllowedOf_vid, useId );
 						}
 					}
 				});
@@ -1883,11 +1949,11 @@ function formingFlexoAndView( sender, viewName, callback ){
 						if ( err ) {
 							callback( err );
 						} else {
-							callback( null, listAllowedOf_vid );
+							callback( null, listAllowedOf_vid, useId );
 						}
 					});
 				} else {
-					callback( null, listAllowedOf_vid );
+					callback( null, listAllowedOf_vid, useId );
 				}
 			}
 

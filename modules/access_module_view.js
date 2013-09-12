@@ -141,6 +141,11 @@ function validationAndCheckIntegrityAccessForRole(objectAccess, globalView, call
 			'invalid_function_arguments', 3, 'В объекте прав query.access.objAccess ' +
 				'параметр viewIds не определен или не является массивом');
 		return;
+	} else if ( _.isUndefined( objectAccess['(useId)'] ) && !_.isNumber( objectAccess['(useId)'] ) ){
+		callback( 'Controller: incorrect parameter ["(useId)"] in query.access.objAccess',
+			'invalid_function_arguments', 4, 'В объекте прав query.access.objAccess спец. ' +
+				'параметр (useId) не определен или не является числом');
+		return;
 	}
 
 	if ( _.isUndefined( globalView ) || _.isEmpty( globalView ) ) {
@@ -193,6 +198,15 @@ function validationAndCheckIntegrityAccessForUser(objectAccess, globalView, call
 			'invalid_function_arguments', 4, 'В объекте прав query.access.objAccess ' +
 				'параметр viewIdsDel не определен или не является массивом');
 		return;
+	}
+
+	if ( !_.isUndefined( objectAccess['(useId)'] ) ){
+		if( !_.isNumber( objectAccess['(useId)'] ) ){
+			callback( 'Controller: incorrect parameter ["(useId)"] in query.access.objAccess',
+				'invalid_function_arguments', 5, 'В объекте прав query.access.objAccess спец. ' +
+					'параметр (useId) определен и не является числом');
+			return;
+		}
 	}
 
 	if ( _.isUndefined( globalView ) || _.isEmpty( globalView ) ) {
@@ -380,7 +394,19 @@ AccessModuleView.accessPreparation = function accessPreparation( client, role, u
 			var listOfViewIds = accessPreparationForUser( objAccessForUser, listOfViewIdsForRole,
 				viewConfig );
 
-			callback( null, listOfViewIds );
+			//Пересекаем спец разрешение '(useId)'
+			var useId = 0;
+
+			if ( objAccessForRole ) {
+				useId = objAccessForRole['(useId)'] || 0;
+			}
+
+			if ( objAccessForUser && !_.isUndefined( objAccessForUser['(useId)'] ) &&
+				_.isNumber( objAccessForUser['(useId)'] ) ) {
+				useId = objAccessForUser['(useId)'];
+			}
+
+			callback( null, listOfViewIds, useId );
 		}
 	});
 

@@ -29,7 +29,7 @@ function getTemplate ( name, vids, callback ) {
 	callback(null, vids, 'javascriptConfigFor' + name, '');
 }
 
-function find(viewName, listOf_vids, request, callback){
+function find(viewName, listOf_vids, request, options, callback){
 
 	if ( !underscore.isString( viewName ) ) {
 		callback(new Error( 'View_mock: Parameter viewName is not set or not string' ));
@@ -43,6 +43,11 @@ function find(viewName, listOf_vids, request, callback){
 
 	if ( !request ) {
 		callback(new Error( 'View_mock: Parameter request is not set' ));
+		return;
+	}
+
+	if ( !options ) {
+		callback(new Error( 'View_mock: Parameter options is not set' ));
 		return;
 	}
 
@@ -136,7 +141,7 @@ function find(viewName, listOf_vids, request, callback){
 	return;
 }
 
-function insert (viewName, listOf_vids, request, callback) {
+function insert (viewName, listOf_vids, request, options, callback) {
 
 	if ( !underscore.isString( viewName ) ) {
 		callback(new Error( 'View_mock: Parameter viewName is not set or not string' ));
@@ -150,6 +155,11 @@ function insert (viewName, listOf_vids, request, callback) {
 
 	if ( !request ) {
 		callback(new Error( 'View_mock: Parameter request is not set' ));
+		return;
+	}
+
+	if ( !options ) {
+		callback(new Error( 'View_mock: Parameter options is not set' ));
 		return;
 	}
 
@@ -188,7 +198,7 @@ function insert (viewName, listOf_vids, request, callback) {
 
 }
 
-function modify ( viewName, request, callback ){
+function modify ( viewName, request, options, callback ){
 
 	if ( !underscore.isString( viewName ) ) {
 		callback(new Error( 'View_mock: Parameter viewName is not set or not string' ));
@@ -197,6 +207,11 @@ function modify ( viewName, request, callback ){
 
 	if ( !request ) {
 		callback(new Error( 'View_mock: Parameter request is not set' ));
+		return;
+	}
+
+	if ( !options ) {
+		callback(new Error( 'View_mock: Parameter options is not set' ));
 		return;
 	}
 
@@ -220,7 +235,7 @@ function modify ( viewName, request, callback ){
 	return;
 }
 
-function del(viewName, request, callback){
+function del(viewName, request, options, callback){
 
 	if ( !underscore.isString( viewName ) ) {
 		callback(new Error( 'View_mock: Parameter viewName is not set or not string' ));
@@ -229,6 +244,11 @@ function del(viewName, request, callback){
 
 	if ( !request ) {
 		callback(new Error( 'View_mock: Parameter request is not set' ));
+		return;
+	}
+
+	if ( !options ) {
+		callback(new Error( 'View_mock: Parameter options is not set' ));
 		return;
 	}
 
