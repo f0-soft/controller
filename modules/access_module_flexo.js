@@ -542,7 +542,7 @@ AccessModuleFlexo.findForRole = function findForRole( client, sender, role, flex
 			callback( null, objAccess );
 		} else {
 			//Логирование ошибки
-			objDescriptioneError = {
+			/*objDescriptioneError = {
 				type: "non-existent_data",
 				variant: 1,
 				place: 'Controller.AccessModuleFlexo.findForRole',
@@ -553,12 +553,13 @@ AccessModuleFlexo.findForRole = function findForRole( client, sender, role, flex
 					flexoName:flexoSchemeName
 				},
 				descriptione: {
-					title:'Controller: ',
+					title:'Controller: No requested object access',
 					text:'Запрашивается не существующий объект прав на flexo по роли'
 				}
 			};
 
-			ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+			ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);*/
+			callback(new Error('Controller: No requested object access'));
 		}
 	});
 };
@@ -584,7 +585,7 @@ AccessModuleFlexo.findForUser = function findForUser( client, sender, user, flex
 
 			callback( null, objAccess );
 		} else {
-			//Логирование ошибки
+			/*//Логирование ошибки
 			objDescriptioneError = {
 				type: "non-existent_data",
 				variant: 1,
@@ -601,7 +602,8 @@ AccessModuleFlexo.findForUser = function findForUser( client, sender, user, flex
 				}
 			};
 
-			ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+			ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);*/
+			callback( new Error ( 'Controller: No requested object access' ) );
 		}
 	});
 };

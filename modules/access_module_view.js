@@ -260,7 +260,7 @@ AccessModuleView.findForRole = function findForRole( client, sender, role, viewN
 
 				callback( null, objAccess );
 			} else {
-				//Логирование ошибки
+				/*//Логирование ошибки
 				objDescriptioneError = {
 					type: "non-existent_data",
 					variant: 1,
@@ -277,7 +277,8 @@ AccessModuleView.findForRole = function findForRole( client, sender, role, viewN
 					}
 				};
 
-				ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+				ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);*/
+				callback( new Error ( 'Controller: No requested object access' ) );
 			}
 		}
 	});
@@ -301,7 +302,7 @@ AccessModuleView.findForUser = function findForUser( client, sender, user, viewN
 
 				callback( null, objAccess );
 			} else {
-				//Логирование ошибки
+				/*//Логирование ошибки
 				objDescriptioneError = {
 					type: "non-existent_data",
 					variant: 1,
@@ -318,7 +319,8 @@ AccessModuleView.findForUser = function findForUser( client, sender, user, viewN
 					}
 				};
 
-				ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+				ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);*/
+				callback( new Error ( 'Controller: No requested object access' ) );
 			}
 		}
 	});

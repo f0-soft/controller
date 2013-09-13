@@ -132,8 +132,22 @@ function find(viewName, listOf_vids, request, options, callback){
 			objResults = objLocal;
 		}
 
+	} else {
+		//ToDo:Захардкожено для получения данных о коллекциях компаний связанных с ролью
+		if ( viewName === 'customer' ) {
+			objResults = [
+				{'a1':'c1', 'a2':'ООО "Саша пряник"', 'a3':'123456789'},
+				{'a1':'c2', 'a2':'ООО "Рога и копыта"', 'a3':'987654321'},
+				{'a1':'c3', 'a2':'ООО "Хорошая идея"', 'a3':'987651234'}
+			];
+		} else if ( viewName === 'contractor' ) {
+			objResults = [
+				{'a1':'c4', 'a2':'ЗАО "Носы и хвосты"', 'a3':'123456780'},
+				{'a1':'c5', 'a2':'ЗАО "Плохая идея"', 'a3':'987654320'},
+				{'a1':'c6', 'a2':'ЗАО "Вася пупкин"', 'a3':'987651234'}
+			];
+		}
 	}
-
 
 	setImmediate(function(){
 		callback(null, objResults)

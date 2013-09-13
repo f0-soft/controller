@@ -14,6 +14,7 @@ var globalFlexoSchemes;
 var globalViewConfig;
 var flexo;
 var View;
+var globalRoleToView;
 
 var Controller = {};
 //Константы
@@ -60,6 +61,14 @@ Controller.init = function init( config, callback ) {
 	} else {
 		callback( new Error( 'Controller: Parameter flexoSchemes is not specified in the config ' +
 			'object' ) );
+		return;
+	}
+
+	if ( config.configRoleToCompanyView ) {
+		globalRoleToView = config.configRoleToCompanyView;
+	} else {
+		callback( new Error( 'Controller: Parameter configRoleToCompanyColl is not specified in ' +
+			'the config object' ) );
 		return;
 	}
 
@@ -153,17 +162,80 @@ Controller.create = function create( query, sender, callback ) {
 			if ( err ) {
 				callback ( err );
 			} else {
-				//Создаем view
-				//ToDo: взаимодействие c view
+				//ToDo:Согласовать название view
+				var request = {selector: {'a3':query.user.login} };
+				var options = {insert_user_id:false, user_id: sender.userId, role:sender.role};
+				View.find( '_sys_users', ['a1', 'a2', 'a3', 'a4'], options, function ( err, documents ) {
+					if ( err ) {
+						//Логирование ошибки
+						objDescriptioneError = {
+							type: 'unknown_error',
+							variant: 3,
+							place: 'View.find',
+							time: new Date().getTime(),
+							sender:sender,
+							arguments:{
+								viewName:'_sys_users',
+								request:request,
+								listAllowedOf_vid:['a1', 'a2', 'a3', 'a4']
+							},
+							descriptione: {
+								title: err.message,
+								text:'Ошибка полученная в функции обратного вызова при вызове ' +
+									'функции view.find при запросе _id пользователя по логину'
+							}
+						};
 
-				var document = underscore.clone( query.user );
+						ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+					} else if ( documents.length ) {
+						//Такого пользователя нет
+						//Сохраняем данные во view
+						var request = {'a3':query.user.login, 'a4':query.user.company_id};
+						View.insert( '_sys_users', ['a1', 'a2', 'a3', 'a4'], request, options,
+							function( err, document ) {
+							if ( err ) {
+								//Логирование ошибки
+								objDescriptioneError = {
+									type: 'unknown_error',
+									variant: 2,
+									place: 'View.insert',
+									time: new Date().getTime(),
+									sender:sender,
+									arguments:{
+										viewName:'_sys_users',
+										request:request,
+										listAllowedOf_vid:['a1', 'a2', 'a3', 'a4']
+									},
+									descriptione: {
+										title: err.message,
+										text:'Ошибка полученная в функции обратного вызова при ' +
+											'вызове функции view.insert при сохранение логина ' +
+											'пользователя'
+									}
+								};
+							} else if ( document[0]['a1'] ) {
+								//Сохраняем документ в Redis
+								var document = underscore.clone( query.user );
+								document._id = document[0]['a1'];
+								document.tsUpdate = document[0]['a2'];
 
-				//Сохраняем документ в redis
-				ModuleUser.create( client, sender, document, function( err ) {
-					if(err){
-						callback( err );
+								//Сохраняем документ в redis
+								ModuleUser.create( client, sender, document, function( err ) {
+									if(err){
+										callback( err );
+									} else {
+										callback( err, true );
+									}
+								} );
+
+							} else {
+								//ToDo:Не получен идентификатор
+								callback( new Error('Controller: view not return _id') );
+							}
+						});
 					} else {
-						callback( err, true );
+						//ToDo:есть такой пользователь в mongo!!!!!
+						callback(new Error('Controller: login already exists in database'));
 					}
 				} );
 			}
@@ -346,6 +418,45 @@ Controller.find = function find( query, sender, callback ) {
 					callback(null, obj);
 				}
 			} );
+		} else if ( query.user.companiesWithRole ) {
+			//Запрашивает массив с описанием компаний принадлежных к роли
+			var viewName = globalRoleToView[query.user.companiesWithRole];
+
+			if ( viewName ) {
+				//Запрашиваем данные из view
+				var request = { selector:{} };
+				var options = {insert_user_id:false, user_id: sender.userId, role:sender.role};
+
+				View.find(viewName, ['a1', 'a2', 'a3'], request, options, function ( err, documents ) {
+					if ( err ) {
+						//Логирование ошибки
+						objDescriptioneError = {
+							type: 'unknown_error',
+							variant: 4,
+							place: 'View.find',
+							time: new Date().getTime(),
+							sender:sender,
+							arguments:{
+								viewName:'_sys_users',
+								request:request,
+								listAllowedOf_vid:['a1', 'a2', 'a3', 'a4']
+							},
+							descriptione: {
+								title: err.message,
+								text:'Ошибка полученная в функции обратного вызова при вызове ' +
+									'функции view.find при запросе _id пользователя по логину'
+							}
+						};
+
+						ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+					} else {
+						callback(null, documents);
+					}
+				} );
+			} else {
+				callback(null, []);
+			}
+
 		} else if ( query.user.allUser ) {
 			ModuleUser.findListOfUsers(client, function( err, replies ) {
 				if ( err ) {
@@ -772,11 +883,47 @@ Controller.modify = function modify( query, sender, callback ) {
 		//Простая модификация одного пользователя
 		var _id = query.user._id || null;
 
-		ModuleUser.modify( client, sender, _id, query.user, function(err, reply){
-			if ( err ){
-				callback( err );
+		//Сохраняем данные во view
+		//ToDo:согласовать названия для view и flexo
+		var request = [ {
+			selector: {'_sys_users': { 'a1': _id, 'a2': query.user.tsUpdate } },
+			properties: { 'a3': query.user.login, 'a4': query.user.company_id }
+		} ];
+		var options = {insert_user_id:false, user_id: sender.userId, role:sender.role};
+		View.modify( '_sys_users', request, options, function( error, documents ) {
+			if ( err ) {
+				//Логирование ошибки
+				objDescriptioneError = {
+					type: 'unknown_error',
+					variant: 2,
+					place: 'View.modify',
+					time: new Date().getTime(),
+					sender:sender,
+					arguments:{
+						viewName:'_sys_users',
+						request:request
+					},
+					descriptione: {
+						title: err.message,
+						text:'Ошибка полученная в функции обратного вызова при ' +
+							'вызове функции view.modify при сохранение логина и _id компании ' +
+							'пользователя'
+					}
+				};
+			} else if( documents[0]['a1'] ) {
+				var document = underscore.clone( query.user );
+				document.tsUpdate = documents[0]['a2'];
+
+				ModuleUser.modify( client, sender, _id, document, function(err, reply){
+					if ( err ){
+						callback( err );
+					} else {
+						callback(null, reply);
+					}
+				} );
 			} else {
-				callback(null, reply);
+				//ToDo:не возвращен идентификатор
+				callback( new Error('Controller: view not return _id') );
 			}
 		} );
 	} else if ( query.access ) {
@@ -2010,11 +2157,13 @@ Controller.findErrorLogging = function findErrorLogging( options, sender, callba
 	}
 };
 
-Controller.deleteErrorLogging = function deleteErrorLogging( time, sender, callback ){
+Controller.deleteErrorLogging = function deleteErrorLogging( time, option, sender, callback ){
 	var objDescriptioneError;
 
 	if ( time ) {
 		ModuleErrorLogging.deleteErrorLogging(client, time, callback);
+	} else if ( option ) {
+		ModuleErrorLogging.deleteAllErrorLogging(client, callback);
 	} else {
 		//Логирование ошибки
 		objDescriptioneError = {
@@ -2024,8 +2173,8 @@ Controller.deleteErrorLogging = function deleteErrorLogging( time, sender, callb
 			time: new Date().getTime(),
 			sender:sender,
 			descriptione: {
-				title:'Controller: Not set argument time',
-				text:'Не определен или равен нулю аргумент функции time'
+				title:'Controller: Not set argument time or option',
+				text:'Не определен или равен нулю аргумент функции time или option'
 			}
 		};
 
