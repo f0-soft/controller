@@ -40,7 +40,7 @@ Controller.init = function init( config, callback ) {
 	if (!underscore.isFunction(callback)){
 		throw new Error( 'Controller: callback not a function' );
 	}
-
+	debugger
 	if ( config && config.view ) {
 		View = config.view;
 	} else {
@@ -1389,12 +1389,12 @@ Controller.queryToView = function queryToView( type, sender, request, viewName, 
 		//Подготовленный список разрешенных _vid есть
 		if( type === READ ) {
 
-			if( checkRead( viewName, request, socket.view[viewName].ids ) ) {
+			if( true/*checkRead( viewName, request, socket.view[viewName].ids )*/ ) {
 				//Вызываем view c необходимыми параметрами
 				//Формируем объект параметров для View
 				var options = {
 					insert_user_id: socket.view[viewName].useId,
-					user_id: sender.user_id,
+					user_id: sender.userId,
 					role: sender.role
 				};
 
@@ -1457,7 +1457,7 @@ Controller.queryToView = function queryToView( type, sender, request, viewName, 
 				//Формируем объект параметров для View
 				var options = {
 					insert_user_id: socket.view[viewName].useId,
-					user_id: sender.user_id,
+					user_id: sender.userId,
 					role: sender.role
 				};
 
@@ -1519,7 +1519,7 @@ Controller.queryToView = function queryToView( type, sender, request, viewName, 
 				//Формируем объект параметров для View
 				var options = {
 					insert_user_id: socket.view[viewName].useId,
-					user_id: sender.user_id,
+					user_id: sender.userId,
 					role: sender.role
 				};
 
@@ -1578,7 +1578,7 @@ Controller.queryToView = function queryToView( type, sender, request, viewName, 
 				//Формируем объект параметров для View
 				var options = {
 					insert_user_id: socket.view[viewName].useId,
-					user_id: sender.user_id,
+					user_id: sender.userId,
 					role: sender.role
 				};
 
