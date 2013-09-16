@@ -7,7 +7,8 @@ module.exports = {
 		mcu04: { _vid: 'mcu4', _flexo: {type: 'read', scheme: ['testManager', 'lastName', 'manager_id', 'contract-manager'] } },
 		mcu05: { _vid: 'mcu5', _flexo: {type: 'read', scheme: ['testCustomer', '_id'] } },
 		mcu06: { _vid: 'mcu6', _flexo: {type: 'read', scheme: ['testCustomer', 'tsUpdate']} },
-		mcu07: { _vid: 'mcu7', _flexo: {type: 'read', scheme: ['testCustomer', 'name']} }
+		mcu07: { _vid: 'mcu7', _flexo: {type: 'read', scheme: ['testCustomer', 'name']} },
+		mcu08: { _vid: 'mcu8', _flexo: {type: 'read', scheme: ['testCustomer', 'manager_id']} }
 	},
 	root: 'testCustomer'
 };

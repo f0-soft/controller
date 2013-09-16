@@ -74,7 +74,8 @@ var testObjGlobalViewsConfig = {
 		mcu4:{flexo:['testManager', 'lastName'], type:'read'},
 		mcu5:{flexo:['testCustomer', '_id'], type:'read'},
 		mcu6:{flexo:['testCustomer', 'tsUpdate'], type:'read'},
-		mcu7:{flexo:['testCustomer', 'name'], type:'read'}
+		mcu7:{flexo:['testCustomer', 'name'], type:'read'},
+		mcu8:{flexo:['testCustomer', 'manager_id'], type:'read'}
 	},
 	'testManagerContract':{
 		mco1:{flexo:['testManager', '_id'], type:'read'},
@@ -112,21 +113,12 @@ var globalFlexoSchemes = {
 
 var controller; //Переменная для хранения контролера
 
-/*//Конфиг контроллера
-configForController = {
-	redisConfig: {},
-	view:{}, //ToDo:
-	flexoSchemes:{},
-	viewConfig:{},
-	configRoleToCompanyView:{}
-}; */
-
 //Тестирование инициализации контроллера и view
 exports.testInit = {
 	//Инициализация view
 	starter: function(test){
 		test.expect( 2 );
-		debugger
+
 		starter.init( configStarter, function( err, module ) {
 			test.ifError( err );
 
@@ -136,26 +128,7 @@ exports.testInit = {
 
 			test.done();
 		} );
-	}/*,
-	//Инициализация контроллера
-	initController: function (test) {
-		test.expect( 6 );
-		//Добавляем в конфиг контроллера необходимую информацию
-		configForController.view = View;
-		configForController.flexoSchemes = globalFlexoSchemes;
-		configForController.viewConfig = testObjGlobalViewsConfig;
-
-		Controller.init( configForController, function( err, reply ) {
-			test.ifError(err);
-			test.ok(reply);
-			test.ok(Controller.create);
-			test.ok(Controller.find);
-			test.ok(Controller.delete);
-			test.ok(Controller.modify);
-			controller = Controller;
-			test.done();
-		} );
-	}*/
+	}
 };
 
 //Объект с описанием автора запроса (от кого и от куда запрос)
@@ -316,19 +289,20 @@ exports.saveAccess = {
 
 //Объект буфер для теста w
 var buffer = {
-	obj:[]
+	obj:[],
+	socketForViewTestManager:{}
 };
 
 //Запросы к view
-exports.queryToView = {
+exports.queryToViewCreateAndFind = {
 	createTwoManagersAndReadSecondManager: function(test) {
 		test.expect( 15 );
 
 		var viewName = 'testManager';
 		var socket = {};
-		debugger
-		controller.getTemplate( viewName, sender, socket, function( err, config, template ) {
-			test.ifError(err);
+
+		controller.getTemplate( viewName, sender, socket, function( error, config, template ) {
+			test.ifError(error);
 			test.ok(config);
 			test.strictEqual(template, '', 'Проверка отсутствия шаблона');
 
@@ -340,10 +314,10 @@ exports.queryToView = {
 
 			buffer.obj.push( { managers: queryToCreate[0] } );
 			buffer.obj.push( { managers: queryToCreate[1] } );
-
+			buffer.socketForViewTestManager = socket;
 			controller.queryToView ( 'create', sender, queryToCreate, viewName, socket,
-				function(err, documents ){
-					test.ifError(err);
+				function(error, documents ){
+					test.ifError(error);
 
 					test.strictEqual(documents.length, 2,
 						'Проверяем количество возвращенных документов view');
@@ -360,7 +334,7 @@ exports.queryToView = {
 
 					controller.queryToView ( 'read', sender, request, viewName, socket,
 						function(error, documents, count) {
-						test.ifError(err);
+						test.ifError(error);
 						test.strictEqual(documents.length, 1,
 							'Проверяем количество возвращенных документов view');
 
@@ -370,7 +344,7 @@ exports.queryToView = {
 							'Проверяем тот ли монагер возвращен');
 						test.strictEqual(documents[0]['m3'], buffer.obj[1].managers['m5'],
 							'Проверяем тот ли монагер возвращен');
-						test.strictEqual(documents[0]['m4'], buffer.obj[1].managers[1]['m6'],
+						test.strictEqual(documents[0]['m4'], buffer.obj[1].managers['m6'],
 							'Проверяем тот ли монагер возвращен');
 
 						test.done();
@@ -384,8 +358,8 @@ exports.queryToView = {
 		var viewName = 'testCustomer';
 		var socket = {};
 
-		controller.getTemplate( viewName, sender, socket, function( err, config, template ) {
-			test.ifError(err);
+		controller.getTemplate( viewName, sender, socket, function( error, config, template ) {
+			test.ifError(error);
 			test.ok(config);
 			test.strictEqual(template, '', 'Проверка отсутствия шаблона');
 
@@ -399,8 +373,8 @@ exports.queryToView = {
 			buffer.obj[1].customers = queryToCreate[1];
 
 			controller.queryToView ( 'create', sender, queryToCreate, viewName, socket,
-				function(err, documents ){
-					test.ifError(err);
+				function(error, documents ){
+					test.ifError(error);
 
 					test.strictEqual(documents.length, 2,
 						'Проверяем количество возвращенных документов view');
@@ -417,7 +391,7 @@ exports.queryToView = {
 
 					controller.queryToView ( 'read', sender, request, viewName, socket,
 						function(error, documents, count) {
-							test.ifError(err);
+							test.ifError(error);
 							test.strictEqual(documents.length, 1,
 								'Проверяем количество возвращенных документов view');
 
@@ -442,8 +416,8 @@ exports.queryToView = {
 		var viewName = 'testContract';
 		var socket = {};
 
-		controller.getTemplate( viewName, sender, socket, function( err, config, template ) {
-			test.ifError(err);
+		controller.getTemplate( viewName, sender, socket, function( error, config, template ) {
+			test.ifError(error);
 			test.ok(config);
 			test.strictEqual(template, '', 'Проверка отсутствия шаблона');
 
@@ -457,8 +431,8 @@ exports.queryToView = {
 			buffer.obj[1].contracts = queryToCreate[1];
 
 			controller.queryToView ( 'create', sender, queryToCreate, viewName, socket,
-				function(err, documents ){
-					test.ifError(err);
+				function(error, documents ){
+					test.ifError(error);
 
 					test.strictEqual(documents.length, 2,
 						'Проверяем количество возвращенных документов view');
@@ -475,7 +449,7 @@ exports.queryToView = {
 
 					controller.queryToView ( 'read', sender, request, viewName, socket,
 						function(error, documents, count) {
-							test.ifError(err);
+							test.ifError(error);
 							test.strictEqual(documents.length, 1,
 								'Проверяем количество возвращенных документов view');
 
@@ -501,33 +475,33 @@ exports.queryToView = {
 		var viewName = 'testManagerCustomer';
 		var socket = {};
 
-		controller.getTemplate( viewName, sender, socket, function( err, config, template ) {
-			test.ifError(err);
+		controller.getTemplate( viewName, sender, socket, function( error, config, template ) {
+			test.ifError(error);
 			test.ok(config);
 			test.strictEqual(template, '', 'Проверка отсутствия шаблона');
 
 			//Формируем запрос на чтение по _id manager
-			var request = { selector: {'testManagerCustomer':{ mcu05:buffer.obj[0].customers['cu1'] } } };
+			var request = { selector: {'testManagerCustomer':{ mcu5:buffer.obj[0].customers['cu1'] } } };
 
 			controller.queryToView ( 'read', sender, request, viewName, socket,
 				function(error, documents, count) {
-					test.ifError(err);
+					test.ifError(error);
 					test.strictEqual(documents.length, 1,
 						'Проверяем количество возвращенных документов view');
 
-					test.strictEqual(documents[0]['mcu1'], buffer.obj[0].contracts['m1'],
+					test.strictEqual(documents[0]['mcu1'], buffer.obj[0].managers['m1'],
 						'Проверяем тот ли монагер возвращен');
-					test.strictEqual(documents[0]['mcu2'], buffer.obj[0].contracts['m2'],
+					test.strictEqual(documents[0]['mcu2'], buffer.obj[0].managers['m2'],
 						'Проверяем тот ли монагер возвращен');
-					test.strictEqual(documents[0]['mcu3'], buffer.obj[0].contracts['m5'],
+					test.strictEqual(documents[0]['mcu3'], buffer.obj[0].managers['m5'],
 						'Проверяем тот ли монагер возвращен');
-					test.strictEqual(documents[0]['mcu4'], buffer.obj[0].contracts['m6'],
+					test.strictEqual(documents[0]['mcu4'], buffer.obj[0].managers['m6'],
 						'Проверяем тот ли монагер возвращен');
-					test.strictEqual(documents[0]['mcu5'], buffer.obj[0].contracts['cu1'],
+					test.strictEqual(documents[0]['mcu5'], buffer.obj[0].customers['cu1'],
 						'Проверяем тот ли заказчик возвращен');
-					test.strictEqual(documents[0]['mcu6'], buffer.obj[0].contracts['cu2'],
+					test.strictEqual(documents[0]['mcu6'], buffer.obj[0].customers['cu2'],
 						'Проверяем тот ли заказчик возвращен');
-					test.strictEqual(documents[0]['mcu7'], buffer.obj[0].contracts['cu5'],
+					test.strictEqual(documents[0]['mcu7'], buffer.obj[0].customers['cu5'],
 						'Проверяем тот ли заказчик возвращен');
 					test.done();
 				});
@@ -540,33 +514,33 @@ exports.queryToView = {
 		var viewName = 'testManagerContract';
 		var socket = {};
 
-		controller.getTemplate( viewName, sender, socket, function( err, config, template ) {
-			test.ifError(err);
+		controller.getTemplate( viewName, sender, socket, function( error, config, template ) {
+			test.ifError(error);
 			test.ok(config);
 			test.strictEqual(template, '', 'Проверка отсутствия шаблона');
 
 			//Формируем запрос на чтение по _id manager
-			var request = { selector: {'testManagerContract':{ mco5:buffer.obj[0].contract['co1']} } };
+			var request = { selector: {'testManagerContract':{ mco5:buffer.obj[0].contracts['co1']} } };
 
 			controller.queryToView ( 'read', sender, request, viewName, socket,
 				function(error, documents, count) {
-					test.ifError(err);
+					test.ifError(error);
 					test.strictEqual(documents.length, 1,
 						'Проверяем количество возвращенных документов view');
 
-					test.strictEqual(documents[0]['mco1'], buffer.obj[0].contract['m1'],
+					test.strictEqual(documents[0]['mco1'][0], buffer.obj[0].managers['m1'],
 						'Проверяем тот ли монагер возвращен');
-					test.strictEqual(documents[0]['mco2'], buffer.obj[0].contract['m2'],
+					test.strictEqual(documents[0]['mco2'][0], buffer.obj[0].managers['m2'],
 						'Проверяем тот ли монагер возвращен');
-					test.strictEqual(documents[0]['mco3'], buffer.obj[0].contract['m5'],
+					test.strictEqual(documents[0]['mco3'][0], buffer.obj[0].managers['m5'],
 						'Проверяем тот ли монагер возвращен');
-					test.strictEqual(documents[0]['mco4'], buffer.obj[0].contract['m6'],
+					test.strictEqual(documents[0]['mco4'][0], buffer.obj[0].managers['m6'],
 						'Проверяем тот ли монагер возвращен');
-					test.strictEqual(documents[0]['mco5'], buffer.obj[0].contract['co1'],
+					test.strictEqual(documents[0]['mco5'], buffer.obj[0].contracts['co1'],
 						'Проверяем тот ли контракт возвращен');
-					test.strictEqual(documents[0]['mco6'], buffer.obj[0].contract['co7'],
+					test.strictEqual(documents[0]['mco6'], buffer.obj[0].contracts['co7'],
 						'Проверяем тот ли контракт возвращен');
-					test.strictEqual(documents[0]['mco7'], buffer.obj[0].contract['co8'],
+					test.strictEqual(documents[0]['mco7'], buffer.obj[0].contracts['co8'],
 						'Проверяем тот ли контракт возвращен');
 					test.done();
 				});
@@ -593,8 +567,8 @@ exports.queryToViewWithRestriction = {
 			}
 		};
 
-		controller.create(queryForSave, sender, function( err, reply ) {
-			test.ifError(err);
+		controller.create(queryForSave, sender, function( error, reply ) {
+			test.ifError(error);
 			test.ok(reply);
 
 			test.done();
@@ -602,13 +576,14 @@ exports.queryToViewWithRestriction = {
 	},
 	readCustomerWithRestrictionOnManager_id:function(test) {
 		test.expect( 9 );
+		debugger
 		var senderForQuery = _.clone(sender);
-		senderForQuery.userId = buffer.obj[0].manager['m1'];
+		senderForQuery.userId = buffer.obj[0].managers['m1'];
 		var viewName = 'testCustomer';
 		var socket = {};
 
-		controller.getTemplate( viewName, sender, socket, function( err, config, template ) {
-			test.ifError(err);
+		controller.getTemplate( viewName, sender, socket, function( error, config, template ) {
+			test.ifError(error);
 			test.ok(config);
 			test.strictEqual(template, '', 'Проверка отсутствия шаблона');
 
@@ -617,17 +592,17 @@ exports.queryToViewWithRestriction = {
 
 			controller.queryToView ( 'read', sender, request, viewName, socket,
 				function(error, documents, count) {
-					test.ifError(err);
+					test.ifError(error);
 					test.strictEqual(documents.length, 1,
 						'Проверяем количество возвращенных документов view');
 
-					test.strictEqual(documents[0]['cu1'], buffer.obj[0].customer['cu1'],
+					test.strictEqual(documents[0]['cu1'], buffer.obj[0].customers['cu1'],
 						'Проверяем тот ли монагер возвращен');
-					test.strictEqual(documents[0]['cu2'], buffer.obj[0].customer['cu2'],
+					test.strictEqual(documents[0]['cu2'], buffer.obj[0].customers['cu2'],
 						'Проверяем тот ли монагер возвращен');
-					test.strictEqual(documents[0]['cu3'], buffer.obj[0].customer['cu5'],
+					test.strictEqual(documents[0]['cu3'], buffer.obj[0].customers['cu5'],
 						'Проверяем тот ли монагер возвращен');
-					test.strictEqual(documents[0]['cu4'], buffer.obj[0].customer['cu6'],
+					test.strictEqual(documents[0]['cu4'], buffer.obj[0].customers['cu6'],
 						'Проверяем тот ли монагер возвращен');
 
 					test.done();
@@ -637,6 +612,100 @@ exports.queryToViewWithRestriction = {
 	}
 };
 
+exports.queryToViewModifyAndDelete = {
+	modifyTwoManagersAndReadSecondManager:function(test){
+		test.expect( 12 );
+
+		var socket = buffer.socketForViewTestManager;
+		var viewName = 'testManager';
+
+		buffer.obj[0].managers['m3'] = generatorString(1,20);
+		buffer.obj[1].managers['m3'] = generatorString(1,20);
+		debugger
+		//Формируем запрос на модификацию
+		var request = [
+			{
+				selector:{ m1:buffer.obj[0].managers['m1'], m2:buffer.obj[0].managers['m2'] },
+			    properties:{  m3:buffer.obj[0].managers['m3'] }
+			}, {
+				selector:{ m1:buffer.obj[1].managers['m1'], m2:buffer.obj[1].managers['m2']	},
+				properties:{  m3:buffer.obj[1].managers['m3']  }
+			}
+		];
+
+		controller.queryToView ( 'modify', sender, request, viewName, socket,
+			function(error, documents) {
+				test.ifError(error);
+				test.strictEqual(documents.length, 2,
+					'Проверяем количество возвращенных документов view');
+
+				for( var i = 0; i < documents.length; i++ ) {
+					test.ok(documents[i]['m1']);
+					test.ok(documents[i]['m2']);
+					buffer.obj[i].managers['m1'] = documents[i]['m1'];
+					buffer.obj[i].managers['m2'] = documents[i]['m2'];
+				}
+
+				//Формируем запрос на чтение одного менеджера
+				//Формируем запрос на чтение
+				var request = { selector: { testManager:{m3:buffer.obj[1].managers['m3']} } };
+
+				controller.queryToView ( 'read', sender, request, viewName, socket,
+					function(error, documents, count) {
+						test.ifError(error);
+						test.strictEqual(documents.length, 1,
+							'Проверяем количество возвращенных документов view');
+
+						test.strictEqual(documents[0]['m1'], buffer.obj[0].managers['m1'],
+							'Проверяем тот ли монагер возвращен');
+						test.strictEqual(documents[0]['m2'], buffer.obj[0].managers['m2'],
+							'Проверяем тот ли монагер возвращен');
+						test.strictEqual(documents[0]['m3'], buffer.obj[0].managers['m3'],
+							'Проверяем тот ли монагер возвращен');
+						test.strictEqual(documents[0]['m4'], buffer.obj[0].managers['m6'],
+							'Проверяем тот ли монагер возвращен');
+
+						test.done();
+					});
+			});
+
+	},
+	deleteAndReadFirstManager:function(test){
+		test.expect( 5 );
+
+		var socket = buffer.socketForViewTestManager;
+		var viewName = 'testManager';
+
+		//Формируем запрос на удаление
+		var request = [
+			{	m1:buffer.obj[0].managers['m1'], m2:buffer.obj[0].managers['m2'] }
+		];
+
+		controller.queryToView ( 'delete', sender, request, viewName, socket,
+			function(error, documents) {
+				test.ifError(err);
+				test.strictEqual(documents.length, 1,
+					'Проверяем количество возвращенных документов view');
+
+				for( var i = 0; i < documents.length; i++ ) {
+					test.ok(documents[i]['m1']);
+				}
+
+				//Формируем запрос на чтение
+				var request = { selector: { testManager:{m1:buffer.obj[0].managers['m1']} } };
+
+				controller.queryToView ( 'read', sender, request, viewName, socket,
+					function(error, documents, count) {
+						test.ifError(error);
+						test.strictEqual(documents.length, 0,
+							'Проверяем количество возвращенных документов view');
+
+						test.done();
+					});
+			});
+
+	}
+};
 
 //Создаем случайное число в заданных пределах
 function getRandom(min, max) {

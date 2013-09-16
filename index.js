@@ -40,7 +40,7 @@ Controller.init = function init( config, callback ) {
 	if (!underscore.isFunction(callback)){
 		throw new Error( 'Controller: callback not a function' );
 	}
-	debugger
+
 	if ( config && config.view ) {
 		View = config.view;
 	} else {
@@ -1389,7 +1389,7 @@ Controller.queryToView = function queryToView( type, sender, request, viewName, 
 		//Подготовленный список разрешенных _vid есть
 		if( type === READ ) {
 
-			if( true/*checkRead( viewName, request, socket.view[viewName].ids )*/ ) {
+			if( checkRead( viewName, request, socket.view ) ) {
 				//Вызываем view c необходимыми параметрами
 				//Формируем объект параметров для View
 				var options = {
@@ -1679,44 +1679,62 @@ Controller.queryToView = function queryToView( type, sender, request, viewName, 
 	}
 };
 
-function checkRead( viewName, queries, listOfAllowed_vids ) {
-	//Информация для заданной view из глобального конфига
-	var dataFromViewConfig = globalViewConfig[viewName];
-	//Переменная для хранения информации о анализируемом идентификаторе view из глобального конфига
-	var _vidsDataFromViewConfig;
+function checkRead( viewName, queries, socketView ) {
+	//Переменная для хранения списка view в селекторе
+	var viewsFromSelector = Object.keys( queries.selector );
 
-    //Формируем списки запрашиваемых полей на проверку для данной схемы
-	var _vidsFromSelector = [];
-	var _vidsFromSort = [];
+	//Обходим селектор
+	for( var i = 0; i < viewsFromSelector.length; i++ ) {
+		//Список идентификаторов из селектора
+		var _vidsFromSelector = Object.keys( queries.selector[viewsFromSelector[i]] );
 
-	if( !dataFromViewConfig ) {
-		//Нет описания о идентификаторов принадлежных к данной view, поэтому не может быть запросов
-		//на не существующие идентификаторы
-		//ToDo:логировать запрос к несуществующим идентификатарам
-		return false;
+		//Пересекаем с разрешенным списком _vids
+		if ( !socketView[viewsFromSelector[i]] ){
+			//Нет описания о идентификаторов принадлежных к данной view, поэтому не может быть запросов
+			//на не существующие идентификаторы
+			return false;
+		} else {
+			var unresolvedFields  = underscore.difference( _vidsFromSelector,
+				socketView[viewsFromSelector[i]].ids );
+			//Проверяем есть ли неразрешенные идентификаторы
+			if ( unresolvedFields.length !== 0 ) {
+				return false;
+			}
+
+			for( var j = 0; j < _vidsFromSelector.length; j++ ) {
+				//Проверяем имеет ли запрашиваемый _vids доступ на чтение в глобальной переменной
+				var _vidsDataFromViewConfig =
+					globalViewConfig[viewsFromSelector[i]][_vidsFromSelector[j]];
+				if ( !( _vidsDataFromViewConfig && _vidsDataFromViewConfig.flexo &&
+					_vidsDataFromViewConfig.flexo.length > 1 &&
+					( _vidsDataFromViewConfig.type === READ ||
+					_vidsDataFromViewConfig.type === MODIFY ) ) ) {
+					return false;
+				}
+			}
+		}
 	}
 
-	if( queries.selector )
-		_vidsFromSelector = Object.keys( queries.selector );
-	if( queries.options && queries.options.sort )
+	if( queries.options && queries.options.sort ) {
 		_vidsFromSort = Object.keys( queries.options.sort );
 
-	//Объединяем массива для проверок в один
-	var _vidsForCheck = underscore.union( _vidsFromSelector, _vidsFromSort );
-	//Пересекаем с разрешенным списком _vids
-	var unresolvedFields  = underscore.difference( _vidsForCheck, listOfAllowed_vids );
+		//Объединяем массива для проверок в один
+		var _vidsForSort =  Object.keys(queries.options.sort);
+		//Пересекаем с разрешенным списком _vids
+		var unresolvedFields  = underscore.difference( _vidsForSort, socketView[viewName].ids  );
 
-	if ( unresolvedFields.length !== 0 ) {
-		return false;
-	}
-
-	//Проверяем имеет ли запрашиваемый _vids доступ на чтение в глобальной переменной
-	for( var i=0; i < _vidsForCheck.length; i++ ) {
-		_vidsDataFromViewConfig = dataFromViewConfig[_vidsForCheck[i]];
-		if ( !( _vidsDataFromViewConfig && _vidsDataFromViewConfig.flexo &&
-			_vidsDataFromViewConfig.flexo.length > 1 &&	( _vidsDataFromViewConfig.type === READ ||
-				_vidsDataFromViewConfig.type === MODIFY ) ) ) {
+		if ( unresolvedFields.length !== 0 ) {
 			return false;
+		}
+
+		//Проверяем имеет ли запрашиваемый _vids доступ на чтение в глобальной переменной
+		for( var i=0; i < _vidsForSort.length; i++ ) {
+			_vidsDataFromViewConfig = globalViewConfig[viewName][_vidsForSort[i]];
+			if ( !( _vidsDataFromViewConfig && _vidsDataFromViewConfig.flexo &&
+				_vidsDataFromViewConfig.flexo.length > 1 &&	( _vidsDataFromViewConfig.type === READ ||
+					_vidsDataFromViewConfig.type === MODIFY ) ) ) {
+				return false;
+			}
 		}
 	}
 
