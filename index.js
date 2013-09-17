@@ -1164,6 +1164,25 @@ function getTemplate(viewName, sender, socket, callback ) {
 					//Перезапись разрешенного списка _vid
 					socket.view[viewName].ids = ids;
 
+					//ToDo: оптимизировать формирование списков
+					//Формируем 2 дополнительных списка на создание и чтение
+					var listForRead = [];
+					var listForCreate = [];
+					for( var i = 0; i < ids.length ; i++ ) {
+						var globalVid = globalViewConfig[viewName][ids[i]];
+						if ( globalVid.flexo ) {
+							if ( globalVid.type === READ || globalVid.type === MODIFY ) {
+								listForRead.push( ids[i] );
+								listForCreate.push( ids[i] );
+							} else if (  globalVid.type === CREATE ) {
+								listForCreate.push( ids[i] );
+							}
+						}
+					}
+
+					socket.view[viewName].listForRead = listForRead;
+					socket.view[viewName].listForRead = listForCreate;
+
 					//Логирование ошибки целостности, так как view обрезала список разрешенных
 					//идентификаторов
 					var objDescriptioneError = {
@@ -1230,8 +1249,24 @@ function getTemplate(viewName, sender, socket, callback ) {
 						if ( !socket.view ) {
 							socket.view = {};
 						}
+						//ToDo: оптимизировать формирование списков
+						//Формируем 2 дополнительных списка на создание и чтение
+						var listForRead = [];
+						var listForCreate = [];
+						for( var i = 0; i < ids.length ; i++ ) {
+							var globalVid = globalViewConfig[viewName][ids[i]];
+							if ( globalVid.flexo ) {
+								if ( globalVid.type === READ || globalVid.type === MODIFY ) {
+									listForRead.push( ids[i] );
+									listForCreate.push( ids[i] );
+								} else if (  globalVid.type === CREATE ) {
+									listForCreate.push( ids[i] );
+								}
+							}
+						}
 
-						socket.view[viewName] = {ids:ids, useId:!!useId};
+						socket.view[viewName] = {ids:ids, useId:!!useId, listForRead:listForRead,
+							listForCreate:listForCreate};
 
 						if( listAllowedOf_vid.length !== ids.length ){
 							//Логирование ошибки целостности, так как view обрезала список
@@ -1398,7 +1433,7 @@ Controller.queryToView = function queryToView( type, sender, request, viewName, 
 					role: sender.role
 				};
 
-				View.find( viewName, socket.view[viewName].ids, request, options,
+				View.find( viewName, socket.view[viewName].listForRead, request, options,
 					function ( err, documents, count ) {
 					if ( err ) {
 						//Логирование ошибки
@@ -1461,7 +1496,7 @@ Controller.queryToView = function queryToView( type, sender, request, viewName, 
 					role: sender.role
 				};
 
-				View.insert( viewName, socket.view[viewName].ids, request, options,
+				View.insert( viewName, socket.view[viewName].listForCreate, request, options,
 					function ( err, documents ) {
 					if ( err ) {
 						//Логирование ошибки
@@ -1874,8 +1909,8 @@ function checkDelete( viewName, queries, listOfAllowed_vids ) {
 	for( i = 0; i < queries.length; i++ ) {
 		var _vidsFromOneDocument = [];
 
-		if( !underscore.isEmpty( queries[i].selector ) ) {
-			_vidsFromOneDocument = Object.keys( queries[i].selector );
+		if( !underscore.isEmpty( queries[i] ) ) {
+			_vidsFromOneDocument = Object.keys( queries[i] );
 		}
 		_vidsForCheck = underscore.union( _vidsForCheck, _vidsFromOneDocument );
 	}

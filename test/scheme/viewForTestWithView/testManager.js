@@ -6,8 +6,8 @@ module.exports = {
 		m03: { _vid: 'm3', _flexo: {type: 'modify', scheme: ['testManager', 'name']} },
 		m04: { _vid: 'm4', _flexo: {type: 'modify', scheme: ['testManager', 'lastName']} },
 		m05: { _vid: 'm5', _flexo: {type: 'create', scheme: ['testManager', 'name']} },
-		m06: { _vid: 'm6', _flexo: {type: 'create', scheme: ['testManager', 'lastName']} }/*,
-		m07: { _vid: 'm7', _flexo: {type: 'delete', scheme: ['testManeger']} } */
+		m06: { _vid: 'm6', _flexo: {type: 'create', scheme: ['testManager', 'lastName']} },
+		m07: { _vid: 'm7', _flexo: {type: 'delete', scheme: ['testManager']} }
 	},
 	root:'testManager'
 };

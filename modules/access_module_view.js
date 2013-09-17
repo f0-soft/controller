@@ -50,7 +50,8 @@ AccessModuleView.saveForRole = function saveForRole( client, sender, role, viewN
 			multi.SADD( setRoleToAllViewAccess( role ), viewName );
 
 
-			multi.EXEC( function( err ) {
+			multi.EXEC( function( err, reply ) { //view:role:access:м:testView1_1
+												 //view:role:access:м:testViewName1_1
 				if ( err ) {
 					callback( err );
 				} else {

@@ -300,7 +300,7 @@ exports.queryToViewCreateAndFind = {
 
 		var viewName = 'testManager';
 		var socket = {};
-
+		debugger
 		controller.getTemplate( viewName, sender, socket, function( error, config, template ) {
 			test.ifError(error);
 			test.ok(config);
@@ -621,7 +621,7 @@ exports.queryToViewModifyAndDelete = {
 
 		buffer.obj[0].managers['m3'] = generatorString(1,20);
 		buffer.obj[1].managers['m3'] = generatorString(1,20);
-		debugger
+
 		//Формируем запрос на модификацию
 		var request = [
 			{
@@ -655,14 +655,14 @@ exports.queryToViewModifyAndDelete = {
 						test.ifError(error);
 						test.strictEqual(documents.length, 1,
 							'Проверяем количество возвращенных документов view');
-
-						test.strictEqual(documents[0]['m1'], buffer.obj[0].managers['m1'],
+						console.log(documents[0]['m2']);
+						test.strictEqual(documents[0]['m1'], buffer.obj[1].managers['m1'],
 							'Проверяем тот ли монагер возвращен');
-						test.strictEqual(documents[0]['m2'], buffer.obj[0].managers['m2'],
+						test.strictEqual(documents[0]['m2'], buffer.obj[1].managers['m2'],
 							'Проверяем тот ли монагер возвращен');
-						test.strictEqual(documents[0]['m3'], buffer.obj[0].managers['m3'],
+						test.strictEqual(documents[0]['m3'], buffer.obj[1].managers['m3'],
 							'Проверяем тот ли монагер возвращен');
-						test.strictEqual(documents[0]['m4'], buffer.obj[0].managers['m6'],
+						test.strictEqual(documents[0]['m4'], buffer.obj[1].managers['m6'],
 							'Проверяем тот ли монагер возвращен');
 
 						test.done();
@@ -683,7 +683,7 @@ exports.queryToViewModifyAndDelete = {
 
 		controller.queryToView ( 'delete', sender, request, viewName, socket,
 			function(error, documents) {
-				test.ifError(err);
+				test.ifError(error);
 				test.strictEqual(documents.length, 1,
 					'Проверяем количество возвращенных документов view');
 
