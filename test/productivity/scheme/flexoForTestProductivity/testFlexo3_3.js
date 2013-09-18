@@ -1,5 +1,5 @@
 module.exports = {
-	name: 'testFlexo3_2',
+	name: 'testFlexo3_3',
 	root: {
 		field1: { type: 'string', title:'', description:'' },
 		field2: { type: 'number', title:'', description:'' },
@@ -16,6 +16,6 @@ module.exports = {
 		field13: { type: 'string', title:'', description:'' },
 		field14: { type: 'string', title:'', description:'' },
 		field15: { type: 'string', title:'', description:'' },
-		field16: { type: 'id', from: 'testFlexo3_1', link: 'linkFlexo3', title:'', description:'' }
+		field16: { type: 'array', of:'id', from: 'testFlexo3_2', link: 'linkFlexo3', title:'', description:'' }
 	}
 };

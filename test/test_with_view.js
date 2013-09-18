@@ -300,7 +300,7 @@ exports.queryToViewCreateAndFind = {
 
 		var viewName = 'testManager';
 		var socket = {};
-		debugger
+
 		controller.getTemplate( viewName, sender, socket, function( error, config, template ) {
 			test.ifError(error);
 			test.ok(config);
@@ -423,8 +423,8 @@ exports.queryToViewCreateAndFind = {
 
 			//Формируем запрос на создание двух заказчиков
 			var queryToCreate = [
-				{co6:getRandom(1,100000), co7: generatorString(1,20), co8:buffer.obj[0].customers['cu1']},
-				{co6:getRandom(1,100000), co7: generatorString(1,20), co8:buffer.obj[1].customers['cu1']}
+				{co6:getRandom(1,100000), co7: generatorString(1,20), co8:[buffer.obj[0].customers['cu1'],buffer.obj[1].customers['cu1']]},
+				{co6:getRandom(1,100000), co7: generatorString(1,20), co8:[buffer.obj[1].customers['cu1']]}
 			];
 
 			buffer.obj[0].contracts = queryToCreate[0];
@@ -461,8 +461,8 @@ exports.queryToViewCreateAndFind = {
 								'Проверяем тот ли контракт возвращен');
 							test.strictEqual(documents[0]['co4'], buffer.obj[0].contracts['co7'],
 								'Проверяем тот ли контракт возвращен');
-							test.strictEqual(documents[0]['co5'], buffer.obj[0].contracts['co8'],
-								'Проверяем тот ли контракт возвращен');
+							test.strictEqual(documents[0]['co5'].length, 2,
+								'Проверяем количество идентификаторов в связи');
 							test.done();
 						});
 
@@ -485,6 +485,7 @@ exports.queryToViewCreateAndFind = {
 
 			controller.queryToView ( 'read', sender, request, viewName, socket,
 				function(error, documents, count) {
+
 					test.ifError(error);
 					test.strictEqual(documents.length, 1,
 						'Проверяем количество возвращенных документов view');
@@ -509,7 +510,7 @@ exports.queryToViewCreateAndFind = {
 		});
 	},
 	readOneContractWithJoinManager:function(test){
-		test.expect( 12 );
+		test.expect( 17 );
 
 		var viewName = 'testManagerContract';
 		var socket = {};
@@ -530,17 +531,27 @@ exports.queryToViewCreateAndFind = {
 
 					test.strictEqual(documents[0]['mco1'][0], buffer.obj[0].managers['m1'],
 						'Проверяем тот ли монагер возвращен');
+					test.strictEqual(documents[0]['mco1'][1], buffer.obj[1].managers['m1'],
+						'Проверяем тот ли монагер возвращен');
 					test.strictEqual(documents[0]['mco2'][0], buffer.obj[0].managers['m2'],
+						'Проверяем тот ли монагер возвращен');
+					test.strictEqual(documents[0]['mco2'][1], buffer.obj[1].managers['m2'],
 						'Проверяем тот ли монагер возвращен');
 					test.strictEqual(documents[0]['mco3'][0], buffer.obj[0].managers['m5'],
 						'Проверяем тот ли монагер возвращен');
+					test.strictEqual(documents[0]['mco3'][1], buffer.obj[1].managers['m5'],
+						'Проверяем тот ли монагер возвращен');
 					test.strictEqual(documents[0]['mco4'][0], buffer.obj[0].managers['m6'],
+						'Проверяем тот ли монагер возвращен');
+					test.strictEqual(documents[0]['mco4'][1], buffer.obj[1].managers['m6'],
 						'Проверяем тот ли монагер возвращен');
 					test.strictEqual(documents[0]['mco5'], buffer.obj[0].contracts['co1'],
 						'Проверяем тот ли контракт возвращен');
 					test.strictEqual(documents[0]['mco6'], buffer.obj[0].contracts['co7'],
 						'Проверяем тот ли контракт возвращен');
-					test.strictEqual(documents[0]['mco7'], buffer.obj[0].contracts['co8'],
+					test.strictEqual(documents[0]['mco7'][0], buffer.obj[0].contracts['co8'][0],
+						'Проверяем тот ли контракт возвращен');
+					test.strictEqual(documents[0]['mco7'][1], buffer.obj[0].contracts['co8'][1],
 						'Проверяем тот ли контракт возвращен');
 					test.done();
 				});
@@ -655,7 +666,6 @@ exports.queryToViewModifyAndDelete = {
 						test.ifError(error);
 						test.strictEqual(documents.length, 1,
 							'Проверяем количество возвращенных документов view');
-						console.log(documents[0]['m2']);
 						test.strictEqual(documents[0]['m1'], buffer.obj[1].managers['m1'],
 							'Проверяем тот ли монагер возвращен');
 						test.strictEqual(documents[0]['m2'], buffer.obj[1].managers['m2'],
