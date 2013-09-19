@@ -1,10 +1,12 @@
 var async = require( 'async' );
+var _ = require('underscore');
 
 var GenerateDataForFlexo = {};
 
 var controller;
 var sender;
 var libOfViews;
+var useLibOfViews = {};
 var _views;
 var _flexos;
 var configTest;
@@ -94,7 +96,11 @@ GenerateDataForFlexo.fillTestFlexos2_3 = function fillTestFlexos2_3( callback ) 
 	var queryToCreate = [];
 	var query; //Один документ на вставку
 	var listOfVids = getListOfVids(viewName, 'create');
-	for( var i = 0; i < configTest.optionsForGenerateData.сountInsertsInFlexo; i++ ) {
+
+	var countOfDoc = configTest.optionsForGenerateData.countInsert[viewName] ||
+		configTest.optionsForGenerateData.сountInsertsInFlexo;
+
+	for( var i = 0; i < countOfDoc; i++ ) {
 		query = {};
 		for( var j = 0; j < listOfVids.length; j++ ) {
 			var flexoShemeName = _views[viewName][listOfVids[j]]._flexo.scheme[0];
@@ -110,19 +116,19 @@ GenerateDataForFlexo.fillTestFlexos2_3 = function fillTestFlexos2_3( callback ) 
 				query[listOfVids[j]] = getRandom(1,
 					configTest.optionsForGenerateData.maxGenerateNumber);
 			} else if ( 'tV36' === listOfVids[j] ) {
-				//Определяем количество вставлемых связей
-				var countOfvId = getRandom( 1,
-					configTest.optionsForGenerateData.maxCountIdsInDepend );
-
-				query[listOfVids[j]] = [];
-				for(var k = 0; k < countOfvId; k++ ) {
+				if ( configTest.optionsForGenerateData.uniqDependId ) {
+					query[listOfVids[j]] = getIndexOfUniqDependId('testView2_2');
+				} else {
 					randNumber = getRandom(0, (libOfViews['testView2_2'].length - 1));
-					query[listOfVids[j]].push( libOfViews['testView2_2'][randNumber]['tV01'] );
+					query[listOfVids[j]] = libOfViews['testView2_2'][randNumber]['tV01'];
 				}
-
 			} else if ('tV35' === listOfVids[j] ) {
-				randNumber = getRandom(0, (libOfViews['testView2_1'].length - 1));
-				query[listOfVids[j]] = libOfViews['testView2_1'][randNumber]['tV01'];
+				if ( configTest.optionsForGenerateData.uniqDependId ) {
+					query[listOfVids[j]] = getIndexOfUniqDependId('testView2_1');
+				} else {
+					randNumber = getRandom(0, (libOfViews['testView2_1'].length - 1));
+					query[listOfVids[j]] = libOfViews['testView2_1'][randNumber]['tV01'];
+				}
 			}
 		}
 		queryToCreate.push(query);
@@ -142,7 +148,11 @@ GenerateDataForFlexo.fillTestFlexos4_3 = function fillTestFlexos4_3( callback ) 
 	var queryToCreate = [];
 	var query; //Один документ на вставку
 	var listOfVids = getListOfVids(viewName, 'create');
-	for( var i = 0; i < configTest.optionsForGenerateData.сountInsertsInFlexo; i++ ) {
+
+	var countOfDoc = configTest.optionsForGenerateData.countInsert[viewName] ||
+		configTest.optionsForGenerateData.сountInsertsInFlexo;
+
+	for( var i = 0; i < countOfDoc; i++ ) {
 		query = {};
 		for( var j = 0; j < listOfVids.length; j++ ) {
 			var flexoShemeName = _views[viewName][listOfVids[j]]._flexo.scheme[0];
@@ -158,25 +168,20 @@ GenerateDataForFlexo.fillTestFlexos4_3 = function fillTestFlexos4_3( callback ) 
 				query[listOfVids[j]] = getRandom(1,
 					configTest.optionsForGenerateData.maxGenerateNumber);
 			} else if ( 'tV36' === listOfVids[j] ) {
-				//Определяем количество вставлемых связей
-				var countOfvId = getRandom( 1,
-					configTest.optionsForGenerateData.maxCountIdsInDepend );
-
-				query[listOfVids[j]] = [];
-				for(var k = 0; k < countOfvId; k++ ) {
+				if ( configTest.optionsForGenerateData.uniqDependId ) {
+					query[listOfVids[j]] = getIndexOfUniqDependId('testView4_2');
+				} else {
+					//Определяем количество вставлемых связей
 					randNumber = getRandom(0, (libOfViews['testView4_2'].length - 1));
-					query[listOfVids[j]].push( libOfViews['testView4_2'][randNumber]['tV01'] );
+					query[listOfVids[j]] = libOfViews['testView4_2'][randNumber]['tV01'];
 				}
-
 			} else if ('tV35' === listOfVids[j] ) {
-				//Определяем количество вставлемых связей
-				var countOfvId = getRandom( 1,
-					configTest.optionsForGenerateData.maxCountIdsInDepend );
-
-				query[listOfVids[j]] = [];
-				for(var k = 0; k < countOfvId; k++ ) {
+				if ( configTest.optionsForGenerateData.uniqDependId ) {
+					query[listOfVids[j]] = getIndexOfUniqDependId('testView4_1');
+				} else {
+					//Определяем количество вставлемых связей
 					randNumber = getRandom(0, (libOfViews['testView4_1'].length - 1));
-					query[listOfVids[j]].push( libOfViews['testView4_1'][randNumber]['tV01'] );
+					query[listOfVids[j]] = libOfViews['testView4_1'][randNumber]['tV01'];
 				}
 			}
 		}
@@ -197,7 +202,11 @@ GenerateDataForFlexo.fillTestFlexos4_4 = function fillTestFlexos4_4( callback ) 
 	var queryToCreate = [];
 	var query; //Один документ на вставку
 	var listOfVids = getListOfVids(viewName, 'create');
-	for( var i = 0; i < configTest.optionsForGenerateData.сountInsertsInFlexo; i++ ) {
+
+	var countOfDoc = configTest.optionsForGenerateData.countInsert[viewName] ||
+		configTest.optionsForGenerateData.сountInsertsInFlexo;
+
+	for( var i = 0; i < countOfDoc; i++ ) {
 		query = {};
 		for( var j = 0; j < listOfVids.length; j++ ) {
 			var flexoShemeName = _views[viewName][listOfVids[j]]._flexo.scheme[0];
@@ -213,9 +222,17 @@ GenerateDataForFlexo.fillTestFlexos4_4 = function fillTestFlexos4_4( callback ) 
 				query[listOfVids[j]] = getRandom(1,
 					configTest.optionsForGenerateData.maxGenerateNumber);
 			} else if ('tV35' === listOfVids[j] || 'tV36' === listOfVids[j] ) {
-				randNumber = getRandom(0, (libOfViews['testView4_3'].length - 1));
-				query['tV35'] = libOfViews['testView4_3'][randNumber]['tV01'];
-				query['tV36'] = libOfViews['testView4_3'][randNumber]['tV01'];
+				if ( configTest.optionsForGenerateData.uniqDependId ) {
+					if ( !query[listOfVids[j]]){
+						var id = getIndexOfUniqDependId('testView4_3');
+						query['tV35'] = id;
+						query['tV36'] = id;
+					}
+				} else {
+					randNumber = getRandom(0, (libOfViews['testView4_3'].length - 1));
+					query['tV35'] = libOfViews['testView4_3'][randNumber]['tV01'];
+					query['tV36'] = libOfViews['testView4_3'][randNumber]['tV01'];
+				}
 			}
 		}
 		queryToCreate.push(query);
@@ -234,7 +251,11 @@ GenerateDataForFlexo.simpleFillingTestFlexos = function simpleFillingTestFlexos(
 	var queryToCreate = [];
 	var query; //Один документ на вставку
 	var listOfVids = getListOfVids(viewName, 'create');
-	for( var i = 0; i < configTest.optionsForGenerateData.сountInsertsInFlexo; i++ ) {
+
+	var countOfDoc = configTest.optionsForGenerateData.countInsert[viewName] ||
+		configTest.optionsForGenerateData.сountInsertsInFlexo;
+
+	for( var i = 0; i < countOfDoc; i++ ) {
 		query = {};
 		for( var j = 0; j < listOfVids.length; j++ ) {
 			var flexoShemeName = _views[viewName][listOfVids[j]]._flexo.scheme[0];
@@ -267,7 +288,11 @@ GenerateDataForFlexo.fillTestFlexosWithOneOfId =
 	var queryToCreate = [];
 	var query; //Один документ на вставку
 	var listOfVids = getListOfVids(viewName, 'create');
-	for( var i = 0; i < configTest.optionsForGenerateData.сountInsertsInFlexo; i++ ) {
+
+		var countOfDoc = configTest.optionsForGenerateData.countInsert[viewName] ||
+			configTest.optionsForGenerateData.сountInsertsInFlexo;
+
+		for( var i = 0; i < countOfDoc; i++ ) {
 		query = {};
 		for( var j = 0; j < listOfVids.length; j++ ) {
 			var flexoShemeName = _views[viewName][listOfVids[j]]._flexo.scheme[0];
@@ -282,8 +307,12 @@ GenerateDataForFlexo.fillTestFlexosWithOneOfId =
 				query[listOfVids[j]] = getRandom(1,
 					configTest.optionsForGenerateData.maxGenerateNumber);
 			} else if ( 'tV34' === listOfVids[j] ) {
-				var randNumber = getRandom(0, (libOfViews[motherViewName].length - 1));
-				query[listOfVids[j]] = libOfViews[motherViewName][randNumber]['tV01'];
+				if ( configTest.optionsForGenerateData.uniqDependId ) {
+					query[listOfVids[j]] = getIndexOfUniqDependId(motherViewName);
+				} else {
+					var randNumber = getRandom(0, (libOfViews[motherViewName].length - 1));
+					query[listOfVids[j]] = libOfViews[motherViewName][randNumber]['tV01'];
+				}
 			}
 		}
 		queryToCreate.push(query);
@@ -295,7 +324,7 @@ GenerateDataForFlexo.fillTestFlexosWithOneOfId =
 	insertGenerateDataToOneFlexo( viewName, queryToCreate, callback);
 };
 
-
+//Зарезервирован (не используется)
 GenerateDataForFlexo.fillTestFlexosWithOneArrayOfId =
 	function fillTestFlexosWithOneArrayOfId( viewName, motherViewName, callback ) {
 	libOfViews[viewName] = [];
@@ -304,7 +333,11 @@ GenerateDataForFlexo.fillTestFlexosWithOneArrayOfId =
 	var queryToCreate = [];
 	var query; //Один документ на вставку
 	var listOfVids = getListOfVids(viewName, 'create');
-	for( var i = 0; i < configTest.optionsForGenerateData.сountInsertsInFlexo; i++ ) {
+
+	var countOfDoc = configTest.optionsForGenerateData.countInsert[viewName] ||
+		configTest.optionsForGenerateData.сountInsertsInFlexo;
+
+	for( var i = 0; i < countOfDoc; i++ ) {
 		query = {};
 		for( var j = 0; j < listOfVids.length; j++ ) {
 			var flexoShemeName = _views[viewName][listOfVids[j]]._flexo.scheme[0];
@@ -383,6 +416,16 @@ function getListOfVids( viewName, type ) {
 	return filtredList;
 }
 
+
+function getIndexOfUniqDependId(viewName){
+	if ( !useLibOfViews[viewName] || useLibOfViews[viewName].length === 0 ){
+		useLibOfViews[viewName] = _.clone(libOfViews[viewName])
+	}
+	var index = getRandom(0, (useLibOfViews[viewName].length -1));
+	var id = useLibOfViews[viewName][index]['tV01'];
+	useLibOfViews[viewName].splice(index, 1);
+	return id;
+}
 
 //Создаем случайное число в заданных пределах
 function getRandom(min, max) {

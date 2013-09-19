@@ -17,6 +17,6 @@ module.exports = {
 		field14: { type: 'string', title:'', description:'' },
 		field15: { type: 'string', title:'', description:'' },
 		field16: { type: 'id', from: 'testFlexo2_1', link: 'linkFlexo2_1', title:'', description:'' },
-		field17: { type: 'array', of:'id', from: 'testFlexo2_2', link: 'linkFlexo2_2', title:'', description:'' }
+		field17: { type: 'id', from: 'testFlexo2_2', link: 'linkFlexo2_2', title:'', description:'' }
 	}
 };

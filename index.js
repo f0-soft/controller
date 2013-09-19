@@ -1167,21 +1167,16 @@ function getTemplate(viewName, sender, socket, callback ) {
 					//ToDo: оптимизировать формирование списков
 					//Формируем 2 дополнительных списка на создание и чтение
 					var listForRead = [];
-					var listForCreate = [];
 					for( var i = 0; i < ids.length ; i++ ) {
 						var globalVid = globalViewConfig[viewName][ids[i]];
 						if ( globalVid.flexo ) {
 							if ( globalVid.type === READ || globalVid.type === MODIFY ) {
 								listForRead.push( ids[i] );
-								listForCreate.push( ids[i] );
-							} else if (  globalVid.type === CREATE ) {
-								listForCreate.push( ids[i] );
 							}
 						}
 					}
 
 					socket.view[viewName].listForRead = listForRead;
-					socket.view[viewName].listForRead = listForCreate;
 
 					//Логирование ошибки целостности, так как view обрезала список разрешенных
 					//идентификаторов
@@ -1252,21 +1247,16 @@ function getTemplate(viewName, sender, socket, callback ) {
 						//ToDo: оптимизировать формирование списков
 						//Формируем 2 дополнительных списка на создание и чтение
 						var listForRead = [];
-						var listForCreate = [];
 						for( var i = 0; i < ids.length ; i++ ) {
 							var globalVid = globalViewConfig[viewName][ids[i]];
 							if ( globalVid.flexo ) {
 								if ( globalVid.type === READ || globalVid.type === MODIFY ) {
 									listForRead.push( ids[i] );
-									listForCreate.push( ids[i] );
-								} else if (  globalVid.type === CREATE ) {
-									listForCreate.push( ids[i] );
 								}
 							}
 						}
 
-						socket.view[viewName] = {ids:ids, useId:!!useId, listForRead:listForRead,
-							listForCreate:listForCreate};
+						socket.view[viewName] = {ids:ids, useId:!!useId, listForRead:listForRead};
 
 						if( listAllowedOf_vid.length !== ids.length ){
 							//Логирование ошибки целостности, так как view обрезала список
@@ -1496,7 +1486,7 @@ Controller.queryToView = function queryToView( type, sender, request, viewName, 
 					role: sender.role
 				};
 
-				View.insert( viewName, socket.view[viewName].listForCreate, request, options,
+				View.insert( viewName, socket.view[viewName].listForRead, request, options,
 					function ( err, documents ) {
 					if ( err ) {
 						//Логирование ошибки

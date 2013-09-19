@@ -4,7 +4,7 @@ var fs = require( 'fs' );
 var async = require( 'async' );
 
 var GenerateDataForFlexo = require('./generateData.js');
-var LibOfTestFunction = require('./libOfTestFunction.js')
+var LibOfTestFunction = require('./libOfTestFunction.js');
 
 //Конфиг для стартера
 var configStarter = {
@@ -33,8 +33,26 @@ var configStarter = {
 var configTest = {
 	generateData:true, //Требуется ли генерация данных
 	optionsForGenerateData:{
-		maxCountIdsInDepend: 10, //Максимальное коллечество id в поле хранящем связь с другой flexo
-		сountInsertsInFlexo: 100, //Количество вставок в каждую flexo коллекцию
+		//maxCountIdsInDepend: 10, //Максимальное коллечество id в поле хранящем связь с другой flexo
+		uniqDependId: true, //При установки связи, вставляется ещё не использованный id
+		сountInsertsInFlexo: 100, //Количество вставок в каждую flexo коллекцию (исп если не указан в countInsert)
+		countInsert:{
+			/*testView1_1:1,
+			testView1_2:1,
+			testView1_3:1,
+			testView2_1:1,
+			testView2_2:1,
+			testView2_3:1,
+			testView3_1:1,
+			testView3_2:1,
+			testView3_3:1,
+			testView3_4:1,
+			testView3_5:1,
+			testView4_1:1,
+			testView4_2:1,
+			testView4_3:1,
+			testView4_4:1 */
+		},
 		maxGenerateNumber:1000000000, //Максимальное генерируемое число, для числовых полей
 		maxGenerateString:30 //Максимальная длинна генерируемой строки, для строковых полей
 	}
@@ -67,35 +85,156 @@ var sender = {
 	place: 'test_productivity'
 };
 
-LibOfTestFunction.init();
-
 //Формируем словарь вариантов тестов
 var libVariantsOfTests = [
 	{
 		read:[
-			{viewName:'testView1_1', funcExec:LibOfTestFunction.simpleFind,
+			{	viewName:'testView1_1', funcExec:LibOfTestFunction.simpleFind, motherView:null,
 				findOption:['OneValAnyStrField', 'OneValAnyNumField'/*, 'SomeValAnyNumField'*/],
-				flexoName:'testFlexo1_1', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery},
-			{viewName:'testView1_2', funcExec:LibOfTestFunction.simpleFind,
-				findOption:['OneValAnyStrField', 'OneValAnyNumField'/*, 'SomeValAnyNumField'*/]},
-			{viewName:'testView1_3', funcExec:LibOfTestFunction.simpleFind,
-				findOption:['OneValAnyStrField', 'OneValAnyNumField'/*, 'SomeValAnyNumField'*/]},
-			{viewName:'testView1_3To1_2', funcExec:''},
-			{viewName:'testView1_3To1_1', funcExec:''},
-			{viewName:'testView1_3And1_2And1_1', funcExec:''}
+				flexoName:'testFlexo1_1', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
+			}, {
+				viewName:'testView1_2', funcExec:LibOfTestFunction.simpleFind, motherView:null,
+				findOption:['OneValAnyStrField', 'OneValAnyNumField'/*, 'SomeValAnyNumField'*/],
+				flexoName:'testFlexo1_2', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
+			}, {
+				viewName:'testView1_3', funcExec:LibOfTestFunction.simpleFind, motherView:null,
+				findOption:['OneValAnyStrField', 'OneValAnyNumField'/*, 'SomeValAnyNumField'*/],
+				flexoName:'testFlexo1_3', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
+			}, {
+				viewName:'testView1_3To1_2', funcExec:LibOfTestFunction.simpleFind,
+				motherView:'testView1_3',
+				findOption:['OneValAnyStrField', 'OneValAnyNumField'/*, 'SomeValAnyNumField'*/],
+				flexoName:'testFlexo1_3', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
+			}, {
+				viewName:'testView1_3To1_1', funcExec:LibOfTestFunction.simpleFind,
+				motherView:'testView1_3',
+				findOption:['OneValAnyStrField', 'OneValAnyNumField'/*, 'SomeValAnyNumField'*/],
+				flexoName:'testFlexo1_3', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
+			},
+			{
+				viewName:'testView1_3And1_2And1_1', funcExec:LibOfTestFunction.simpleFind,
+				motherView:'testView1_3',
+				findOption:['OneValAnyStrField', 'OneValAnyNumField'/*, 'SomeValAnyNumField'*/],
+				flexoName:'testFlexo1_3', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
+			}
 		],
 		insert:[
-			{viewName:'testView1_1', funcExec:''},
-			{viewname:'testView1_2', funcExec:''},
-			{viewName:'testView1_3', funcExec:''}
+			{
+				viewName:'testView1_1', funcExec:LibOfTestFunction.simpleInsert,
+				countOfDoc:1, lengthOfString: 30, minNumber:1, maxNumber:100000000,
+				funcFormingQuery:LibOfTestFunction.formingSimpleInsertQuery
+			},{
+				viewName:'testView1_2', funcExec:LibOfTestFunction.simpleInsert,
+				motherViewName:'testView1_1', countOfDoc:1, lengthOfString: 30, minNumber:1,
+				maxNumber:100000000,
+				funcFormingQuery:LibOfTestFunction.formingInsertQueryWithOneDependId
+			},{
+				viewName:'testView1_3', funcExec:LibOfTestFunction.simpleInsert,
+				motherViewName:'testView1_2', countOfDoc:1, lengthOfString: 30, minNumber:1,
+				maxNumber:100000000,
+				funcFormingQuery:LibOfTestFunction.formingInsertQueryWithOneDependId
+			}
 		],
 		modify:[
-			{viewName:'testView1_1', funcExec:''},
-			{viewname:'testView1_2', funcExec:''},
-			{viewName:'testView1_3', funcExec:''}
+			{
+				viewName:'testView1_1', funcExec:LibOfTestFunction.simpleModify,
+				countOfDoc:1, lengthOfString: 30, minNumber:1, maxNumber:100000000,
+				modifyOption:['ModifyOneStrVal', 'ModifyOneNumVal', 'ModifyAllStrVal',
+					'ModifyAllNumVal'],
+				funcFormingQuery:LibOfTestFunction.formingSimpleModifyQuery
+			},{
+				viewName:'testView1_2', funcExec:LibOfTestFunction.simpleModify,
+				countOfDoc:1, lengthOfString: 30, minNumber:1, maxNumber:100000000,
+				modifyOption:['ModifyOneStrVal', 'ModifyOneNumVal', 'ModifyAllStrVal',
+					'ModifyAllNumVal', 'ModifyDependId'], motherViewName:'testView1_1',
+				funcFormingQuery:LibOfTestFunction.formingSimpleModifyQuery
+			},{
+				viewName:'testView1_3', funcExec:LibOfTestFunction.simpleModify,
+				countOfDoc:1, lengthOfString: 30, minNumber:1, maxNumber:100000000,
+				modifyOption:['ModifyOneStrVal', 'ModifyOneNumVal', 'ModifyAllStrVal',
+					'ModifyAllNumVal', 'ModifyDependId'], motherViewName:'testView1_2',
+				funcFormingQuery:LibOfTestFunction.formingSimpleModifyQuery
+			}
 		],
 		delete:[
-			{viewName:'testView1_1', funcExec:''}
+			{
+				viewName:'testView1_3', funcExec:LibOfTestFunction.simpleDelete, countDoc:1,
+				funcFormingQuery:LibOfTestFunction.formingSimpleDeleteQuery
+			}
+		]
+	},{
+		read:[
+			{	viewName:'testView2_1', funcExec:LibOfTestFunction.simpleFind, motherView:null,
+				findOption:['OneValAnyStrField', 'OneValAnyNumField'/*, 'SomeValAnyNumField'*/],
+				flexoName:'testFlexo2_1', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
+			}, {
+				viewName:'testView2_2', funcExec:LibOfTestFunction.simpleFind, motherView:null,
+				findOption:['OneValAnyStrField', 'OneValAnyNumField'/*, 'SomeValAnyNumField'*/],
+				flexoName:'testFlexo2_2', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
+			}, {
+				viewName:'testView2_3', funcExec:LibOfTestFunction.simpleFind, motherView:null,
+				findOption:['OneValAnyStrField', 'OneValAnyNumField'/*, 'SomeValAnyNumField'*/],
+				flexoName:'testFlexo2_3', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
+			}, {
+				viewName:'testView2_3To2_1', funcExec:LibOfTestFunction.simpleFind,
+				motherView:'testView2_3',
+				findOption:['OneValAnyStrField', 'OneValAnyNumField'/*, 'SomeValAnyNumField'*/],
+				flexoName:'testFlexo2_3', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
+			}, {
+				viewName:'testView2_3To2_2', funcExec:LibOfTestFunction.simpleFind,
+				motherView:'testView2_3',
+				findOption:['OneValAnyStrField', 'OneValAnyNumField'/*, 'SomeValAnyNumField'*/],
+				flexoName:'testFlexo2_3', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
+			},
+			{
+				viewName:'testView2_3And2_2And2_1', funcExec:LibOfTestFunction.simpleFind,
+				motherView:'testView2_3',
+				findOption:['OneValAnyStrField', 'OneValAnyNumField'/*, 'SomeValAnyNumField'*/],
+				flexoName:'testFlexo2_3', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
+			}
+		],
+		insert:[
+			{
+				viewName:'testView2_1', funcExec:LibOfTestFunction.simpleInsert,
+				countOfDoc:1, lengthOfString: 30, minNumber:1, maxNumber:100000000,
+				funcFormingQuery:LibOfTestFunction.formingSimpleInsertQuery
+			},{
+				viewName:'testView2_2', funcExec:LibOfTestFunction.simpleInsert,
+				countOfDoc:1, lengthOfString: 30, minNumber:1, maxNumber:100000000,
+				funcFormingQuery:LibOfTestFunction.formingSimpleInsertQuery
+			},{
+				viewName:'testView2_3', funcExec:LibOfTestFunction.simpleInsert,
+				motherViewName:'testView1_2', countOfDoc:1, lengthOfString: 30, minNumber:1,
+				maxNumber:100000000,
+				funcFormingQuery:LibOfTestFunction.formingSpecialInsertQueryVariant1
+			}
+		],
+		modify:[
+			{
+				viewName:'testView2_1', funcExec:LibOfTestFunction.simpleModify,
+				countOfDoc:1, lengthOfString: 30, minNumber:1, maxNumber:100000000,
+				modifyOption:['ModifyOneStrVal', 'ModifyOneNumVal', 'ModifyAllStrVal',
+					'ModifyAllNumVal'],
+				funcFormingQuery:LibOfTestFunction.formingSimpleModifyQuery
+			},{
+				viewName:'testView2_2', funcExec:LibOfTestFunction.simpleModify,
+				countOfDoc:1, lengthOfString: 30, minNumber:1, maxNumber:100000000,
+				modifyOption:['ModifyOneStrVal', 'ModifyOneNumVal', 'ModifyAllStrVal',
+					'ModifyAllNumVal'], motherViewName:'testView1_1',
+				funcFormingQuery:LibOfTestFunction.formingSimpleModifyQuery
+			},{
+				viewName:'testView3_3', funcExec:LibOfTestFunction.simpleModify,
+				countOfDoc:1, lengthOfString: 30, minNumber:1, maxNumber:100000000,
+				modifyOption:['ModifyOneStrVal', 'ModifyOneNumVal', 'ModifyAllStrVal',
+					'ModifyAllNumVal', 'ModifyDependId'], motherViewName:'testView1_2',
+				funcFormingQuery:LibOfTestFunction.formingSpecialModifyQueryVariant1
+			}
+		],
+		delete:[
+			{
+				viewName:'testView2_3', funcExec:LibOfTestFunction.simpleDelete, countDoc:1,
+				funcFormingQuery:LibOfTestFunction.formingSimpleDeleteQuery
+			}
 		]
 	}
 ];
@@ -125,7 +264,7 @@ starter.init( configStarter, function( err, module ) {
 //Функция генерации данных
 function generateData(){
 	GenerateDataForFlexo.init(controller, sender, libOfViews, _views, _flexos, configTest);
-
+	LibOfTestFunction.init(controller, libOfViews, _views, _flexos);
 	async.waterfall([
 			//Вставляем разрешения для всех flexo схем
 			GenerateDataForFlexo.saveFlexoAccessForRole,
@@ -141,7 +280,7 @@ function generateData(){
 			},
 			//Вставляем данные во flexp testFlexo1_3
 			function ( cb ){
-				GenerateDataForFlexo.fillTestFlexosWithOneArrayOfId( 'testView1_3', 'testView1_2', cb );
+				GenerateDataForFlexo.fillTestFlexosWithOneOfId( 'testView1_3', 'testView1_2', cb );
 			},
 			//Вставляем данные во flexp testFlexo2_1
 			function ( cb ){
@@ -159,19 +298,19 @@ function generateData(){
 			},
 			//Вставляем данные во flexp testFlexo3_2
 			function ( cb ){
-				GenerateDataForFlexo.fillTestFlexosWithOneArrayOfId( 'testView3_2', 'testView3_1', cb );
+				GenerateDataForFlexo.fillTestFlexosWithOneOfId( 'testView3_2', 'testView3_1', cb );
 			},
 			//Вставляем данные во flexp testFlexo3_3
 			function ( cb ){
-				GenerateDataForFlexo.fillTestFlexosWithOneArrayOfId( 'testView3_3', 'testView3_2', cb );
+				GenerateDataForFlexo.fillTestFlexosWithOneOfId( 'testView3_3', 'testView3_2', cb );
 			},
 			//Вставляем данные во flexp testFlexo3_4
 			function ( cb ){
-				GenerateDataForFlexo.fillTestFlexosWithOneArrayOfId( 'testView3_4', 'testView3_3', cb );
+				GenerateDataForFlexo.fillTestFlexosWithOneOfId( 'testView3_4', 'testView3_3', cb );
 			},
 			//Вставляем данные во flexp testFlexo3_5
 			function ( cb ){
-				GenerateDataForFlexo.fillTestFlexosWithOneArrayOfId( 'testView3_5', 'testView3_4', cb );
+				GenerateDataForFlexo.fillTestFlexosWithOneOfId( 'testView3_5', 'testView3_4', cb );
 			},
 			//Вставляем данные во flexp testFlexo4_1
 			function ( cb ){
@@ -191,9 +330,88 @@ function generateData(){
 				console.log( err.message );
 			} else {
 				console.log('✓ - Генерация завершена');
+				temporarily();
 			}
 		}
 	);
+}
+
+function temporarily(){
+	/*//Чтение
+	var variantOfRead = libVariantsOfTests[1].read[3];
+	var viewName = variantOfRead.viewName;
+	var motherView = variantOfRead.motherView;
+	var query = variantOfRead.funcFormingQuery(viewName, motherView, variantOfRead.flexoName,
+		variantOfRead.findOption[0]);
+
+	if ( query ) {
+		variantOfRead.funcExec(viewName, query, sender, function( err, documents, count ){
+			console.log(err);
+			console.log(documents);
+			console.log(count);
+		});
+	} else {
+		console.log('x - Неудалось сформировать запрос для ' + viewName);
+	} */
+
+	//Вставка
+	var variantIsert = libVariantsOfTests[0].insert[1];
+	var viewName = variantIsert.viewName;
+	var motherViewName = variantIsert.motherViewName;
+	var countOfDoc = variantIsert.countOfDoc;
+	var lengthOfString = variantIsert.lengthOfString;
+	var minNumber = variantIsert.minNumber;
+	var maxNumber = variantIsert.maxNumber;
+	var query = variantIsert.funcFormingQuery(viewName, countOfDoc,	lengthOfString, minNumber, maxNumber, motherViewName);
+
+	if ( query ) {
+		variantIsert.funcExec(viewName, query, sender, function( err, documents, count ){
+			console.log(err);
+			console.log(documents);
+			console.log(count);
+		});
+	} else {
+		console.log('x - Неудалось сформировать запрос для ' + viewName);
+	}
+
+	/*//Модификация
+	var variantModify = libVariantsOfTests[0].modify[2];
+	var viewName = variantModify.viewName;
+	var motherViewName = variantModify.motherViewName;
+	var countOfDoc = variantModify.countOfDoc;
+	var lengthOfString = variantModify.lengthOfString;
+	var minNumber = variantModify.minNumber;
+	var maxNumber = variantModify.maxNumber;
+	var modifyOption = variantModify.modifyOption[0];
+	var query = variantModify.funcFormingQuery(viewName, modifyOption, countOfDoc, lengthOfString,
+		minNumber, maxNumber, motherViewName);
+
+	if ( query ) {
+		variantModify.funcExec(viewName, query, sender, function( err, documents, count ){
+			console.log(err);
+			console.log(documents);
+			console.log(count);
+		});
+	} else {
+		console.log('x - Неудалось сформировать запрос для ' + viewName);
+	}*/
+
+	/*//Удаление
+	var variantDelete = libVariantsOfTests[0].delete[0];
+	var viewName = variantDelete.viewName;
+	var countDoc = variantDelete.countDoc;
+	var query = variantDelete.funcFormingQuery(viewName, countDoc);
+
+	if ( query ) {
+		variantDelete.funcExec(viewName, query, sender, function( err, documents, count ){
+			console.log(err);
+			console.log(documents);
+			console.log(count);
+		});
+	} else {
+		console.log('x - Неудалось сформировать запрос для ' + viewName);
+	}*/
+
 }
 
 function getListOfVids( viewName, type ) {
