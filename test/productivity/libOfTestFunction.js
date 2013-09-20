@@ -209,6 +209,42 @@ LibOfTestFunction.formingInsertQueryWithOneDependId =
 	return queryToCreate;
 };
 
+LibOfTestFunction.formingSpecialInsertQueryVariant1 =
+	function formingSpecialInsertQueryVariant1(viewName, countOfDoc, lengthOfString, minNumber,
+											   maxNumber, motherViewNames){
+	//Формируем запрос на множественную вставку
+	var queryToCreate = [];
+	var query; //Один документ на вставку
+	var listOfVids = getListOfVids(viewName, 'create');
+
+	for( var i = 0; i < countOfDoc; i++ ) {
+		query = {};
+		for( var j = 0; j < listOfVids.length; j++ ) {
+			var flexoShemeName = _views[viewName][listOfVids[j]]._flexo.scheme[0];
+			var flexoFieldName = _views[viewName][listOfVids[j]]._flexo.scheme[1];
+
+			var type = _flexos[flexoShemeName][flexoFieldName].type;
+
+			if ( type === 'string' ) {
+				query[listOfVids[j]] = generatorString(lengthOfString, lengthOfString);
+			} else if ( type === 'number' ) {
+				query[listOfVids[j]] = getRandom(minNumber, maxNumber);
+			} else if ( 'tV35' === listOfVids[j] ) {
+				var randNumber = getRandom(0, (libOfViews[motherViewNames[0]].length - 1));
+				query[listOfVids[j]] = libOfViews[motherViewNames[0]][randNumber]['tV01'];
+			} else if ( 'tV36' === listOfVids[j] ) {
+				var randNumber = getRandom(0, (libOfViews[motherViewNames[1]].length - 1));
+				query[listOfVids[j]] = libOfViews[motherViewNames[1]][randNumber]['tV01'];
+			}
+		}
+		queryToCreate.push(query);
+	}
+
+	return queryToCreate;
+
+};
+
+
 LibOfTestFunction.formingSimpleModifyQuery =
 	function formingSimpleInsertQuery(viewName, modifyOption, countOfDoc, lengthOfString,
 									  minNumber, maxNumber, motherViewName){
@@ -366,6 +402,169 @@ LibOfTestFunction.formingSimpleModifyQuery =
 
 		return queryToModify;
 };
+
+LibOfTestFunction.formingSpecialModifyQueryVariant1 = function
+	formingSpecialModifyQueryVariant1(viewName, modifyOption, countOfDoc, lengthOfString, minNumber,
+									  maxNumber, motherViewName){
+	//Формируем запрос на множественную модификацию
+	var queryToModify = [];
+	var query; //Один документ на вставку
+	var listOfVids = getListOfVids(viewName, 'modify');
+
+	if ( modifyOption === 'ModifyOneStrVal' ) {
+		for( var i = 0; i < countOfDoc; i++ ) {
+			query = {};
+
+			//Выбираем документ для изменения
+			var index = getRandom(0, (libOfViews[viewName].length - 1));
+			var id = libOfViews[viewName][index]['tV01'];
+			var tsUpdate = libOfViews[viewName][index]['tV02'];
+			query.selector = {};
+			query.selector['tV01'] = id;
+			query.selector['tV02'] = tsUpdate;
+
+			query.properties = {};
+
+			for( var j = 0; j < listOfVids.length; j++ ) {
+				var flexoShemeName = _views[viewName][listOfVids[j]]._flexo.scheme[0];
+				var flexoFieldName = _views[viewName][listOfVids[j]]._flexo.scheme[1];
+
+				var type = _flexos[flexoShemeName][flexoFieldName].type;
+
+				if ( type === 'string' ) {
+					var generateVal = generatorString(lengthOfString, lengthOfString);
+					query.properties[listOfVids[j]] = generateVal;
+
+					break;
+				}
+			}
+			libOfViews[viewName].splice(index, 1);
+			queryToModify.push(query);
+		}
+	} else if (modifyOption === 'ModifyOneNumVal') {
+		for( var i = 0; i < countOfDoc; i++ ) {
+			query = {};
+
+			//Выбираем документ для изменения
+			var index = getRandom(0, (libOfViews[viewName].length - 1));
+			var id = libOfViews[viewName][index]['tV01'];
+			var tsUpdate = libOfViews[viewName][index]['tV02'];
+			query.selector = {};
+			query.selector['tV01'] = id;
+			query.selector['tV02'] = tsUpdate;
+
+			query.properties = {};
+
+			for( var j = 0; j < listOfVids.length; j++ ) {
+				var flexoShemeName = _views[viewName][listOfVids[j]]._flexo.scheme[0];
+				var flexoFieldName = _views[viewName][listOfVids[j]]._flexo.scheme[1];
+
+				var type = _flexos[flexoShemeName][flexoFieldName].type;
+
+				if ( type === 'number' ) {
+					var generateVal = getRandom(minNumber, maxNumber);
+					query.properties[listOfVids[j]] = generateVal;
+
+					break;
+				}
+			}
+			libOfViews[viewName].splice(index, 1);
+			queryToModify.push(query);
+		}
+	} else if ( modifyOption === 'ModifyAllStrVal' ) {
+		for( var i = 0; i < countOfDoc; i++ ) {
+			query = {};
+
+			//Выбираем документ для изменения
+			var index = getRandom(0, (libOfViews[viewName].length - 1));
+			var id = libOfViews[viewName][index]['tV01'];
+			var tsUpdate = libOfViews[viewName][index]['tV02'];
+			query.selector = {};
+			query.selector['tV01'] = id;
+			query.selector['tV02'] = tsUpdate;
+
+			query.properties = {};
+
+			for( var j = 0; j < listOfVids.length; j++ ) {
+				var flexoShemeName = _views[viewName][listOfVids[j]]._flexo.scheme[0];
+				var flexoFieldName = _views[viewName][listOfVids[j]]._flexo.scheme[1];
+
+				var type = _flexos[flexoShemeName][flexoFieldName].type;
+
+				if ( type === 'string' ) {
+					var generateVal = generatorString(lengthOfString, lengthOfString);
+					query.properties[listOfVids[j]] = generateVal;
+				}
+			}
+			libOfViews[viewName].splice(index, 1);
+			queryToModify.push(query);
+		}
+	} else if (modifyOption === 'ModifyAllNumVal') {
+		for( var i = 0; i < countOfDoc; i++ ) {
+			query = {};
+
+			//Выбираем документ для изменения
+			var index = getRandom(0, (libOfViews[viewName].length - 1));
+			var id = libOfViews[viewName][index]['tV01'];
+			var tsUpdate = libOfViews[viewName][index]['tV02'];
+			query.selector = {};
+			query.selector['tV01'] = id;
+			query.selector['tV02'] = tsUpdate;
+
+			query.properties = {};
+
+			for( var j = 0; j < listOfVids.length; j++ ) {
+				var flexoShemeName = _views[viewName][listOfVids[j]]._flexo.scheme[0];
+				var flexoFieldName = _views[viewName][listOfVids[j]]._flexo.scheme[1];
+
+				var type = _flexos[flexoShemeName][flexoFieldName].type;
+
+				if ( type === 'number' ) {
+					var generateVal = getRandom(minNumber, maxNumber);
+					query.properties[listOfVids[j]] = generateVal;
+				}
+			}
+			libOfViews[viewName].splice(index, 1);
+			queryToModify.push(query);
+		}
+	} else if ( modifyOption === 'ModifyDependId' ) {
+		for( var i = 0; i < countOfDoc; i++ ) {
+			query = {};
+
+			//Выбираем документ для изменения
+			var index = getRandom(0, (libOfViews[viewName].length - 1));
+			var id = libOfViews[viewName][index]['tV01'];
+			var tsUpdate = libOfViews[viewName][index]['tV02'];
+			query.selector = {};
+			query.selector['tV01'] = id;
+			query.selector['tV02'] = tsUpdate;
+
+			query.properties = {};
+
+			for( var j = 0; j < listOfVids.length; j++ ) {
+				var flexoShemeName = _views[viewName][listOfVids[j]]._flexo.scheme[0];
+				var flexoFieldName = _views[viewName][listOfVids[j]]._flexo.scheme[1];
+
+				var type = _flexos[flexoShemeName][flexoFieldName].type;
+
+				if ( type === 'id' && listOfVids[j] === 'tV18' ) {
+					var randNumber = getRandom(0, (libOfViews[motherViewName[0]].length - 1));
+					var value = libOfViews[motherViewName[0]][randNumber]['tV01'];
+					query.properties[listOfVids[j]] = value;
+				} else if ( type === 'id' && listOfVids[j] === 'tV19' ) {
+					var randNumber = getRandom(0, (libOfViews[motherViewName[1]].length - 1));
+					var value = libOfViews[motherViewName[1]][randNumber]['tV01'];
+					query.properties[listOfVids[j]] = value;
+				}
+			}
+			libOfViews[viewName].splice(index, 1);
+			queryToModify.push(query);
+		}
+	}
+
+	return queryToModify;
+};
+
 
 LibOfTestFunction.formingSimpleDeleteQuery = function formingSimpleDeleteQuery(viewName, countDoc){
 	var queryToDelete = [];

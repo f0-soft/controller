@@ -163,9 +163,10 @@ Controller.create = function create( query, sender, callback ) {
 				callback ( err );
 			} else {
 				//ToDo:Согласовать название view
-				var request = {selector: {'a3':query.user.login} };
+				var request = {selector: { 'sys_users': {'a3':query.user.login} } };
 				var options = {insert_user_id:false, user_id: sender.userId, role:sender.role};
-				View.find( '_sys_users', ['a1', 'a2', 'a3', 'a4'], options, function ( err, documents ) {
+				View.find( 'sys_users', ['a1', 'a2', 'a3', 'a4', 'a5', 'a6'], request,
+					options, function ( err, documents ) {
 					if ( err ) {
 						//Логирование ошибки
 						objDescriptioneError = {
@@ -175,9 +176,9 @@ Controller.create = function create( query, sender, callback ) {
 							time: new Date().getTime(),
 							sender:sender,
 							arguments:{
-								viewName:'_sys_users',
+								viewName:'sys_users',
 								request:request,
-								listAllowedOf_vid:['a1', 'a2', 'a3', 'a4']
+								listAllowedOf_vid:['a1', 'a2', 'a3', 'a4', 'a5', 'a6']
 							},
 							descriptione: {
 								title: err.message,
@@ -187,11 +188,12 @@ Controller.create = function create( query, sender, callback ) {
 						};
 
 						ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
-					} else if ( documents.length ) {
+					} else if ( documents.length === 0) {
 						//Такого пользователя нет
 						//Сохраняем данные во view
-						var request = {'a3':query.user.login, 'a4':query.user.company_id};
-						View.insert( '_sys_users', ['a1', 'a2', 'a3', 'a4'], request, options,
+						var request = [{'a3':query.user.login, 'a4':query.user.company_id,
+							'a5':query.user.name, 'a6':query.user.lastname}];
+						View.insert( 'sys_users', ['a1', 'a2', 'a3', 'a4', 'a5', 'a6'], request, options,
 							function( err, document ) {
 							if ( err ) {
 								//Логирование ошибки
@@ -202,9 +204,9 @@ Controller.create = function create( query, sender, callback ) {
 									time: new Date().getTime(),
 									sender:sender,
 									arguments:{
-										viewName:'_sys_users',
+										viewName:'sys_users',
 										request:request,
-										listAllowedOf_vid:['a1', 'a2', 'a3', 'a4']
+										listAllowedOf_vid:['a1', 'a2', 'a3', 'a4', 'a5', 'a6']
 									},
 									descriptione: {
 										title: err.message,
@@ -215,12 +217,12 @@ Controller.create = function create( query, sender, callback ) {
 								};
 							} else if ( document[0]['a1'] ) {
 								//Сохраняем документ в Redis
-								var document = underscore.clone( query.user );
-								document._id = document[0]['a1'];
-								document.tsUpdate = document[0]['a2'];
+								var resultDocument = underscore.clone( query.user );
+								resultDocument._id = document[0]['a1'];
+								resultDocument.tsUpdate = document[0]['a2'];
 
 								//Сохраняем документ в redis
-								ModuleUser.create( client, sender, document, function( err ) {
+								ModuleUser.create( client, sender, resultDocument, function( err ) {
 									if(err){
 										callback( err );
 									} else {
@@ -425,6 +427,7 @@ Controller.find = function find( query, sender, callback ) {
 			if ( viewName ) {
 				//Запрашиваем данные из view
 				var request = { selector:{} };
+				request.selector[viewName] = {};
 				var options = {insert_user_id:false, user_id: sender.userId, role:sender.role};
 
 				View.find(viewName, ['a1', 'a2', 'a3'], request, options, function ( err, documents ) {
@@ -437,20 +440,20 @@ Controller.find = function find( query, sender, callback ) {
 							time: new Date().getTime(),
 							sender:sender,
 							arguments:{
-								viewName:'_sys_users',
+								viewName:viewName,
 								request:request,
-								listAllowedOf_vid:['a1', 'a2', 'a3', 'a4']
+								listAllowedOf_vid:['a1', 'a2', 'a3']
 							},
 							descriptione: {
 								title: err.message,
 								text:'Ошибка полученная в функции обратного вызова при вызове ' +
-									'функции view.find при запросе _id пользователя по логину'
+									'функции view.find при запросе списка компаний'
 							}
 						};
 
 						ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 					} else {
-						callback(null, documents);
+						callback(null, documents[0]);
 					}
 				} );
 			} else {
@@ -886,11 +889,12 @@ Controller.modify = function modify( query, sender, callback ) {
 		//Сохраняем данные во view
 		//ToDo:согласовать названия для view и flexo
 		var request = [ {
-			selector: {'_sys_users': { 'a1': _id, 'a2': query.user.tsUpdate } },
-			properties: { 'a3': query.user.login, 'a4': query.user.company_id }
+			selector: {  'a1': _id, 'a2': query.user.tsUpdate },
+			properties: { 'a3': query.user.login, 'a4': query.user.company_id,
+				'a5': query.user.name, 'a6':query.user.lastname }
 		} ];
 		var options = {insert_user_id:false, user_id: sender.userId, role:sender.role};
-		View.modify( '_sys_users', request, options, function( error, documents ) {
+		View.modify( 'sys_users', request, options, function( err, documents ) {
 			if ( err ) {
 				//Логирование ошибки
 				objDescriptioneError = {
@@ -900,7 +904,7 @@ Controller.modify = function modify( query, sender, callback ) {
 					time: new Date().getTime(),
 					sender:sender,
 					arguments:{
-						viewName:'_sys_users',
+						viewName:'sys_users',
 						request:request
 					},
 					descriptione: {

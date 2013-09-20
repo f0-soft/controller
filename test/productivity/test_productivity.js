@@ -185,8 +185,7 @@ var libVariantsOfTests = [
 				motherView:'testView2_3',
 				findOption:['OneValAnyStrField', 'OneValAnyNumField'/*, 'SomeValAnyNumField'*/],
 				flexoName:'testFlexo2_3', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
-			},
-			{
+			},{
 				viewName:'testView2_3And2_2And2_1', funcExec:LibOfTestFunction.simpleFind,
 				motherView:'testView2_3',
 				findOption:['OneValAnyStrField', 'OneValAnyNumField'/*, 'SomeValAnyNumField'*/],
@@ -204,8 +203,8 @@ var libVariantsOfTests = [
 				funcFormingQuery:LibOfTestFunction.formingSimpleInsertQuery
 			},{
 				viewName:'testView2_3', funcExec:LibOfTestFunction.simpleInsert,
-				motherViewName:'testView1_2', countOfDoc:1, lengthOfString: 30, minNumber:1,
-				maxNumber:100000000,
+				motherViewName:['testView2_1', 'testView2_2'],
+				countOfDoc:1, lengthOfString: 30, minNumber:1,	maxNumber:100000000,
 				funcFormingQuery:LibOfTestFunction.formingSpecialInsertQueryVariant1
 			}
 		],
@@ -223,16 +222,141 @@ var libVariantsOfTests = [
 					'ModifyAllNumVal'], motherViewName:'testView1_1',
 				funcFormingQuery:LibOfTestFunction.formingSimpleModifyQuery
 			},{
-				viewName:'testView3_3', funcExec:LibOfTestFunction.simpleModify,
+				viewName:'testView2_3', funcExec:LibOfTestFunction.simpleModify,
 				countOfDoc:1, lengthOfString: 30, minNumber:1, maxNumber:100000000,
 				modifyOption:['ModifyOneStrVal', 'ModifyOneNumVal', 'ModifyAllStrVal',
-					'ModifyAllNumVal', 'ModifyDependId'], motherViewName:'testView1_2',
+					'ModifyAllNumVal', 'ModifyDependId'],
+				motherViewName:['testView2_1', 'testView2_2'],
 				funcFormingQuery:LibOfTestFunction.formingSpecialModifyQueryVariant1
 			}
 		],
 		delete:[
 			{
 				viewName:'testView2_3', funcExec:LibOfTestFunction.simpleDelete, countDoc:1,
+				funcFormingQuery:LibOfTestFunction.formingSimpleDeleteQuery
+			}
+		]
+	},{
+		read:[
+			{	viewName:'testView3_1', funcExec:LibOfTestFunction.simpleFind, motherView:null,
+				findOption:['OneValAnyStrField', 'OneValAnyNumField'/*, 'SomeValAnyNumField'*/],
+				flexoName:'testFlexo3_1', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
+			}, {
+				viewName:'testView3_2', funcExec:LibOfTestFunction.simpleFind, motherView:null,
+				findOption:['OneValAnyStrField', 'OneValAnyNumField'/*, 'SomeValAnyNumField'*/],
+				flexoName:'testFlexo3_2', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
+			}, {
+				viewName:'testView3_3', funcExec:LibOfTestFunction.simpleFind, motherView:null,
+				findOption:['OneValAnyStrField', 'OneValAnyNumField'/*, 'SomeValAnyNumField'*/],
+				flexoName:'testFlexo3_3', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
+			}, {
+				viewName:'testView3_4', funcExec:LibOfTestFunction.simpleFind, motherView:null,
+				findOption:['OneValAnyStrField', 'OneValAnyNumField'/*, 'SomeValAnyNumField'*/],
+				flexoName:'testFlexo3_4', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
+			}, {
+				viewName:'testView3_5', funcExec:LibOfTestFunction.simpleFind, motherView:null,
+				findOption:['OneValAnyStrField', 'OneValAnyNumField'/*, 'SomeValAnyNumField'*/],
+				flexoName:'testFlexo3_5', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
+			}, {
+				viewName:'testView3_5To3_4', funcExec:LibOfTestFunction.simpleFind,
+				motherView:'testView3_5',
+				findOption:['OneValAnyStrField', 'OneValAnyNumField'/*, 'SomeValAnyNumField'*/],
+				flexoName:'testFlexo3_5', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
+			}, {
+				viewName:'testView3_5To3_3', funcExec:LibOfTestFunction.simpleFind,
+				motherView:'testView3_5',
+				findOption:['OneValAnyStrField', 'OneValAnyNumField'/*, 'SomeValAnyNumField'*/],
+				flexoName:'testFlexo3_5', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
+			},{
+				viewName:'testView3_5To3_2', funcExec:LibOfTestFunction.simpleFind,
+				motherView:'testView3_5',
+				findOption:['OneValAnyStrField', 'OneValAnyNumField'/*, 'SomeValAnyNumField'*/],
+				flexoName:'testFlexo3_5', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
+			},{
+				viewName:'testView3_5To3_1', funcExec:LibOfTestFunction.simpleFind,
+				motherView:'testView3_5',
+				findOption:['OneValAnyStrField', 'OneValAnyNumField'/*, 'SomeValAnyNumField'*/],
+				flexoName:'testFlexo3_5', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
+			},{
+				viewName:'testView3_5And3_4And3_3', funcExec:LibOfTestFunction.simpleFind,
+				motherView:'testView3_3',
+				findOption:['OneValAnyStrField', 'OneValAnyNumField'/*, 'SomeValAnyNumField'*/],
+				flexoName:'testFlexo3_5', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
+			},{
+				viewName:'testView3_5And3_4And3_3And3_2', funcExec:LibOfTestFunction.simpleFind,
+				motherView:'testView3_5',
+				findOption:['OneValAnyStrField', 'OneValAnyNumField'/*, 'SomeValAnyNumField'*/],
+				flexoName:'testFlexo3_5', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
+			},{
+				viewName:'testView3_5And3_4And3_3And3_2And3_1', funcExec:LibOfTestFunction.simpleFind,
+				motherView:'testView3_3',
+				findOption:['OneValAnyStrField', 'OneValAnyNumField'/*, 'SomeValAnyNumField'*/],
+				flexoName:'testFlexo3_5', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
+			}
+		],
+		insert:[
+			{
+				viewName:'testView3_1', funcExec:LibOfTestFunction.simpleInsert,
+				countOfDoc:1, lengthOfString: 30, minNumber:1, maxNumber:100000000,
+				funcFormingQuery:LibOfTestFunction.formingSimpleInsertQuery
+			},{
+				viewName:'testView3_2', funcExec:LibOfTestFunction.simpleInsert,
+				motherViewName:'testView3_1', countOfDoc:1, lengthOfString: 30, minNumber:1,
+				maxNumber:100000000,
+				funcFormingQuery:LibOfTestFunction.formingInsertQueryWithOneDependId
+			},{
+				viewName:'testView3_3', funcExec:LibOfTestFunction.simpleInsert,
+				motherViewName:'testView3_2', countOfDoc:1, lengthOfString: 30, minNumber:1,
+				maxNumber:100000000,
+				funcFormingQuery:LibOfTestFunction.formingInsertQueryWithOneDependId
+			},{
+				viewName:'testView3_4', funcExec:LibOfTestFunction.simpleInsert,
+				motherViewName:'testView3_3', countOfDoc:1, lengthOfString: 30, minNumber:1,
+				maxNumber:100000000,
+				funcFormingQuery:LibOfTestFunction.formingInsertQueryWithOneDependId
+			},{
+				viewName:'testView3_5', funcExec:LibOfTestFunction.simpleInsert,
+				motherViewName:'testView3_4', countOfDoc:1, lengthOfString: 30, minNumber:1,
+				maxNumber:100000000,
+				funcFormingQuery:LibOfTestFunction.formingInsertQueryWithOneDependId
+			}
+		],
+		modify:[
+			{
+				viewName:'testView3_1', funcExec:LibOfTestFunction.simpleModify,
+				countOfDoc:1, lengthOfString: 30, minNumber:1, maxNumber:100000000,
+				modifyOption:['ModifyOneStrVal', 'ModifyOneNumVal', 'ModifyAllStrVal',
+					'ModifyAllNumVal'],
+				funcFormingQuery:LibOfTestFunction.formingSimpleModifyQuery
+			},{
+				viewName:'testView3_2', funcExec:LibOfTestFunction.simpleModify,
+				countOfDoc:1, lengthOfString: 30, minNumber:1, maxNumber:100000000,
+				modifyOption:['ModifyOneStrVal', 'ModifyOneNumVal', 'ModifyAllStrVal',
+					'ModifyAllNumVal', 'ModifyDependId'], motherViewName:'testView3_1',
+				funcFormingQuery:LibOfTestFunction.formingSimpleModifyQuery
+			},{
+				viewName:'testView3_3', funcExec:LibOfTestFunction.simpleModify,
+				countOfDoc:1, lengthOfString: 30, minNumber:1, maxNumber:100000000,
+				modifyOption:['ModifyOneStrVal', 'ModifyOneNumVal', 'ModifyAllStrVal',
+					'ModifyAllNumVal', 'ModifyDependId'], motherViewName:'testView3_2',
+				funcFormingQuery:LibOfTestFunction.formingSimpleModifyQuery
+			},{
+				viewName:'testView3_4', funcExec:LibOfTestFunction.simpleModify,
+				countOfDoc:1, lengthOfString: 30, minNumber:1, maxNumber:100000000,
+				modifyOption:['ModifyOneStrVal', 'ModifyOneNumVal', 'ModifyAllStrVal',
+					'ModifyAllNumVal', 'ModifyDependId'], motherViewName:'testView3_3',
+				funcFormingQuery:LibOfTestFunction.formingSimpleModifyQuery
+			},{
+				viewName:'testView3_5', funcExec:LibOfTestFunction.simpleModify,
+				countOfDoc:1, lengthOfString: 30, minNumber:1, maxNumber:100000000,
+				modifyOption:['ModifyOneStrVal', 'ModifyOneNumVal', 'ModifyAllStrVal',
+					'ModifyAllNumVal', 'ModifyDependId'], motherViewName:'testView3_4',
+				funcFormingQuery:LibOfTestFunction.formingSimpleModifyQuery
+			}
+		],
+		delete:[
+			{
+				viewName:'testView3_5', funcExec:LibOfTestFunction.simpleDelete, countDoc:1,
 				funcFormingQuery:LibOfTestFunction.formingSimpleDeleteQuery
 			}
 		]
@@ -337,8 +461,8 @@ function generateData(){
 }
 
 function temporarily(){
-	/*//Чтение
-	var variantOfRead = libVariantsOfTests[1].read[3];
+	//Чтение
+	var variantOfRead = libVariantsOfTests[2].read[3];
 	var viewName = variantOfRead.viewName;
 	var motherView = variantOfRead.motherView;
 	var query = variantOfRead.funcFormingQuery(viewName, motherView, variantOfRead.flexoName,
@@ -352,10 +476,10 @@ function temporarily(){
 		});
 	} else {
 		console.log('x - Неудалось сформировать запрос для ' + viewName);
-	} */
+	}
 
-	//Вставка
-	var variantIsert = libVariantsOfTests[0].insert[1];
+	/*//Вставка
+	var variantIsert = libVariantsOfTests[1].insert[3];
 	var viewName = variantIsert.viewName;
 	var motherViewName = variantIsert.motherViewName;
 	var countOfDoc = variantIsert.countOfDoc;
@@ -372,17 +496,17 @@ function temporarily(){
 		});
 	} else {
 		console.log('x - Неудалось сформировать запрос для ' + viewName);
-	}
+	}*/
 
-	/*//Модификация
-	var variantModify = libVariantsOfTests[0].modify[2];
+	//Модификация
+	/*var variantModify = libVariantsOfTests[1].modify[2];
 	var viewName = variantModify.viewName;
 	var motherViewName = variantModify.motherViewName;
 	var countOfDoc = variantModify.countOfDoc;
 	var lengthOfString = variantModify.lengthOfString;
 	var minNumber = variantModify.minNumber;
 	var maxNumber = variantModify.maxNumber;
-	var modifyOption = variantModify.modifyOption[0];
+	var modifyOption = variantModify.modifyOption[4];
 	var query = variantModify.funcFormingQuery(viewName, modifyOption, countOfDoc, lengthOfString,
 		minNumber, maxNumber, motherViewName);
 
@@ -397,7 +521,7 @@ function temporarily(){
 	}*/
 
 	/*//Удаление
-	var variantDelete = libVariantsOfTests[0].delete[0];
+	var variantDelete = libVariantsOfTests[1].delete[0];
 	var viewName = variantDelete.viewName;
 	var countDoc = variantDelete.countDoc;
 	var query = variantDelete.funcFormingQuery(viewName, countDoc);
@@ -410,7 +534,7 @@ function temporarily(){
 		});
 	} else {
 		console.log('x - Неудалось сформировать запрос для ' + viewName);
-	}*/
+	} */
 
 }
 
