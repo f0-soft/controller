@@ -15,6 +15,7 @@ var globalViewConfig;
 var flexo;
 var View;
 var globalRoleToView;
+var globalViewConfigForAdminPanel
 
 var Controller = {};
 //Константы
@@ -52,6 +53,14 @@ Controller.init = function init( config, callback ) {
 		globalViewConfig = config.viewConfig;
 	} else {
 		callback( new Error( 'Controller: Parameter viewConfig is not specified in the config ' +
+			'object' ) );
+		return;
+	}
+
+	if ( config.viewForAdminPanel ) {
+		globalViewConfigForAdminPanel = config.viewForAdminPanel;
+	} else {
+		callback( new Error( 'Controller: Parameter viewForAdminPanel is not specified in the config ' +
 			'object' ) );
 		return;
 	}
@@ -561,14 +570,14 @@ Controller.find = function find( query, sender, callback ) {
 				//Запрашиваемый искомый объект прав
 				AccessModuleView.findForRole( client, sender, query.access.role,
 					query.access.viewName, function( err, reply ) {
-						callback( err, reply, Object.keys(globalViewConfig[query.access.viewName]));
+						callback( err, reply, Object.keys(globalViewConfigForAdminPanel[query.access.viewName]));
 					} );
 			} else if ( query.access.login ) {
 				//Запрос на чтение прав view по пользователю
 				//Запрашиваемый искомый объект прав
 				AccessModuleView.findForUser( client, sender, query.access.login,
 					query.access.viewName, function( err, reply ) {
-						callback( err, reply, Object.keys(globalViewConfig[query.access.viewName]));
+						callback( err, reply, Object.keys(globalViewConfigForAdminPanel[query.access.viewName]));
 					} );
 
 			} else {
