@@ -570,14 +570,14 @@ Controller.find = function find( query, sender, callback ) {
 				//Запрашиваемый искомый объект прав
 				AccessModuleView.findForRole( client, sender, query.access.role,
 					query.access.viewName, function( err, reply ) {
-						callback( err, reply, Object.keys(globalViewConfigForAdminPanel[query.access.viewName]));
+						callback( err, reply, globalViewConfigForAdminPanel[query.access.viewName]);
 					} );
 			} else if ( query.access.login ) {
 				//Запрос на чтение прав view по пользователю
 				//Запрашиваемый искомый объект прав
 				AccessModuleView.findForUser( client, sender, query.access.login,
 					query.access.viewName, function( err, reply ) {
-						callback( err, reply, Object.keys(globalViewConfigForAdminPanel[query.access.viewName]));
+						callback( err, reply, globalViewConfigForAdminPanel[query.access.viewName]);
 					} );
 
 			} else {
