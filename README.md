@@ -44,7 +44,7 @@ var Controller = require('controller');
 * '(useId)' - число, 0 - если не нужно сужать данные по идентификатору пользователя, 1 - если нужно сужать данные по идентификатору пользователя
 
 Примеры объекта прав для view по роли:
-'''
+```
     var testObjAccess1 = {
         '(all)':0,
         'viewIds':['a1', 'f2', ...],
@@ -55,7 +55,7 @@ var Controller = require('controller');
         'viewIds':[],
         '(useId)':1
     };
-'''
+```
 
 Шаблон объекта прав для view по пользователю (объект прав обезательно содержит 'viewIdsAdd' и 'viewIdsDel'):
 * ['(all)'] - число, 0 - если запрещены все viewId, 1 - если разрешены все viewId
@@ -64,7 +64,7 @@ var Controller = require('controller');
 * ['(useId)'] - число, 0 - если не нужно сужать данные по идентификатору пользователя, 1 - если нужно сужать данные по идентификатору пользователя
 
 Примеры объекта прав для view по пользователю:
-'''
+```
     var testObjAccess1 = {
         '(all)':0,
         'viewIdsAdd':['a1', 'f2', ...],
@@ -81,7 +81,7 @@ var Controller = require('controller');
         'viewIdsDel':['a1', 'f2', ...],
         '(useId)':0
     };
-'''
+```
 
 Шаблон объекта прав для одной flexo схемы по роли:
 {read: { '(all)': access, 'fields': [] }, modify: { '(all)': access, 'fields': [] }, create: { '(all)': access, 'fields': [] }, createAll:access, delete: access}, где:
@@ -94,7 +94,7 @@ var Controller = require('controller');
 * 'fields' - массив, содержит в себе список flexo полей которые выступают в качестве исключения из правила установленное командой '(all)'
 
 Пример объекта прав для flexo:
-'''
+```
     var testObjAccess = {
         read: {
             '(all)':0,
@@ -111,7 +111,7 @@ var Controller = require('controller');
         createAll: 0,
         delete: 1
     };
-'''
+```
 
 Шаблон объекта прав для одной flexo схемы по пользоватлю:
 {read: { '(all)': access, 'fieldsAdd': [], 'fieldsDel': [] }, modify: { '(all)': access, 'fieldsAdd': [], 'fieldsDel': [] }, create: { '(all)': access, 'fieldsAdd': [], 'fieldsDel': [] }, createAll:access, delete: access}, где:
@@ -126,7 +126,7 @@ var Controller = require('controller');
 
 
 Пример объекта прав для flexo:
-'''
+```
     var testObjAccess = {
         read: {
             '(all)':0,
@@ -145,7 +145,7 @@ var Controller = require('controller');
         createAll: 0,
         delete: 1
     };
-'''
+```
 
 ## find( query, sender, callback )
 Читает запрашиваемые права или данные пользователя, а именно:
@@ -377,7 +377,7 @@ var Controller = require('controller');
     * [_idUser] - строка, идентификатор пользователя
 
 Пример объекта описывающей залогированную ошибку
-'''
+```
    var obj = {
         type:'loss_integrity', //Тип ошибки: нарушение целостности
         variant: 1, //Вариант уточняет, что есть разрешение в правах на view для идентификатора _vid которой нет в глобальной переменной описывающей view
@@ -389,4 +389,4 @@ var Controller = require('controller');
             role: role  //роль пользователя
         }
    }
-'''
+```

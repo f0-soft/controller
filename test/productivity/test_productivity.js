@@ -461,7 +461,7 @@ function generateData(){
 }
 
 function temporarily(){
-	//Чтение
+	/*//Чтение
 	var variantOfRead = libVariantsOfTests[2].read[3];
 	var viewName = variantOfRead.viewName;
 	var motherView = variantOfRead.motherView;
@@ -476,7 +476,7 @@ function temporarily(){
 		});
 	} else {
 		console.log('x - Неудалось сформировать запрос для ' + viewName);
-	}
+	}*/
 
 	/*//Вставка
 	var variantIsert = libVariantsOfTests[1].insert[3];
