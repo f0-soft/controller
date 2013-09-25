@@ -21,27 +21,24 @@ module.exports = {
 		tV17: { _vid: 'tV17', _flexo: {type: 'read', scheme: ['testFlexo1_3', 'field15']}},
 		tV18: { _vid: 'tV18', _flexo: {type: 'read', scheme: ['testFlexo1_3', 'field16']}},
 
-		tV19: { _vid: 'tV19', _flexo: {type: 'read', scheme: ['testFlexo1_1', '_id']}},
-		tV20: { _vid: 'tV20', _flexo: {type: 'read', scheme: ['testFlexo1_1', 'tsUpdate']}},
+		tV19: { _vid: 'tV19', _flexo: {type: 'read', scheme: ['testFlexo1_1', '_id', 'field16', 'linkFlexo1']}},
+		tV20: { _vid: 'tV20', _flexo: {type: 'read', scheme: ['testFlexo1_1', 'tsUpdate', 'field16', 'linkFlexo1']}},
 
-		tV21: { _vid: 'tV21', _flexo: {type: 'read', scheme: ['testFlexo1_1', 'field1']}},
-		tV22: { _vid: 'tV22', _flexo: {type: 'read', scheme: ['testFlexo1_1', 'field2']}},
-		tV23: { _vid: 'tV23', _flexo: {type: 'read', scheme: ['testFlexo1_1', 'field3']}},
-		tV24: { _vid: 'tV24', _flexo: {type: 'read', scheme: ['testFlexo1_1', 'field4']}},
-		tV25: { _vid: 'tV25', _flexo: {type: 'read', scheme: ['testFlexo1_1', 'field5']}},
-		tV26: { _vid: 'tV26', _flexo: {type: 'read', scheme: ['testFlexo1_1', 'field6']}},
-		tV27: { _vid: 'tV27', _flexo: {type: 'read', scheme: ['testFlexo1_1', 'field7']}},
-		tV28: { _vid: 'tV28', _flexo: {type: 'read', scheme: ['testFlexo1_1', 'field8']}},
-		tV29: { _vid: 'tV29', _flexo: {type: 'read', scheme: ['testFlexo1_1', 'field9']}},
-		tV30: { _vid: 'tV30', _flexo: {type: 'read', scheme: ['testFlexo1_1', 'field10']}},
-		tV31: { _vid: 'tV31', _flexo: {type: 'read', scheme: ['testFlexo1_1', 'field11']}},
-		tV32: { _vid: 'tV32', _flexo: {type: 'read', scheme: ['testFlexo1_1', 'field12']}},
-		tV33: { _vid: 'tV33', _flexo: {type: 'read', scheme: ['testFlexo1_1', 'field13']}},
-		tV34: { _vid: 'tV34', _flexo: {type: 'read', scheme: ['testFlexo1_1', 'field14']}},
-		tV35: { _vid: 'tV35', _flexo: {type: 'read', scheme: ['testFlexo1_1', 'field15']}},
-
-		//ToDo:Убрать id tv36
-		tV36: { _vid: 'tV36', _flexo: {type: 'read', scheme: ['testFlexo1_2', '_id']}}
+		tV21: { _vid: 'tV21', _flexo: {type: 'read', scheme: ['testFlexo1_1', 'field1', 'field16', 'linkFlexo1']}},
+		tV22: { _vid: 'tV22', _flexo: {type: 'read', scheme: ['testFlexo1_1', 'field2', 'field16', 'linkFlexo1']}},
+		tV23: { _vid: 'tV23', _flexo: {type: 'read', scheme: ['testFlexo1_1', 'field3', 'field16', 'linkFlexo1']}},
+		tV24: { _vid: 'tV24', _flexo: {type: 'read', scheme: ['testFlexo1_1', 'field4', 'field16', 'linkFlexo1']}},
+		tV25: { _vid: 'tV25', _flexo: {type: 'read', scheme: ['testFlexo1_1', 'field5', 'field16', 'linkFlexo1']}},
+		tV26: { _vid: 'tV26', _flexo: {type: 'read', scheme: ['testFlexo1_1', 'field6', 'field16', 'linkFlexo1']}},
+		tV27: { _vid: 'tV27', _flexo: {type: 'read', scheme: ['testFlexo1_1', 'field7', 'field16', 'linkFlexo1']}},
+		tV28: { _vid: 'tV28', _flexo: {type: 'read', scheme: ['testFlexo1_1', 'field8', 'field16', 'linkFlexo1']}},
+		tV29: { _vid: 'tV29', _flexo: {type: 'read', scheme: ['testFlexo1_1', 'field9', 'field16', 'linkFlexo1']}},
+		tV30: { _vid: 'tV30', _flexo: {type: 'read', scheme: ['testFlexo1_1', 'field10', 'field16', 'linkFlexo1']}},
+		tV31: { _vid: 'tV31', _flexo: {type: 'read', scheme: ['testFlexo1_1', 'field11', 'field16', 'linkFlexo1']}},
+		tV32: { _vid: 'tV32', _flexo: {type: 'read', scheme: ['testFlexo1_1', 'field12', 'field16', 'linkFlexo1']}},
+		tV33: { _vid: 'tV33', _flexo: {type: 'read', scheme: ['testFlexo1_1', 'field13', 'field16', 'linkFlexo1']}},
+		tV34: { _vid: 'tV34', _flexo: {type: 'read', scheme: ['testFlexo1_1', 'field14', 'field16', 'linkFlexo1']}},
+		tV35: { _vid: 'tV35', _flexo: {type: 'read', scheme: ['testFlexo1_1', 'field15', 'field16', 'linkFlexo1']}}
 	},
 	root:'testFlexo1_3'
 };

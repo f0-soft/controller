@@ -28,6 +28,7 @@ LibOfTestFunction.init = function init(oController, oLibOfViews, o_views, o_flex
 
 LibOfTestFunction.simpleFind = function simpleFind(viewName, request, sender, callback){
 	var socket = {};
+
 	controller.getTemplate( viewName, sender, socket, function( err, config, template ) {
 		if ( err ){
 			callback ( err );

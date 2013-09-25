@@ -6,28 +6,10 @@ var async = require( 'async' );
 var GenerateDataForFlexo = require('./generateData.js');
 var LibOfTestFunction = require('./libOfTestFunction.js');
 
-//Конфиг для стартера
-var configStarter = {
-	rabbit: require( 'f0.rabbit' ),
-	flexo: require( 'f0.flexo' ),
-	view: require( 'f0.view' ),
-	controller: require('./../../index.js'),
-
-	flexo_path: __dirname + '/scheme/flexoForTestProductivity',
-	link_path: __dirname + '/scheme/linksForTestProductivity',
-	view_path: __dirname + '/scheme/viewForTestProductivity',
-	template_path: __dirname + '/scheme/viewForTestProductivity',
-	template_timeout: 100,
-	controller_role_to_company_view: {},
-
-	redis: {
-		host: '127.0.0.1',
-		port: 6379
-	},
-
-	rabbit_hint: {},
-	rabbit_hint_score: {}
-};
+starter.config.flexo_path = __dirname + '/scheme/flexoForTestProductivity';
+starter.config.link_path = __dirname + '/scheme/linksForTestProductivity';
+starter.config.view_path = __dirname + '/scheme/viewForTestProductivity';
+starter.config.template_path = __dirname + '/scheme/viewForTestProductivity';
 
 //Настройки теста
 var configTest = {
@@ -35,7 +17,7 @@ var configTest = {
 	optionsForGenerateData:{
 		//maxCountIdsInDepend: 10, //Максимальное коллечество id в поле хранящем связь с другой flexo
 		uniqDependId: true, //При установки связи, вставляется ещё не использованный id
-		сountInsertsInFlexo: 100, //Количество вставок в каждую flexo коллекцию (исп если не указан в countInsert)
+		сountInsertsInFlexo: 30000, //Количество вставок в каждую flexo коллекцию (исп если не указан в countInsert)
 		countInsert:{
 			/*testView1_1:1,
 			testView1_2:1,
@@ -279,7 +261,7 @@ var libVariantsOfTests = [
 				flexoName:'testFlexo3_5', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
 			},{
 				viewName:'testView3_5And3_4And3_3', funcExec:LibOfTestFunction.simpleFind,
-				motherView:'testView3_3',
+				motherView:'testView3_5',
 				findOption:['OneValAnyStrField', 'OneValAnyNumField'/*, 'SomeValAnyNumField'*/],
 				flexoName:'testFlexo3_5', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
 			},{
@@ -289,7 +271,7 @@ var libVariantsOfTests = [
 				flexoName:'testFlexo3_5', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
 			},{
 				viewName:'testView3_5And3_4And3_3And3_2And3_1', funcExec:LibOfTestFunction.simpleFind,
-				motherView:'testView3_3',
+				motherView:'testView3_5',
 				findOption:['OneValAnyStrField', 'OneValAnyNumField'/*, 'SomeValAnyNumField'*/],
 				flexoName:'testFlexo3_5', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
 			}
@@ -365,18 +347,18 @@ var libVariantsOfTests = [
 
 //Подключаем описание flexo и view
 var _flexos = {}; //Описания из flexo схем
-var filesFlexo = fs.readdirSync( configStarter.flexo_path );
+var filesFlexo = fs.readdirSync( starter.config.flexo_path );
 for ( i = 0; i < filesFlexo.length; i += 1 ) {
-	_flexos[filesFlexo[i].split('.')[0]] = require( configStarter.flexo_path + '/' + filesFlexo[i]).root;
+	_flexos[filesFlexo[i].split('.')[0]] = require( starter.config.flexo_path + '/' + filesFlexo[i]).root;
 }
 var _views = {}; //Описание из view схем
-var filesViews = fs.readdirSync( configStarter.view_path );
+var filesViews = fs.readdirSync( starter.config.view_path );
 for ( i = 0; i < filesViews.length; i += 1 ) {
-	_views[filesViews[i].split('.')[0]] = require( configStarter.view_path + '/' + filesViews[i]).config;
+	_views[filesViews[i].split('.')[0]] = require( starter.config.view_path + '/' + filesViews[i]).config;
 }
 
 //Запуск стартера
-starter.init( configStarter, function( err, module ) {
+starter.init( starter.config, function( err, module ) {
 	if ( err ) { console.log( err.message ); }
 	else { controller = module; }
 
@@ -454,13 +436,82 @@ function generateData(){
 				console.log( err.message );
 			} else {
 				console.log('✓ - Генерация завершена');
-				temporarily();
+				//examples();
+				test();
+
 			}
 		}
 	);
 }
 
-function temporarily(){
+var listOfQueries = [];
+var statisticsOfTest = {};
+var index = 0;
+var variantOfReadTest = libVariantsOfTests[2].read[11];
+var viewNameTest = variantOfReadTest.viewName;
+var countOfQueries = 100;
+function test(){
+
+	//Формируем массив запросов
+	var variantOfRead = libVariantsOfTests[2].read[11];
+	var viewName = variantOfRead.viewName;
+	var motherView = variantOfRead.motherView;
+
+	for(var i=0; i<countOfQueries; i++){
+		listOfQueries.push(variantOfRead.funcFormingQuery(viewName, motherView, variantOfRead.flexoName,
+			variantOfRead.findOption[0]));
+	}
+
+	setTimeout(callQuery, 50);
+}
+
+function callQuery(){
+	if ( index < countOfQueries ) {
+		setTimeout(callQuery, 50);
+
+		var dateStart = new Date().getTime();
+		var i = index;
+		index++;
+
+		variantOfReadTest.funcExec(viewNameTest, listOfQueries[i], sender, function( err, documents, count ){
+			if ( err ) {
+				statisticsOfTest[i] = err.message;
+			} else {
+				statisticsOfTest[i] = (new Date().getTime()) - dateStart;
+			}
+
+			if ( i === (countOfQueries-1) ){
+				console.log(JSON.stringify(statisticsOfTest));
+
+				//Находим минимальное и максимальное, и среднее время
+				var countOfResults = Object.keys(statisticsOfTest);
+				var min = statisticsOfTest[countOfResults[0]];
+				var max = 0;
+				var sum = 0;
+				var value;
+				for(var j=0; j<countOfResults.length; j++){
+					value = statisticsOfTest[countOfResults[j]];
+					sum = sum + value;
+
+					if ( value > max ){
+						max = value;
+					}
+					if ( value < min ){
+						min = value;
+					}
+				}
+				var middle = sum/countOfResults.length;
+				console.log('Среднее время:' + middle);
+				console.log('Минимальное время:' + min);
+				console.log('Максимальное время:' + max);
+			}
+		});
+	}
+}
+
+
+
+function examples(){
 	/*//Чтение
 	var variantOfRead = libVariantsOfTests[2].read[3];
 	var viewName = variantOfRead.viewName;
