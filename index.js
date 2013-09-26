@@ -1043,7 +1043,15 @@ Controller.modify = function modify( query, sender, callback ) {
 
 Controller.getTemplate = getTemplate;
 
-function getTemplate(viewName, sender, socket, callback ) {
+function getTemplate(viewName, socket, callback ) {
+	var viewName = object.viewName || null;
+	var sender = {
+		userId: socket.userId || null,
+		role: socket.role || null,
+		login: socket.login || null,
+		place: object.place || null
+	};
+
 	var objDescriptioneError;
 	if (!underscore.isFunction(callback)){
 		throw new Error( 'Controller: callback not a function' );
@@ -1093,7 +1101,7 @@ function getTemplate(viewName, sender, socket, callback ) {
 				viewName:viewName
 			},
 			descriptione: {
-				title:'Controller: Parameter login is not set in sender',
+				title:'Controller: Parameter login is not set in socket',
 				text:'Вызвана функция getTemplate с неопределенным или равным нулю параметром ' +
 					'login в аргументе sender'
 			}
@@ -1112,7 +1120,7 @@ function getTemplate(viewName, sender, socket, callback ) {
 				viewName:viewName
 			},
 			descriptione: {
-				title:'Controller: Parameter role is not set in sender',
+				title:'Controller: Parameter role is not set in socket',
 				text:'Вызвана функция getTemplate с неопределенным или равным нулю параметром ' +
 					'role в аргументе sender'
 			}
@@ -1311,7 +1319,7 @@ function getTemplate(viewName, sender, socket, callback ) {
 	}
 }
 
-Controller.queryToView = function queryToView( object, socket, callbak ) { //type, sender, request, viewName, socket, callback ) {
+Controller.queryToView = function queryToView( object, socket, callback ) { //type, sender, request, viewName, socket, callback ) {
 	var type = object.type || null;
 	var sender = {
 		userId: socket.userId || null,
