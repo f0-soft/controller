@@ -1311,7 +1311,17 @@ function getTemplate(viewName, sender, socket, callback ) {
 	}
 }
 
-Controller.queryToView = function queryToView( type, sender, request, viewName, socket, callback ) {
+Controller.queryToView = function queryToView( object, socket, callbak ) { //type, sender, request, viewName, socket, callback ) {
+	var type = object.type || null;
+	var sender = {
+		userId: socket.userId || null,
+		role: socket.role || null,
+		login: socket.login || null,
+		place: object.place || null
+	};
+	var request = object.request || null;
+	var viewName = object.viewName || null;
+
 	var objDescriptioneError;
 	if ( !underscore.isFunction( callback ) ) {
 		throw new Error( 'Controller: callback not a function' );
