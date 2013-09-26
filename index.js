@@ -1043,7 +1043,7 @@ Controller.modify = function modify( query, sender, callback ) {
 
 Controller.getTemplate = getTemplate;
 
-function getTemplate(viewName, socket, callback ) {
+function getTemplate(object, socket, callback ) {
 	var viewName = object.viewName || null;
 	var sender = {
 		userId: socket.userId || null,
