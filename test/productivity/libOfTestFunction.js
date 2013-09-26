@@ -143,11 +143,18 @@ LibOfTestFunction.formingSimpleFindQuery = function formingSimpleFindQuery(viewN
 		} else {
 			return false;
 		}
-
-		//Формируем запрос на чтение
-		var request = { selector: {'testManager':{ m3:buffer.obj[1].managers['m5']} } };
 	} else if ( findOption === 'SomeValAnyNumField' ) {
 
+	} else if (findOption === 'generalId'){
+
+		var indexInLib = getRandom(0, (libOfViews[motherView].length-1) );
+		var valueOfViewIdForRead = libOfViews[motherView][indexInLib]['tV01'];
+
+		//Формируем запрос на чтение
+		var request = {selector:{}};
+		request.selector[viewName] = {};
+		request.selector[viewName]['tV01'] = valueOfViewIdForRead;
+		return request;
 	}
 };
 
