@@ -1825,7 +1825,8 @@ function checkCreate( viewName, queries, listOfAllowed_vids ) {
 		_vidsDataFromViewConfig = dataFromViewConfig[_vidsForCheck[i]];
 		if (!( _vidsDataFromViewConfig && _vidsDataFromViewConfig.flexo &&
 			_vidsDataFromViewConfig.flexo.length > 1 &&
-			_vidsDataFromViewConfig.type === CREATE ) ) {
+			//_vidsDataFromViewConfig.type === CREATE ) ) {
+			_vidsDataFromViewConfig.type === MODIFY ) ) {
 			return false;
 		}
 	}

@@ -17,7 +17,7 @@ var configTest = {
 	optionsForGenerateData:{
 		//maxCountIdsInDepend: 10, //Максимальное коллечество id в поле хранящем связь с другой flexo
 		uniqDependId: true, //При установки связи, вставляется ещё не использованный id
-		сountInsertsInFlexo: 2, //Количество вставок в каждую flexo коллекцию (исп если не указан в countInsert)
+		сountInsertsInFlexo: 100, //Количество вставок в каждую flexo коллекцию (исп если не указан в countInsert)
 		countInsert:{
 			/*testView1_1:1,
 			testView1_2:1,
@@ -71,31 +71,31 @@ var sender = {
 var libVariantsOfTests = [
 	{
 		read:[
-			{	viewName:'testView1_1', funcExec:LibOfTestFunction.simpleFind, motherView:null,
+			{	viewName:'testView1_1', funcExec:LibOfTestFunction.simpleFind, motherViewName:null,
 				findOption:['OneValAnyStrField', 'OneValAnyNumField', 'generalId'/*, 'SomeValAnyNumField'*/],
 				flexoName:'testFlexo1_1', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
 			}, {
-				viewName:'testView1_2', funcExec:LibOfTestFunction.simpleFind, motherView:null,
+				viewName:'testView1_2', funcExec:LibOfTestFunction.simpleFind, motherViewName:null,
 				findOption:['OneValAnyStrField', 'OneValAnyNumField', 'generalId'/*, 'SomeValAnyNumField'*/],
 				flexoName:'testFlexo1_2', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
 			}, {
-				viewName:'testView1_3', funcExec:LibOfTestFunction.simpleFind, motherView:null,
+				viewName:'testView1_3', funcExec:LibOfTestFunction.simpleFind, motherViewName:null,
 				findOption:['OneValAnyStrField', 'OneValAnyNumField', 'generalId'/*, 'SomeValAnyNumField'*/],
 				flexoName:'testFlexo1_3', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
 			}, {
 				viewName:'testView1_3To1_2', funcExec:LibOfTestFunction.simpleFind,
-				motherView:'testView1_3',
+				motherViewName:'testView1_3',
 				findOption:['OneValAnyStrField', 'OneValAnyNumField', 'generalId'/*, 'SomeValAnyNumField'*/],
 				flexoName:'testFlexo1_3', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
 			}, {
 				viewName:'testView1_3To1_1', funcExec:LibOfTestFunction.simpleFind,
-				motherView:'testView1_3',
+				motherViewName:'testView1_3',
 				findOption:['OneValAnyStrField', 'OneValAnyNumField', 'generalId'/*, 'SomeValAnyNumField'*/],
 				flexoName:'testFlexo1_3', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
 			},
 			{
 				viewName:'testView1_3And1_2And1_1', funcExec:LibOfTestFunction.simpleFind,
-				motherView:'testView1_3',
+				motherViewName:'testView1_3',
 				findOption:['OneValAnyStrField', 'OneValAnyNumField', 'generalId'/*, 'SomeValAnyNumField'*/],
 				flexoName:'testFlexo1_3', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
 			}
@@ -146,30 +146,30 @@ var libVariantsOfTests = [
 		]
 	},{
 		read:[
-			{	viewName:'testView2_1', funcExec:LibOfTestFunction.simpleFind, motherView:null,
+			{	viewName:'testView2_1', funcExec:LibOfTestFunction.simpleFind, motherViewName:null,
 				findOption:['OneValAnyStrField', 'OneValAnyNumField', 'generalId'/*, 'SomeValAnyNumField'*/],
 				flexoName:'testFlexo2_1', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
 			}, {
-				viewName:'testView2_2', funcExec:LibOfTestFunction.simpleFind, motherView:null,
+				viewName:'testView2_2', funcExec:LibOfTestFunction.simpleFind, motherViewName:null,
 				findOption:['OneValAnyStrField', 'OneValAnyNumField', 'generalId'/*, 'SomeValAnyNumField'*/],
 				flexoName:'testFlexo2_2', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
 			}, {
-				viewName:'testView2_3', funcExec:LibOfTestFunction.simpleFind, motherView:null,
+				viewName:'testView2_3', funcExec:LibOfTestFunction.simpleFind, motherViewName:null,
 				findOption:['OneValAnyStrField', 'OneValAnyNumField', 'generalId'/*, 'SomeValAnyNumField'*/],
 				flexoName:'testFlexo2_3', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
 			}, {
 				viewName:'testView2_3To2_1', funcExec:LibOfTestFunction.simpleFind,
-				motherView:'testView2_3',
+				motherViewName:'testView2_3',
 				findOption:['OneValAnyStrField', 'OneValAnyNumField', 'generalId'/*, 'SomeValAnyNumField'*/],
 				flexoName:'testFlexo2_3', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
 			}, {
 				viewName:'testView2_3To2_2', funcExec:LibOfTestFunction.simpleFind,
-				motherView:'testView2_3',
+				motherViewName:'testView2_3',
 				findOption:['OneValAnyStrField', 'OneValAnyNumField', 'generalId'/*, 'SomeValAnyNumField'*/],
 				flexoName:'testFlexo2_3', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
 			},{
 				viewName:'testView2_3And2_2And2_1', funcExec:LibOfTestFunction.simpleFind,
-				motherView:'testView2_3',
+				motherViewName:'testView2_3',
 				findOption:['OneValAnyStrField', 'OneValAnyNumField', 'generalId'/*, 'SomeValAnyNumField'*/],
 				flexoName:'testFlexo2_3', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
 			}
@@ -220,58 +220,58 @@ var libVariantsOfTests = [
 		]
 	},{
 		read:[
-			{	viewName:'testView3_1', funcExec:LibOfTestFunction.simpleFind, motherView:null,
+			{	viewName:'testView3_1', funcExec:LibOfTestFunction.simpleFind, motherViewName:null,
 				findOption:['OneValAnyStrField', 'OneValAnyNumField', 'generalId'/*, 'SomeValAnyNumField'*/],
 				flexoName:'testFlexo3_1', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
 			}, {
-				viewName:'testView3_2', funcExec:LibOfTestFunction.simpleFind, motherView:null,
+				viewName:'testView3_2', funcExec:LibOfTestFunction.simpleFind, motherViewName:null,
 				findOption:['OneValAnyStrField', 'OneValAnyNumField', 'generalId'/*, 'SomeValAnyNumField'*/],
 				flexoName:'testFlexo3_2', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
 			}, {
-				viewName:'testView3_3', funcExec:LibOfTestFunction.simpleFind, motherView:null,
+				viewName:'testView3_3', funcExec:LibOfTestFunction.simpleFind, motherViewName:null,
 				findOption:['OneValAnyStrField', 'OneValAnyNumField', 'generalId'/*, 'SomeValAnyNumField'*/],
 				flexoName:'testFlexo3_3', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
 			}, {
-				viewName:'testView3_4', funcExec:LibOfTestFunction.simpleFind, motherView:null,
+				viewName:'testView3_4', funcExec:LibOfTestFunction.simpleFind, motherViewName:null,
 				findOption:['OneValAnyStrField', 'OneValAnyNumField', 'generalId'/*, 'SomeValAnyNumField'*/],
 				flexoName:'testFlexo3_4', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
 			}, {
-				viewName:'testView3_5', funcExec:LibOfTestFunction.simpleFind, motherView:null,
+				viewName:'testView3_5', funcExec:LibOfTestFunction.simpleFind, motherViewName:null,
 				findOption:['OneValAnyStrField', 'OneValAnyNumField', 'generalId'/*, 'SomeValAnyNumField'*/],
 				flexoName:'testFlexo3_5', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
 			}, {
 				viewName:'testView3_5To3_4', funcExec:LibOfTestFunction.simpleFind,
-				motherView:'testView3_5',
+				motherViewName:'testView3_5',
 				findOption:['OneValAnyStrField', 'OneValAnyNumField', 'generalId'/*, 'SomeValAnyNumField'*/],
 				flexoName:'testFlexo3_5', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
 			}, {
 				viewName:'testView3_5To3_3', funcExec:LibOfTestFunction.simpleFind,
-				motherView:'testView3_5',
+				motherViewName:'testView3_5',
 				findOption:['OneValAnyStrField', 'OneValAnyNumField', 'generalId'/*, 'SomeValAnyNumField'*/],
 				flexoName:'testFlexo3_5', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
 			},{
 				viewName:'testView3_5To3_2', funcExec:LibOfTestFunction.simpleFind,
-				motherView:'testView3_5',
+				motherViewName:'testView3_5',
 				findOption:['OneValAnyStrField', 'OneValAnyNumField', 'generalId'/*, 'SomeValAnyNumField'*/],
 				flexoName:'testFlexo3_5', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
 			},{
 				viewName:'testView3_5To3_1', funcExec:LibOfTestFunction.simpleFind,
-				motherView:'testView3_5',
+				motherViewName:'testView3_5',
 				findOption:['OneValAnyStrField', 'OneValAnyNumField', 'generalId'/*, 'SomeValAnyNumField'*/],
 				flexoName:'testFlexo3_5', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
 			},{
 				viewName:'testView3_5And3_4And3_3', funcExec:LibOfTestFunction.simpleFind,
-				motherView:'testView3_5',
+				motherViewName:'testView3_5',
 				findOption:['OneValAnyStrField', 'OneValAnyNumField', 'generalId'/*, 'SomeValAnyNumField'*/],
 				flexoName:'testFlexo3_5', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
 			},{
 				viewName:'testView3_5And3_4And3_3And3_2', funcExec:LibOfTestFunction.simpleFind,
-				motherView:'testView3_5',
+				motherViewName:'testView3_5',
 				findOption:['OneValAnyStrField', 'OneValAnyNumField', 'generalId'/*, 'SomeValAnyNumField'*/],
 				flexoName:'testFlexo3_5', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
 			},{
 				viewName:'testView3_5And3_4And3_3And3_2And3_1', funcExec:LibOfTestFunction.simpleFind,
-				motherView:'testView3_5',
+				motherViewName:'testView3_5',
 				findOption:['OneValAnyStrField', 'OneValAnyNumField', 'generalId'/*, 'SomeValAnyNumField'*/],
 				flexoName:'testFlexo3_5', funcFormingQuery: LibOfTestFunction.formingSimpleFindQuery
 			}
@@ -437,30 +437,30 @@ function generateData(){
 			} else {
 				console.log('✓ - Генерация завершена');
 				//examples();
-				test();
-
+				testRead();
+				//testInsert();
 			}
 		}
 	);
 }
 
-function test(){
+function testRead(){
 	//Настройка теста
 	var listOfQueries = [];
 	var statisticsOfTest = {};
 	var index = 0;
-	var variantOfReadTest = libVariantsOfTests[2].read[11];
+	var variantOfReadTest = libVariantsOfTests[0].read[5/*11*/];
 	var viewNameTest = variantOfReadTest.viewName;
-	var countOfQueries = 2;
+	var countOfQueries = 100;
 	var timeBetweenQuery = 50;
 	var generalTimeStart;
 
 	//Формируем массив запросов
-	var motherView = variantOfReadTest.motherView;
+	var motherView = variantOfReadTest.motherViewName;
 
 	for(var i=0; i<countOfQueries; i++){
 		listOfQueries.push(variantOfReadTest.funcFormingQuery(viewNameTest, motherView, variantOfReadTest.flexoName,
-			variantOfReadTest.findOption[2]));
+			variantOfReadTest.findOption[0]));
 	}
 	generalTimeStart = new Date().getTime();
 	callQuery();
@@ -505,10 +505,87 @@ function test(){
 
 					console.log('Среднее время: ' + middle);
 					console.log('Минимальное время: ' + min);
-					console.log(JSON.stringify(listOfQueries[i]))
+					//console.log(JSON.stringify(listOfQueries[i]))
 					console.log('Максимальное время: ' + max);
 					console.log('Общее время: ' + generalTime);
-					console.log(JSON.stringify(libOfViews));
+					//console.log(JSON.stringify(libOfViews));
+				}
+			});
+		}
+	}
+}
+
+function testInsert(){
+	//Настройка теста
+	var listOfQueries = [];
+	var statisticsOfTest = {};
+	var index = 0;
+	var variantOfWriteTest = libVariantsOfTests[0].insert[4/*11*/];
+	var viewNameTest = variantOfWriteTest.viewName;
+	var countOfQueries = 100;
+	var timeBetweenQuery = 40;
+	var countOfDoc = variantOfWriteTest.countOfDoc;
+	var lengthOfString = variantOfWriteTest.lengthOfString;
+	var minNumber = variantOfWriteTest.minNumber;
+	var maxNumber = variantOfWriteTest.maxNumber;
+
+
+	var generalTimeStart;
+
+	//Формируем массив запросов
+	var motherView = variantOfWriteTest.motherViewName;
+
+	for(var i=0; i<countOfQueries; i++){
+		listOfQueries.push(variantOfWriteTest.funcFormingQuery(viewNameTest, countOfDoc, lengthOfString,
+			minNumber, maxNumber, motherView));
+	}
+	generalTimeStart = new Date().getTime();
+	callQuery();
+
+	function callQuery(){
+		if ( index < countOfQueries ) {
+			setTimeout(callQuery, timeBetweenQuery);
+
+			var dateStart = new Date().getTime();
+			var i = index;
+			index++;
+
+			variantOfWriteTest.funcExec(viewNameTest, listOfQueries[i], sender, function( err, documents, count ){
+				if ( err ) {
+					statisticsOfTest[i] = err.message;
+				} else {
+					statisticsOfTest[i] = (new Date().getTime()) - dateStart;
+				}
+
+				if ( i === (countOfQueries-1) ){
+					var generalTime = (new Date().getTime()) - generalTimeStart;
+					console.log(JSON.stringify(statisticsOfTest));
+					//console.log(JSON.stringify(documents));
+					//Находим минимальное и максимальное, и среднее время
+					var countOfResults = Object.keys(statisticsOfTest);
+					var min = statisticsOfTest[countOfResults[0]];
+					var max = 0;
+					var sum = 0;
+					var value;
+					for(var j=0; j<countOfResults.length; j++){
+						value = statisticsOfTest[countOfResults[j]];
+						sum = sum + value;
+
+						if ( value > max ){
+							max = value;
+						}
+						if ( value < min ){
+							min = value;
+						}
+					}
+					var middle = sum/countOfResults.length;
+
+					console.log('Среднее время: ' + middle);
+					console.log('Минимальное время: ' + min);
+					//console.log(JSON.stringify(listOfQueries[i]))
+					console.log('Максимальное время: ' + max);
+					console.log('Общее время: ' + generalTime);
+					//console.log(JSON.stringify(libOfViews));
 				}
 			});
 		}
@@ -517,13 +594,11 @@ function test(){
 
 
 
-
-
 function examples(){
 	/*//Чтение
 	var variantOfRead = libVariantsOfTests[2].read[3];
 	var viewName = variantOfRead.viewName;
-	var motherView = variantOfRead.motherView;
+	var motherView = variantOfRead.motherViewName;
 	var query = variantOfRead.funcFormingQuery(viewName, motherView, variantOfRead.flexoName,
 		variantOfRead.findOption[0]);
 
