@@ -22,25 +22,7 @@ module.exports = {
 		tV18: { _vid: 'tV18', _flexo: {type: 'modify', scheme: ['testFlexo4_4', 'field16']}},
 		tV19: { _vid: 'tV19', _flexo: {type: 'modify', scheme: ['testFlexo4_4', 'field17']}},
 
-		tV20: { _vid: 'tV20', _flexo: {type: 'create', scheme: ['testFlexo4_4', 'field1']}},
-		tV21: { _vid: 'tV21', _flexo: {type: 'create', scheme: ['testFlexo4_4', 'field2']}},
-		tV22: { _vid: 'tV22', _flexo: {type: 'create', scheme: ['testFlexo4_4', 'field3']}},
-		tV23: { _vid: 'tV23', _flexo: {type: 'create', scheme: ['testFlexo4_4', 'field4']}},
-		tV24: { _vid: 'tV24', _flexo: {type: 'create', scheme: ['testFlexo4_4', 'field5']}},
-		tV25: { _vid: 'tV25', _flexo: {type: 'create', scheme: ['testFlexo4_4', 'field6']}},
-		tV26: { _vid: 'tV26', _flexo: {type: 'create', scheme: ['testFlexo4_4', 'field7']}},
-		tV27: { _vid: 'tV27', _flexo: {type: 'create', scheme: ['testFlexo4_4', 'field8']}},
-		tV28: { _vid: 'tV28', _flexo: {type: 'create', scheme: ['testFlexo4_4', 'field9']}},
-		tV29: { _vid: 'tV29', _flexo: {type: 'create', scheme: ['testFlexo4_4', 'field10']}},
-		tV30: { _vid: 'tV30', _flexo: {type: 'create', scheme: ['testFlexo4_4', 'field11']}},
-		tV31: { _vid: 'tV31', _flexo: {type: 'create', scheme: ['testFlexo4_4', 'field12']}},
-		tV32: { _vid: 'tV32', _flexo: {type: 'create', scheme: ['testFlexo4_4', 'field13']}},
-		tV33: { _vid: 'tV33', _flexo: {type: 'create', scheme: ['testFlexo4_4', 'field14']}},
-		tV34: { _vid: 'tV34', _flexo: {type: 'create', scheme: ['testFlexo4_4', 'field15']}},
-		tV35: { _vid: 'tV35', _flexo: {type: 'create', scheme: ['testFlexo4_4', 'field16']}},
-		tV36: { _vid: 'tV36', _flexo: {type: 'create', scheme: ['testFlexo4_4', 'field17']}},
-
-		tV37: { _vid: 'tV37', _flexo: {type: 'delete', scheme: ['testFlexo4_4']} }
+		tV20: { _vid: 'tV20', _flexo: {type: 'delete', scheme: ['testFlexo4_4']} }
 	},
 	root:'testFlexo4_4'
 };

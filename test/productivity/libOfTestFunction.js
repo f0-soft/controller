@@ -27,49 +27,115 @@ LibOfTestFunction.init = function init(oController, oLibOfViews, o_views, o_flex
 };
 
 LibOfTestFunction.simpleFind = function simpleFind(viewName, request, sender, callback){
-	var socket = {};
 
-	controller.getTemplate( viewName, sender, socket, function( err, config, template ) {
+	var socket = {
+		login: sender.login,
+		role: sender.role,
+		userId: sender.userId
+	};
+
+	var object = {
+		viewName:viewName,
+		place: sender.place
+	};
+
+	controller.getTemplate( object, socket, function( err, config, template ) {
 		if ( err ){
 			callback ( err );
 		} else {
-			controller.queryToView ( 'read', sender, request, viewName, socket, callback);
+
+			var objectToQuery = {
+				type:'read',
+				place: sender.place,
+				request:request,
+				viewName:viewName
+			};
+
+			controller.queryToView ( objectToQuery, socket, callback);
 		}
 	});
 };
 
 LibOfTestFunction.simpleInsert = function simpleInsert(viewName, request, sender, callback){
-	var socket = {};
+	var socket = {
+		login: sender.login,
+		role: sender.role,
+		userId: sender.userId
+	};
 
-	controller.getTemplate( viewName, sender, socket, function( err, config, template ) {
+	var object = {
+		viewName:viewName,
+		place: sender.place
+	};
+
+	controller.getTemplate( object, socket, function( err, config, template ) {
 		if ( err ){
 			callback ( err );
 		} else {
-			controller.queryToView ( 'create', sender, request, viewName, socket, callback);
+			var objectToQuery = {
+				type:'create',
+				place: sender.place,
+				request:request,
+				viewName:viewName
+			};
+
+			controller.queryToView ( objectToQuery, socket, callback);
 		}
 	});
 };
 
 LibOfTestFunction.simpleModify = function simpleModify(viewName, request, sender, callback){
-	var socket = {};
+	var socket = {
+		login: sender.login,
+		role: sender.role,
+		userId: sender.userId
+	};
 
-	controller.getTemplate( viewName, sender, socket, function( err, config, template ) {
+	var object = {
+		viewName:viewName,
+		place: sender.place
+	};
+
+	controller.getTemplate( object, socket, function( err, config, template ) {
 		if ( err ){
 			callback ( err );
 		} else {
-			controller.queryToView ( 'modify', sender, request, viewName, socket, callback);
+			var objectToQuery = {
+				type:'modify',
+				place: sender.place,
+				request:request,
+				viewName:viewName
+			};
+
+			controller.queryToView ( objectToQuery, socket, callback);
 		}
 	});
 };
 
 LibOfTestFunction.simpleDelete = function simpleDelete(viewName, request, sender, callback){
-	var socket = {};
+	var socket = {
+		login: sender.login,
+		role: sender.role,
+		userId: sender.userId
+	};
 
-	controller.getTemplate( viewName, sender, socket, function( err, config, template ) {
+	var object = {
+		viewName:viewName,
+		place: sender.place
+	};
+
+	controller.getTemplate( object, socket, function( err, config, template ) {
 		if ( err ){
 			callback ( err );
 		} else {
-			controller.queryToView ( 'delete', sender, request, viewName, socket, callback);
+			var objectToQuery = {
+				type:'modify',
+				place: sender.place,
+				request:request,
+				viewName:viewName
+			};
+
+			controller.queryToView ( objectToQuery, socket, callback);
 		}
 	});
 };
@@ -88,12 +154,12 @@ LibOfTestFunction.formingSimpleFindQuery = function formingSimpleFindQuery(viewN
 		}
 		//Ищем viewId для этого поля на создание
 		if ( motherView ) {
-			var viewIdCreate =  getViewIdWithType('create', motherView, flexoName, oneRandField);
+			var viewIdCreate =  getViewIdWithType('modify', motherView, flexoName, oneRandField);
 			//Выбираем случайное значение из словарика данных для выбранной viewId
 			var indexInLib = getRandom(0, (libOfViews[motherView].length-1) );
 			var valueOfViewIdForRead = libOfViews[motherView][indexInLib][viewIdCreate];
 		} else {
-			var viewIdCreate =  getViewIdWithType('create', viewName, flexoName, oneRandField);
+			var viewIdCreate =  getViewIdWithType('modify', viewName, flexoName, oneRandField);
 			//Выбираем случайное значение из словарика данных для выбранной viewId
 			var indexInLib = getRandom(0, (libOfViews[viewName].length-1) );
 			var valueOfViewIdForRead = libOfViews[viewName][indexInLib][viewIdCreate];
@@ -123,12 +189,12 @@ LibOfTestFunction.formingSimpleFindQuery = function formingSimpleFindQuery(viewN
 		}
 		//Ищем viewId для этого поля на создание
 		if ( motherView ) {
-			var viewIdCreate =  getViewIdWithType('create', motherView, flexoName, oneRandField);
+			var viewIdCreate =  getViewIdWithType('modify', motherView, flexoName, oneRandField);
 			//Выбираем случайное значение из словарика данных для выбранной viewId
 			var indexInLib = getRandom(0, (libOfViews[motherView].length-1) );
 			var valueOfViewIdForRead = libOfViews[motherView][indexInLib][viewIdCreate];
 		} else {
-			var viewIdCreate =  getViewIdWithType('create', viewName, flexoName, oneRandField);
+			var viewIdCreate =  getViewIdWithType('modify', viewName, flexoName, oneRandField);
 			//Выбираем случайное значение из словарика данных для выбранной viewId
 			var indexInLib = getRandom(0, (libOfViews[viewName].length-1) );
 			var valueOfViewIdForRead = libOfViews[viewName][indexInLib][viewIdCreate];
@@ -164,7 +230,7 @@ LibOfTestFunction.formingSimpleInsertQuery = function formingSimpleInsertQuery(v
 	//Формируем запрос на множественную вставку
 	var queryToCreate = [];
 	var query; //Один документ на вставку
-	var listOfVids = getListOfVids(viewName, 'create');
+	var listOfVids = getListOfVids(viewName, 'modify');
 
 	for( var i = 0; i < countOfDoc; i++ ) {
 		query = {};
@@ -192,7 +258,7 @@ LibOfTestFunction.formingInsertQueryWithOneDependId =
 	//Формируем запрос на множественную вставку
 	var queryToCreate = [];
 	var query; //Один документ на вставку
-	var listOfVids = getListOfVids(viewName, 'create');
+	var listOfVids = getListOfVids(viewName, 'modify');
 
 	for( var i = 0; i < countOfDoc; i++ ) {
 		query = {};
@@ -206,7 +272,7 @@ LibOfTestFunction.formingInsertQueryWithOneDependId =
 				query[listOfVids[j]] = generatorString(lengthOfString, lengthOfString);
 			} else if ( type === 'number' ) {
 				query[listOfVids[j]] = getRandom(minNumber, maxNumber);
-			} else if ( 'tV34' === listOfVids[j] ) {
+			} else if ( 'tV18' === listOfVids[j] ) {
 				var randNumber = getRandom(0, (libOfViews[motherViewName].length - 1));
 				query[listOfVids[j]] = libOfViews[motherViewName][randNumber]['tV01'];
 			}
@@ -223,7 +289,7 @@ LibOfTestFunction.formingSpecialInsertQueryVariant1 =
 	//Формируем запрос на множественную вставку
 	var queryToCreate = [];
 	var query; //Один документ на вставку
-	var listOfVids = getListOfVids(viewName, 'create');
+	var listOfVids = getListOfVids(viewName, 'modify');
 
 	for( var i = 0; i < countOfDoc; i++ ) {
 		query = {};
@@ -237,10 +303,10 @@ LibOfTestFunction.formingSpecialInsertQueryVariant1 =
 				query[listOfVids[j]] = generatorString(lengthOfString, lengthOfString);
 			} else if ( type === 'number' ) {
 				query[listOfVids[j]] = getRandom(minNumber, maxNumber);
-			} else if ( 'tV35' === listOfVids[j] ) {
+			} else if ( 'tV18' === listOfVids[j] ) {
 				var randNumber = getRandom(0, (libOfViews[motherViewNames[0]].length - 1));
 				query[listOfVids[j]] = libOfViews[motherViewNames[0]][randNumber]['tV01'];
-			} else if ( 'tV36' === listOfVids[j] ) {
+			} else if ( 'tV19' === listOfVids[j] ) {
 				var randNumber = getRandom(0, (libOfViews[motherViewNames[1]].length - 1));
 				query[listOfVids[j]] = libOfViews[motherViewNames[1]][randNumber]['tV01'];
 			}

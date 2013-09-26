@@ -17,7 +17,7 @@ var configTest = {
 	optionsForGenerateData:{
 		//maxCountIdsInDepend: 10, //Максимальное коллечество id в поле хранящем связь с другой flexo
 		uniqDependId: true, //При установки связи, вставляется ещё не использованный id
-		сountInsertsInFlexo: 100, //Количество вставок в каждую flexo коллекцию (исп если не указан в countInsert)
+		сountInsertsInFlexo: 400, //Количество вставок в каждую flexo коллекцию (исп если не указан в countInsert)
 		countInsert:{
 			/*testView1_1:1,
 			testView1_2:1,
@@ -437,8 +437,8 @@ function generateData(){
 			} else {
 				console.log('✓ - Генерация завершена');
 				//examples();
-				testRead();
-				//testInsert();
+				//testRead();
+				testInsert();
 			}
 		}
 	);
@@ -520,7 +520,7 @@ function testInsert(){
 	var listOfQueries = [];
 	var statisticsOfTest = {};
 	var index = 0;
-	var variantOfWriteTest = libVariantsOfTests[0].insert[4/*11*/];
+	var variantOfWriteTest = libVariantsOfTests[0].insert[2/*11*/];
 	var viewNameTest = variantOfWriteTest.viewName;
 	var countOfQueries = 100;
 	var timeBetweenQuery = 40;

@@ -59,7 +59,7 @@ module.exports = {
 		tV51: { _vid: 'tV51', _flexo: {type: 'read', scheme: ['testFlexo3_3', 'field13', 'field16', 'linkFlexo3']}},
 		tV52: { _vid: 'tV52', _flexo: {type: 'read', scheme: ['testFlexo3_3', 'field14', 'field16', 'linkFlexo3']}},
 		tV53: { _vid: 'tV53', _flexo: {type: 'read', scheme: ['testFlexo3_3', 'field15', 'field16', 'linkFlexo3']}},
-		tV54: { _vid: 'tV36', _flexo: {type: 'read', scheme: ['testFlexo3_3', 'field16', 'field16', 'linkFlexo3']}}
+		tV54: { _vid: 'tV54', _flexo: {type: 'read', scheme: ['testFlexo3_3', 'field16', 'field16', 'linkFlexo3']}}
 
 	},
 	root:'testFlexo3_5'

@@ -95,7 +95,7 @@ GenerateDataForFlexo.fillTestFlexos2_3 = function fillTestFlexos2_3( callback ) 
 	//Формируем запрос на множественную вставку
 	var queryToCreate = [];
 	var query; //Один документ на вставку
-	var listOfVids = getListOfVids(viewName, 'create');
+	var listOfVids = getListOfVids(viewName, 'modify');
 
 	var countOfDoc = configTest.optionsForGenerateData.countInsert[viewName] ||
 		configTest.optionsForGenerateData.сountInsertsInFlexo;
@@ -115,14 +115,14 @@ GenerateDataForFlexo.fillTestFlexos2_3 = function fillTestFlexos2_3( callback ) 
 			} else if ( type === 'number' ) {
 				query[listOfVids[j]] = getRandom(1,
 					configTest.optionsForGenerateData.maxGenerateNumber);
-			} else if ( 'tV36' === listOfVids[j] ) {
+			} else if ( 'tV19' === listOfVids[j] ) {
 				if ( configTest.optionsForGenerateData.uniqDependId ) {
 					query[listOfVids[j]] = getIndexOfUniqDependId('testView2_2');
 				} else {
 					randNumber = getRandom(0, (libOfViews['testView2_2'].length - 1));
 					query[listOfVids[j]] = libOfViews['testView2_2'][randNumber]['tV01'];
 				}
-			} else if ('tV35' === listOfVids[j] ) {
+			} else if ('tV18' === listOfVids[j] ) {
 				if ( configTest.optionsForGenerateData.uniqDependId ) {
 					query[listOfVids[j]] = getIndexOfUniqDependId('testView2_1');
 				} else {
@@ -147,7 +147,7 @@ GenerateDataForFlexo.fillTestFlexos4_3 = function fillTestFlexos4_3( callback ) 
 	//Формируем запрос на множественную вставку
 	var queryToCreate = [];
 	var query; //Один документ на вставку
-	var listOfVids = getListOfVids(viewName, 'create');
+	var listOfVids = getListOfVids(viewName, 'modify');
 
 	var countOfDoc = configTest.optionsForGenerateData.countInsert[viewName] ||
 		configTest.optionsForGenerateData.сountInsertsInFlexo;
@@ -167,7 +167,7 @@ GenerateDataForFlexo.fillTestFlexos4_3 = function fillTestFlexos4_3( callback ) 
 			} else if ( type === 'number' ) {
 				query[listOfVids[j]] = getRandom(1,
 					configTest.optionsForGenerateData.maxGenerateNumber);
-			} else if ( 'tV36' === listOfVids[j] ) {
+			} else if ( 'tV19' === listOfVids[j] ) {
 				if ( configTest.optionsForGenerateData.uniqDependId ) {
 					query[listOfVids[j]] = getIndexOfUniqDependId('testView4_2');
 				} else {
@@ -175,7 +175,7 @@ GenerateDataForFlexo.fillTestFlexos4_3 = function fillTestFlexos4_3( callback ) 
 					randNumber = getRandom(0, (libOfViews['testView4_2'].length - 1));
 					query[listOfVids[j]] = libOfViews['testView4_2'][randNumber]['tV01'];
 				}
-			} else if ('tV35' === listOfVids[j] ) {
+			} else if ('tV18' === listOfVids[j] ) {
 				if ( configTest.optionsForGenerateData.uniqDependId ) {
 					query[listOfVids[j]] = getIndexOfUniqDependId('testView4_1');
 				} else {
@@ -201,7 +201,7 @@ GenerateDataForFlexo.fillTestFlexos4_4 = function fillTestFlexos4_4( callback ) 
 	//Формируем запрос на множественную вставку
 	var queryToCreate = [];
 	var query; //Один документ на вставку
-	var listOfVids = getListOfVids(viewName, 'create');
+	var listOfVids = getListOfVids(viewName, 'modify');
 
 	var countOfDoc = configTest.optionsForGenerateData.countInsert[viewName] ||
 		configTest.optionsForGenerateData.сountInsertsInFlexo;
@@ -221,17 +221,17 @@ GenerateDataForFlexo.fillTestFlexos4_4 = function fillTestFlexos4_4( callback ) 
 			} else if ( type === 'number' ) {
 				query[listOfVids[j]] = getRandom(1,
 					configTest.optionsForGenerateData.maxGenerateNumber);
-			} else if ('tV35' === listOfVids[j] || 'tV36' === listOfVids[j] ) {
+			} else if ('tV18' === listOfVids[j] || 'tV19' === listOfVids[j] ) {
 				if ( configTest.optionsForGenerateData.uniqDependId ) {
 					if ( !query[listOfVids[j]]){
 						var id = getIndexOfUniqDependId('testView4_3');
-						query['tV35'] = id;
-						query['tV36'] = id;
+						query['tV18'] = id;
+						query['tV19'] = id;
 					}
 				} else {
 					randNumber = getRandom(0, (libOfViews['testView4_3'].length - 1));
-					query['tV35'] = libOfViews['testView4_3'][randNumber]['tV01'];
-					query['tV36'] = libOfViews['testView4_3'][randNumber]['tV01'];
+					query['tV18'] = libOfViews['testView4_3'][randNumber]['tV01'];
+					query['tV19'] = libOfViews['testView4_3'][randNumber]['tV01'];
 				}
 			}
 		}
@@ -250,7 +250,7 @@ GenerateDataForFlexo.simpleFillingTestFlexos = function simpleFillingTestFlexos(
 	//Формируем запрос на множественную вставку
 	var queryToCreate = [];
 	var query; //Один документ на вставку
-	var listOfVids = getListOfVids(viewName, 'create');
+	var listOfVids = getListOfVids(viewName, 'modify');
 
 	var countOfDoc = configTest.optionsForGenerateData.countInsert[viewName] ||
 		configTest.optionsForGenerateData.сountInsertsInFlexo;
@@ -287,7 +287,7 @@ GenerateDataForFlexo.fillTestFlexosWithOneOfId =
 	//Формируем запрос на множественную вставку
 	var queryToCreate = [];
 	var query; //Один документ на вставку
-	var listOfVids = getListOfVids(viewName, 'create');
+	var listOfVids = getListOfVids(viewName, 'modify');
 
 		var countOfDoc = configTest.optionsForGenerateData.countInsert[viewName] ||
 			configTest.optionsForGenerateData.сountInsertsInFlexo;
@@ -306,7 +306,7 @@ GenerateDataForFlexo.fillTestFlexosWithOneOfId =
 			} else if ( type === 'number' ) {
 				query[listOfVids[j]] = getRandom(1,
 					configTest.optionsForGenerateData.maxGenerateNumber);
-			} else if ( 'tV34' === listOfVids[j] ) {
+			} else if ( 'tV18' === listOfVids[j] ) {
 				if ( configTest.optionsForGenerateData.uniqDependId ) {
 					query[listOfVids[j]] = getIndexOfUniqDependId(motherViewName);
 				} else {
@@ -332,7 +332,7 @@ GenerateDataForFlexo.fillTestFlexosWithOneArrayOfId =
 	//Формируем запрос на множественную вставку
 	var queryToCreate = [];
 	var query; //Один документ на вставку
-	var listOfVids = getListOfVids(viewName, 'create');
+	var listOfVids = getListOfVids(viewName, 'modify');
 
 	var countOfDoc = configTest.optionsForGenerateData.countInsert[viewName] ||
 		configTest.optionsForGenerateData.сountInsertsInFlexo;
@@ -351,7 +351,7 @@ GenerateDataForFlexo.fillTestFlexosWithOneArrayOfId =
 			} else if ( type === 'number' ) {
 				query[listOfVids[j]] = getRandom(1,
 					configTest.optionsForGenerateData.maxGenerateNumber);
-			} else if ( 'tV34' === listOfVids[j] ) {
+			} else if ( 'tV18' === listOfVids[j] ) {
 				//Определяем количество вставлемых связей
 				var countOfvId = getRandom( 1,
 					configTest.optionsForGenerateData.maxCountIdsInDepend );
@@ -373,15 +373,32 @@ GenerateDataForFlexo.fillTestFlexosWithOneArrayOfId =
 };
 
 function insertGenerateDataToOneFlexo( viewName, queryToCreate, callback ){
-	var socket = {};
+	var socket = {
+		login: sender.login,
+		role: sender.role,
+		userId: sender.userId
+	};
 
-	controller.getTemplate( viewName, sender, socket, function( err, config, template ) {
+	var object = {
+		viewName:viewName,
+		place: sender.place
+	};
+
+	controller.getTemplate( object, socket, function( err, config, template ) {
 		if ( err ) {
 			callback( err );
 		} else {
 			//Сохраняем данные
 			var dateStart = new Date().getTime();
-			controller.queryToView ( 'create', sender, queryToCreate, viewName, socket,
+
+			var objectToCreate = {
+				type:'create',
+				place: sender.place,
+				request:queryToCreate,
+				viewName:viewName
+			};
+
+			controller.queryToView ( objectToCreate, socket,
 				function(err, documents ){
 					if( err ) {
 						callback( err )
