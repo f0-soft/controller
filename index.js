@@ -1073,7 +1073,7 @@ function getTemplate(object, socket, callback ) {
 		};
 
 		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
-	} else if ( !underscore.isString( viewName ) ) {
+	} else if ( !underscore.isString( viewName ) && globalViewConfig[viewName] ) {
 		//Логирование ошибки
 		objDescriptioneError = {
 			type: 'invalid_function_arguments',
@@ -1082,9 +1082,9 @@ function getTemplate(object, socket, callback ) {
 			time: new Date().getTime(),
 			sender:sender,
 			descriptione: {
-				title:'Controller: Parameter viewName is not set',
-				text:'Вызвана функция getTemplate с неопределенным или равным нулю аргументом ' +
-					'viewName'
+				title:'Controller: Parameter viewName is not set or value not exist in global',
+				text:'Вызвана функция getTemplate с неопределенным, равным нулю или несуществующим ' +
+					'аргументом viewName'
 			}
 		};
 
@@ -1497,9 +1497,9 @@ Controller.queryToView = function queryToView( object, socket, callback ) { //ty
 						request:request
 					},
 					descriptione: {
-						title:'Controller: No permission to read in view',
+						title:'Controller: No permission to read in view or not correct request',
 						text:'Запрашиваются несуществующие или неразрешенные идентификаторы на ' +
-							'чтение view в requested'
+							'чтение view в request, или некоректный запрос'
 					}
 				};
 
@@ -1559,9 +1559,9 @@ Controller.queryToView = function queryToView( object, socket, callback ) { //ty
 						request:request
 					},
 					descriptione: {
-						title:'Controller: No permission to create in view',
+						title:'Controller: No permission to create in view or not correct request',
 						text:'Запрашиваются несуществующие или неразрешенные идентификаторы на' +
-							'создание view в requested'
+							'создание view в request, или некоректный запрос'
 					}
 				};
 
@@ -1619,9 +1619,9 @@ Controller.queryToView = function queryToView( object, socket, callback ) { //ty
 						request:request
 					},
 					descriptione: {
-						title:'Controller: No permission to modify in view',
+						title:'Controller: No permission to modify in view or not correct request',
 						text:'Запрашиваются несуществующие или неразрешенные идентификаторы на' +
-							'модификацию view в requested'
+							'модификацию view в request, или некоректный запрос'
 					}
 				};
 
@@ -1678,8 +1678,8 @@ Controller.queryToView = function queryToView( object, socket, callback ) { //ty
 						request:request
 					},
 					descriptione: {
-						title:'Controller: No permission to delete in view',
-						text:'Запрашиваются неразрешенная операция на удаление view в requested'
+						title:'Controller: No permission to delete in view or not correct request',
+						text:'Запрашиваются неразрешенная операция на удаление view в request, или некоректный запрос'
 					}
 				};
 
@@ -1736,13 +1736,32 @@ Controller.queryToView = function queryToView( object, socket, callback ) { //ty
 };
 
 function checkRead( viewName, queries, socketView ) {
+	//ToDo:
+	if(! queries.selector && typeof(queries.selector) !== "object"){
+		return false;
+	}
+
+	if (!globalViewConfig[viewName]){
+		return false;
+	}
+
 	//Переменная для хранения списка view в селекторе
 	var viewsFromSelector = Object.keys( queries.selector );
 
 	//Обходим селектор
 	for( var i = 0; i < viewsFromSelector.length; i++ ) {
+		if( !queries.selector[viewsFromSelector[i]] &&
+			typeof(queries.selector[viewsFromSelector[i]]) !== "object"){
+			return false
+		}
+
 		//Список идентификаторов из селектора
 		var _vidsFromSelector = Object.keys( queries.selector[viewsFromSelector[i]] );
+
+		//Проверяем наличие разрешений в глобальной переменной
+		if (!globalViewConfig[viewsFromSelector[i]]){
+			return false;
+		}
 
 		//Пересекаем с разрешенным списком _vids
 		if ( !socketView[viewsFromSelector[i]] ){
@@ -1771,8 +1790,11 @@ function checkRead( viewName, queries, socketView ) {
 		}
 	}
 
-	if( queries.options && queries.options.sort ) {
-		_vidsFromSort = Object.keys( queries.options.sort );
+	if( queries.options && queries.options.sort) {
+		if ( typeof(queries.options.sort) !== "object" ) {
+			return false;
+		}
+		//_vidsFromSort = Object.keys( queries.options.sort );
 
 		//Объединяем массива для проверок в один
 		var _vidsForSort =  Object.keys(queries.options.sort);
@@ -1821,9 +1843,14 @@ function checkCreate( viewName, queries, listOfAllowed_vids ) {
 	for( i = 0; i < queries.length; i++ ) {
 		var _vidsFromOneDocument = [];
 
+		if( typeof(queries[i]) !== "object" ){
+			return false;
+		}
+
 		if( !underscore.isEmpty( queries[i] ) ) {
 			_vidsFromOneDocument = Object.keys( queries[i] );
 		}
+
 		_vidsForCheck = underscore.union(_vidsForCheck, _vidsFromOneDocument);
 	}
 
@@ -1875,6 +1902,14 @@ function checkModify( viewName, queries, listOfAllowed_vids ) {
 	//Формируем список полей на проверку
 	for( i = 0; i < queries.length; i++ ) {
 		var _vidsFromOneDocument = [];
+
+		if ( typeof(queries[i]) !== "object" ) {
+			return false;
+		}
+
+		if ( typeof(queries[i].properties) !== "object" ) {
+			return false;
+		}
 
 		if( !underscore.isEmpty( queries[i].properties ) ) {
 			_vidsFromOneDocument = Object.keys( queries[i].properties );
@@ -1930,6 +1965,10 @@ function checkDelete( viewName, queries, listOfAllowed_vids ) {
     //Формируем список полей на проверку
 	for( i = 0; i < queries.length; i++ ) {
 		var _vidsFromOneDocument = [];
+
+		if ( typeof(queries[i]) !== "object" ) {
+			return false;
+		}
 
 		if( !underscore.isEmpty( queries[i] ) ) {
 			_vidsFromOneDocument = Object.keys( queries[i] );
