@@ -31,7 +31,7 @@ ModuleErrorLogging.saveAndReturnError = function save( client, aDescriptioneErro
 		if ( err ) {
 			callback( err );
 		} else {
-			callback( aDescriptioneError.descriptione.title );
+			callback( aDescriptioneError.descriptione.title + "" );
 		}
 	});
 };
