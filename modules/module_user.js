@@ -699,7 +699,7 @@ ModuleUser.deleteRole = function deleteRole(client, sender, role, callback){
 			};
 
 			ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, function( err ){
-				callback(new Error( err.message + ': ' + role ), reply);
+				callback( err + ': ' + role, reply);
 			});
 		} else {
 			//Удаление разрешено

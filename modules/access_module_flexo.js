@@ -559,7 +559,7 @@ AccessModuleFlexo.findForRole = function findForRole( client, sender, role, flex
 			};
 
 			ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);*/
-			callback(new Error('Controller: No requested object access'));
+			callback('Controller: No requested object access');
 		}
 	});
 };
@@ -603,7 +603,7 @@ AccessModuleFlexo.findForUser = function findForUser( client, sender, user, flex
 			};
 
 			ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);*/
-			callback( new Error ( 'Controller: No requested object access' ) );
+			callback( 'Controller: No requested object access' );
 		}
 	});
 };

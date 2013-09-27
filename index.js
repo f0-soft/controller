@@ -241,12 +241,12 @@ Controller.create = function create( query, sender, callback ) {
 
 							} else {
 								//ToDo:Не получен идентификатор
-								callback( new Error('Controller: view not return _id') );
+								callback( 'Controller: view not return _id' );
 							}
 						});
 					} else {
 						//ToDo:есть такой пользователь в mongo!!!!!
-						callback(new Error('Controller: login already exists in database'));
+						callback('Controller: login already exists in database');
 					}
 				} );
 			}
@@ -936,7 +936,7 @@ Controller.modify = function modify( query, sender, callback ) {
 				} );
 			} else {
 				//ToDo:не возвращен идентификатор
-				callback( new Error('Controller: view not return _id') );
+				callback( 'Controller: view not return _id' );
 			}
 		} );
 	} else if ( query.access ) {

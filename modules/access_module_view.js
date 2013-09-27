@@ -279,7 +279,7 @@ AccessModuleView.findForRole = function findForRole( client, sender, role, viewN
 				};
 
 				ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);*/
-				callback( new Error ( 'Controller: No requested object access' ) );
+				callback( 'Controller: No requested object access' );
 			}
 		}
 	});
@@ -321,7 +321,7 @@ AccessModuleView.findForUser = function findForUser( client, sender, user, viewN
 				};
 
 				ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);*/
-				callback( new Error ( 'Controller: No requested object access' ) );
+				callback( 'Controller: No requested object access' );
 			}
 		}
 	});
