@@ -129,7 +129,7 @@ LibOfTestFunction.simpleDelete = function simpleDelete(viewName, request, sender
 			callback ( err );
 		} else {
 			var objectToQuery = {
-				type:'modify',
+				type:'delete',
 				place: sender.place,
 				request:request,
 				viewName:viewName

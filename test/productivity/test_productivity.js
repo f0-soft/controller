@@ -5,6 +5,7 @@ var async = require( 'async' );
 
 var GenerateDataForFlexo = require('./generateData.js');
 var LibOfTestFunction = require('./libOfTestFunction.js');
+var LibOfTestAccess = require('./libOfTestAccess.js');
 
 starter.config.flexo_path = __dirname + '/scheme/flexoForTestProductivity';
 starter.config.link_path = __dirname + '/scheme/linksForTestProductivity';
@@ -140,7 +141,7 @@ var libVariantsOfTests = [
 		],
 		delete:[
 			{
-				viewName:'testView1_3', funcExec:LibOfTestFunction.simpleDelete, countDoc:1,
+				viewName:'testView1_3', funcExec:LibOfTestFunction.simpleDelete, countOfDoc:1,
 				funcFormingQuery:LibOfTestFunction.formingSimpleDeleteQuery
 			}
 		]
@@ -214,7 +215,7 @@ var libVariantsOfTests = [
 		],
 		delete:[
 			{
-				viewName:'testView2_3', funcExec:LibOfTestFunction.simpleDelete, countDoc:1,
+				viewName:'testView2_3', funcExec:LibOfTestFunction.simpleDelete, countOfDoc:1,
 				funcFormingQuery:LibOfTestFunction.formingSimpleDeleteQuery
 			}
 		]
@@ -338,7 +339,7 @@ var libVariantsOfTests = [
 		],
 		delete:[
 			{
-				viewName:'testView3_5', funcExec:LibOfTestFunction.simpleDelete, countDoc:1,
+				viewName:'testView3_5', funcExec:LibOfTestFunction.simpleDelete, countOfDoc:1,
 				funcFormingQuery:LibOfTestFunction.formingSimpleDeleteQuery
 			}
 		]
@@ -371,6 +372,7 @@ starter.init( starter.config, function( err, module ) {
 function generateData(){
 	GenerateDataForFlexo.init(controller, sender, libOfViews, _views, _flexos, configTest);
 	LibOfTestFunction.init(controller, libOfViews, _views, _flexos);
+	LibOfTestAccess.init(controller, _views, _flexos);
 	async.waterfall([
 			//Вставляем разрешения для всех flexo схем
 			GenerateDataForFlexo.saveFlexoAccessForRole,
@@ -438,21 +440,122 @@ function generateData(){
 				console.log('✓ - Генерация завершена');
 				//examples();
 				//testRead();
-				testInsert();
+
+				/*
+				//Тестирование вставки
+				console.log('40 мсек ---------------');
+				testInsert(100, 40, 0, 2, function(){
+					console.log('30 мсек ---------------');
+					testInsert(100, 30, 0, 2, function(){
+						console.log('20 мсек ---------------');
+						testInsert(100, 20, 0, 2, function(){
+							console.log('10 мсек ---------------');
+							testInsert(100, 10, 0, 2, function(){
+								console.log('5 мсек ---------------');
+								testInsert(100, 5, 0, 2, function(){
+									console.log('1 мсек ---------------');
+									testInsert(100, 1, 0, 2, function(){
+
+									});
+								});
+							});
+						});
+					});
+				});
+				*/
+
+				/*//Тестирование модификации
+				console.log('40 мсек ---------------');
+				testModify(100, 40, 0, 2, 2,function(){
+					console.log('30 мсек ---------------');
+					testModify(100, 30, 0, 2, 2,function(){
+						console.log('20 мсек ---------------');
+						testModify(100, 20, 0, 2, 2,function(){
+							console.log('10 мсек ---------------');
+							testModify(100, 10, 0, 2, 2,function(){
+								console.log('5 мсек ---------------');
+								testModify(100, 5, 0, 2, 2,function(){
+									console.log('1 мсек ---------------');
+									testModify(100, 1, 0, 2, 2,function(){
+
+									});
+								});
+							});
+						});
+					});
+				});*/
+
+				/*//Тестирование удаления
+				console.log('40 мсек ---------------');
+				testDelete(100, 40, 0, 0, function(){
+					console.log('30 мсек ---------------');
+					testDelete(100, 30, 0, 0,function(){
+						console.log('20 мсек ---------------');
+						testDelete(100, 20, 0, 0,function(){
+							console.log('10 мсек ---------------');
+							testDelete(100, 10, 0, 0,function(){
+								console.log('5 мсек ---------------');
+								testDelete(100, 5, 0, 0,function(){
+									console.log('1 мсек ---------------');
+									testDelete(100, 1, 0, 0,function(){
+
+									});
+								});
+							});
+						});
+					});
+				});*/
+				/*
+				//Тестируем чтение с различными правами
+				var listOfQuery = [];
+				listOfQuery.push(LibOfTestAccess.generateAccessToView('role', sender.role, 'testView1_3And1_2And1_1', 0, 6, ['testFlexo1_3', 'testFlexo1_2', 'testFlexo1_1']));
+				LibOfTestAccess.saveAccessToView(listOfQuery, sender, function(){
+					console.log('№7 ---------------');
+					testRead(100, 50, 0, 5, 2, function(err, reply){
+						var listOfQuery = [];
+						listOfQuery.push(LibOfTestAccess.generateAccessToView('role', sender.role, 'testView1_3And1_2And1_1', 0, 15, ['testFlexo1_3']));
+						LibOfTestAccess.saveAccessToView(listOfQuery, sender, function(){
+							console.log('№8 ---------------');
+							testRead(100, 50, 0, 5, 2, function(err, reply){
+								var listOfQuery = [];
+								listOfQuery.push(LibOfTestAccess.generateAccessToView('role', sender.role, 'testView1_3And1_2And1_1', 0, 27, ['testFlexo1_3', 'testFlexo1_2', 'testFlexo1_1']));
+								LibOfTestAccess.saveAccessToView(listOfQuery, sender, function(){
+									console.log('№9 ---------------');
+									testRead(100, 50, 0, 5, 2, function(err, reply){
+										var listOfQuery = [];
+										listOfQuery.push(LibOfTestAccess.generateAccessToView('role', sender.role, 'testView1_3And1_2And1_1', 0, 45, ['testFlexo1_3', 'testFlexo1_2', 'testFlexo1_1']));
+										LibOfTestAccess.saveAccessToView(listOfQuery, sender, function(){
+											console.log('№10 ---------------');
+											testRead(100, 50, 0, 5, 2, function(err, reply){
+												var listOfQuery = [];
+												listOfQuery.push(LibOfTestAccess.generateAccessToView('role', sender.role, 'testView1_3And1_2And1_1', 1, 53, ['testFlexo1_3', 'testFlexo1_2', 'testFlexo1_1']));
+												LibOfTestAccess.saveAccessToView(listOfQuery, sender, function(){
+													console.log('№11 ---------------');
+													testRead(100, 50, 0, 5, 2, function(err, reply){
+
+													});
+												});
+											});
+										});
+									});
+								});
+							});
+						});
+					});
+				});*/
+
 			}
 		}
 	);
 }
 
-function testRead(){
+function testRead(countOfQueries, timeBetweenQuery, variantTest, indexOfTest, iFindOption, callback){
 	//Настройка теста
 	var listOfQueries = [];
 	var statisticsOfTest = {};
 	var index = 0;
-	var variantOfReadTest = libVariantsOfTests[0].read[5/*11*/];
+	var variantOfReadTest = libVariantsOfTests[variantTest].read[indexOfTest];
 	var viewNameTest = variantOfReadTest.viewName;
-	var countOfQueries = 100;
-	var timeBetweenQuery = 50;
 	var generalTimeStart;
 
 	//Формируем массив запросов
@@ -460,14 +563,14 @@ function testRead(){
 
 	for(var i=0; i<countOfQueries; i++){
 		listOfQueries.push(variantOfReadTest.funcFormingQuery(viewNameTest, motherView, variantOfReadTest.flexoName,
-			variantOfReadTest.findOption[0]));
+			variantOfReadTest.findOption[iFindOption]));
 	}
 	generalTimeStart = new Date().getTime();
-	callQuery();
+	callReadQuery();
 
-	function callQuery(){
+	function callReadQuery(){
 		if ( index < countOfQueries ) {
-			setTimeout(callQuery, timeBetweenQuery);
+			setTimeout(callReadQuery, timeBetweenQuery);
 
 			var dateStart = new Date().getTime();
 			var i = index;
@@ -509,21 +612,20 @@ function testRead(){
 					console.log('Максимальное время: ' + max);
 					console.log('Общее время: ' + generalTime);
 					//console.log(JSON.stringify(libOfViews));
+					callback();
 				}
 			});
 		}
 	}
 }
 
-function testInsert(){
+function testInsert(countOfQueries, timeBetweenQuery, variantTest, indexOfTest, callback){
 	//Настройка теста
 	var listOfQueries = [];
 	var statisticsOfTest = {};
 	var index = 0;
-	var variantOfWriteTest = libVariantsOfTests[0].insert[2/*11*/];
+	var variantOfWriteTest = libVariantsOfTests[variantTest].insert[indexOfTest];
 	var viewNameTest = variantOfWriteTest.viewName;
-	var countOfQueries = 100;
-	var timeBetweenQuery = 40;
 	var countOfDoc = variantOfWriteTest.countOfDoc;
 	var lengthOfString = variantOfWriteTest.lengthOfString;
 	var minNumber = variantOfWriteTest.minNumber;
@@ -540,11 +642,11 @@ function testInsert(){
 			minNumber, maxNumber, motherView));
 	}
 	generalTimeStart = new Date().getTime();
-	callQuery();
+	callInsertQuery();
 
-	function callQuery(){
+	function callInsertQuery(){
 		if ( index < countOfQueries ) {
-			setTimeout(callQuery, timeBetweenQuery);
+			setTimeout(callInsertQuery, timeBetweenQuery);
 
 			var dateStart = new Date().getTime();
 			var i = index;
@@ -586,13 +688,160 @@ function testInsert(){
 					console.log('Максимальное время: ' + max);
 					console.log('Общее время: ' + generalTime);
 					//console.log(JSON.stringify(libOfViews));
+					callback();
 				}
 			});
 		}
 	}
 }
 
+function testModify(countOfQueries, timeBetweenQuery, variantTest, indexOfTest, indexModifyOption, callback){
+	//Настройка теста
+	var listOfQueries = [];
+	var statisticsOfTest = {};
+	var index = 0;
+	var variantOfModifyTest = libVariantsOfTests[variantTest].modify[indexOfTest];
+	var viewNameTest = variantOfModifyTest.viewName;
+	var modifyOption = variantOfModifyTest.modifyOption[indexModifyOption];
+	var countOfDoc = variantOfModifyTest.countOfDoc;
+	var lengthOfString = variantOfModifyTest.lengthOfString;
+	var minNumber = variantOfModifyTest.minNumber;
+	var maxNumber = variantOfModifyTest.maxNumber;
 
+
+	var generalTimeStart;
+
+	//Формируем массив запросов
+	var motherView = variantOfModifyTest.motherViewName;    //viewName, modifyOption, countOfDoc, lengthOfString, minNumber, maxNumber, motherViewName
+
+	for(var i=0; i<countOfQueries; i++){
+		listOfQueries.push(variantOfModifyTest.funcFormingQuery(viewNameTest, modifyOption, countOfDoc, lengthOfString,
+			minNumber, maxNumber, motherView));
+	}
+	generalTimeStart = new Date().getTime();
+	callModifyQuery();
+
+	function callModifyQuery(){
+		if ( index < countOfQueries ) {
+			setTimeout(callModifyQuery, timeBetweenQuery);
+
+			var dateStart = new Date().getTime();
+			var i = index;
+			index++;
+
+			variantOfModifyTest.funcExec(viewNameTest, listOfQueries[i], sender, function( err, documents, count ){
+				if ( err ) {
+					statisticsOfTest[i] = err.message;
+				} else {
+					statisticsOfTest[i] = (new Date().getTime()) - dateStart;
+				}
+
+				if ( i === (countOfQueries-1) ){
+					var generalTime = (new Date().getTime()) - generalTimeStart;
+					console.log(JSON.stringify(statisticsOfTest));
+					console.log(JSON.stringify(documents));
+					//Находим минимальное и максимальное, и среднее время
+					var countOfResults = Object.keys(statisticsOfTest);
+					var min = statisticsOfTest[countOfResults[0]];
+					var max = 0;
+					var sum = 0;
+					var value;
+					for(var j=0; j<countOfResults.length; j++){
+						value = statisticsOfTest[countOfResults[j]];
+						sum = sum + value;
+
+						if ( value > max ){
+							max = value;
+						}
+						if ( value < min ){
+							min = value;
+						}
+					}
+					var middle = sum/countOfResults.length;
+
+					console.log('Среднее время: ' + middle);
+					console.log('Минимальное время: ' + min);
+					//console.log(JSON.stringify(listOfQueries[i]))
+					console.log('Максимальное время: ' + max);
+					console.log('Общее время: ' + generalTime);
+					//console.log(JSON.stringify(libOfViews));
+					callback();
+
+				}
+			});
+		}
+	}
+}
+
+function testDelete(countOfQueries, timeBetweenQuery, variantTest, indexOfTest, callback){
+	//Настройка теста
+	var listOfQueries = [];
+	var statisticsOfTest = {};
+	var index = 0;
+	var variantOfDeleteTest = libVariantsOfTests[variantTest].delete[indexOfTest];
+	var viewNameTest = variantOfDeleteTest.viewName;
+	var countOfDoc = variantOfDeleteTest.countOfDoc;
+	var generalTimeStart;
+
+	//Формируем массив запросов   //viewName, countOfDoc
+
+	for(var i=0; i<countOfQueries; i++){
+		listOfQueries.push(variantOfDeleteTest.funcFormingQuery(viewNameTest, countOfDoc));
+	}
+	generalTimeStart = new Date().getTime();
+	callDeleteQuery();
+
+	function callDeleteQuery(){
+		if ( index < countOfQueries ) {
+			setTimeout(callDeleteQuery, timeBetweenQuery);
+
+			var dateStart = new Date().getTime();
+			var i = index;
+			index++;
+
+			variantOfDeleteTest.funcExec(viewNameTest, listOfQueries[i], sender, function( err, documents, count ){
+				if ( err ) {
+					statisticsOfTest[i] = err.message;
+				} else {
+					statisticsOfTest[i] = (new Date().getTime()) - dateStart;
+				}
+
+				if ( i === (countOfQueries-1) ){
+					var generalTime = (new Date().getTime()) - generalTimeStart;
+					console.log(JSON.stringify(statisticsOfTest));
+					console.log(JSON.stringify(documents));
+					//Находим минимальное и максимальное, и среднее время
+					var countOfResults = Object.keys(statisticsOfTest);
+					var min = statisticsOfTest[countOfResults[0]];
+					var max = 0;
+					var sum = 0;
+					var value;
+					for(var j=0; j<countOfResults.length; j++){
+						value = statisticsOfTest[countOfResults[j]];
+						sum = sum + value;
+
+						if ( value > max ){
+							max = value;
+						}
+						if ( value < min ){
+							min = value;
+						}
+					}
+					var middle = sum/countOfResults.length;
+
+					console.log('Среднее время: ' + middle);
+					console.log('Минимальное время: ' + min);
+					//console.log(JSON.stringify(listOfQueries[i]))
+					console.log('Максимальное время: ' + max);
+					console.log('Общее время: ' + generalTime);
+					//console.log(JSON.stringify(libOfViews));
+					callback();
+
+				}
+			});
+		}
+	}
+}
 
 function examples(){
 	/*//Чтение
