@@ -1218,19 +1218,38 @@ AccessModuleFlexo.deleteForRole = function deleteForRole( client, role, flexoSch
 	var multi = client.multi();
 	var key;
 
-	//Формируем команды на удаление
-	key = strFlexoAccessRoleScheme( role, flexoSchemeName );
-	multi.DEL( key );
+	if(_.isArray(flexoSchemeName)){
 
-	multi.SREM( setRoleToAllFlexoSchemeAccess( role ), flexoSchemeName);
+		for(var i=0; i<flexoSchemeName.length; i++){
+			key = strFlexoAccessRoleScheme( role, flexoSchemeName[i] );
+			multi.DEL( key );
 
-	multi.EXEC( function( err ) {
-		if ( err ) {
-			callback( err );
-		} else {
-			callback( null, true );
+			multi.SREM( setRoleToAllFlexoSchemeAccess( role ), flexoSchemeName[i]);
 		}
-	});
+
+		multi.EXEC( function( err ) {
+			if ( err ) {
+				callback( err );
+			} else {
+				callback( null, true );
+			}
+		});
+
+	} else {
+		//Формируем команды на удаление
+		key = strFlexoAccessRoleScheme( role, flexoSchemeName );
+		multi.DEL( key );
+
+		multi.SREM( setRoleToAllFlexoSchemeAccess( role ), flexoSchemeName);
+
+		multi.EXEC( function( err ) {
+			if ( err ) {
+				callback( err );
+			} else {
+				callback( null, true );
+			}
+		});
+	}
 };
 
 /**
@@ -1247,18 +1266,36 @@ AccessModuleFlexo.deleteForUser = function deleteForUser( client, user, flexoSch
 	var multi = client.multi();
 	var key;
 
-	//Формируем команды на удаление
-	key = strFlexoAccessUserScheme( user, flexoSchemeName );
-	multi.DEL( key );
-	multi.SREM( setUserToAllFlexoSchemeAccess( user ), flexoSchemeName );
+	if(_.isArray(flexoSchemeName)){
 
-	multi.EXEC( function( err ) {
-		if ( err ) {
-			callback( err );
-		} else {
-			callback( null, true );
+		for(var i=0; i<flexoSchemeName.length; i++){
+			key = strFlexoAccessUserScheme( user, flexoSchemeName[i] );
+			multi.DEL( key );
+			multi.SREM( setUserToAllFlexoSchemeAccess( user ), flexoSchemeName[i] );
 		}
-	});
+
+		multi.EXEC( function( err ) {
+			if ( err ) {
+				callback( err );
+			} else {
+				callback( null, true );
+			}
+		});
+
+	} else {
+		//Формируем команды на удаление
+		key = strFlexoAccessUserScheme( user, flexoSchemeName );
+		multi.DEL( key );
+		multi.SREM( setUserToAllFlexoSchemeAccess( user ), flexoSchemeName );
+
+		multi.EXEC( function( err ) {
+			if ( err ) {
+				callback( err );
+			} else {
+				callback( null, true );
+			}
+		});
+	}
 };
 
 

@@ -338,19 +338,40 @@ AccessModuleView.deleteForRole = function deleteForRole(client, role, viewName, 
 	var multi = client.multi();
 	var key;
 
-	//Формируем команды на удаление
-	key = strViewAccessRole( role, viewName );
-	multi.DEL( key );
+	if (_.isArray(viewName)) {
 
-	multi.SREM( setRoleToAllViewAccess( role ), viewName );
+		for(var i=0; i<viewName.length; i++){
+			//Формируем команды на удаление
+			key = strViewAccessRole( role, viewName[i] );
+			multi.DEL( key );
 
-	multi.EXEC( function( err ) {
-		if ( err ) {
-			callback( err );
-		} else {
-			callback( null, true );
+			multi.SREM( setRoleToAllViewAccess( role ), viewName[i] );
 		}
-	});
+
+		multi.EXEC( function( err ) {
+			if ( err ) {
+				callback( err );
+			} else {
+				callback( null, true );
+			}
+		});
+
+	} else {
+
+		//Формируем команды на удаление
+		key = strViewAccessRole( role, viewName );
+		multi.DEL( key );
+
+		multi.SREM( setRoleToAllViewAccess( role ), viewName );
+
+		multi.EXEC( function( err ) {
+			if ( err ) {
+				callback( err );
+			} else {
+				callback( null, true );
+			}
+		});
+	}
 };
 
 /**
@@ -364,20 +385,40 @@ AccessModuleView.deleteForUser = function deleteForUser(client, user, viewName, 
 	var multi = client.multi();
 	var key;
 
-	//Формируем команды на удаление
-	key = strViewAccessUser( user, viewName );
-	multi.DEL( key );
+	if (_.isArray(viewName)) {
 
-	multi.SREM( setUserToAllViewAccess( user ), viewName );
+		for(var i=0; i<viewName.length; i++){
+			key = strViewAccessUser( user, viewName[i] );
+			multi.DEL( key );
 
-	multi.EXEC( function( err ) {
-		if ( err ) {
-			callback( err );
-		} else {
-			//ToDo:Доделать возможность удаления не всех данных из уже имеющимся в модели
-			callback( null, true );
+			multi.SREM( setUserToAllViewAccess( user ), viewName[i] );
 		}
-	});
+
+		multi.EXEC( function( err ) {
+			if ( err ) {
+				callback( err );
+			} else {
+				//ToDo:Доделать возможность удаления не всех данных из уже имеющимся в модели
+				callback( null, true );
+			}
+		});
+	} else {
+
+		//Формируем команды на удаление
+		key = strViewAccessUser( user, viewName );
+		multi.DEL( key );
+
+		multi.SREM( setUserToAllViewAccess( user ), viewName );
+
+		multi.EXEC( function( err ) {
+			if ( err ) {
+				callback( err );
+			} else {
+				//ToDo:Доделать возможность удаления не всех данных из уже имеющимся в модели
+				callback( null, true );
+			}
+		});
+	}
 };
 
 AccessModuleView.accessPreparation = function accessPreparation( client, role, user, viewName,

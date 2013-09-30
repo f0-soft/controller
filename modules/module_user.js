@@ -112,7 +112,7 @@ ModuleUser.checkUnique = function checkUnique(client, sender, login, callback){
 					login:login
 				},
 				descriptione: {
-					title:'Controller:  User already exists in redis',
+					title:'Controller: User already exists in redis',
 					text:'При создании пользователя проверка уникальности логина показала, что' +
 						'пользователь с таким логином уже существует'
 				}

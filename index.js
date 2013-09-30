@@ -173,7 +173,7 @@ Controller.create = function create( query, sender, callback ) {
 			} else {
 				//ToDo:Согласовать название view
 				var request = {selector: { 'sys_users': {'a3':query.user.login} } };
-				var options = {insert_user_id:false, user_id: sender.userId, role:sender.role};
+				var options = {company_id:sender.company_id, user_id: sender.userId, role:sender.role};
 				View.find( 'sys_users', ['a1', 'a2', 'a3', 'a4', 'a5', 'a6'], request,
 					options, function ( err, documents ) {
 					if ( err ) {
@@ -197,7 +197,7 @@ Controller.create = function create( query, sender, callback ) {
 						};
 
 						ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
-					} else if ( documents.length === 0) {
+					} else if ( documents[0].length === 0) {
 						//Такого пользователя нет
 						//Сохраняем данные во view
 						var request = [{'a3':query.user.login, 'a4':query.user.company_id,
@@ -246,7 +246,57 @@ Controller.create = function create( query, sender, callback ) {
 						});
 					} else {
 						//ToDo:есть такой пользователь в mongo!!!!!
-						callback('Controller: login already exists in database');
+						//callback('Controller: login already exists in database');
+						if (query.user._rewrite){
+
+							var request = [ {
+								selector: {  'a1': documents[0][0]['a1'], 'a2':documents[0][0]['a2'] },
+								properties: { 'a4': query.user.company_id,
+									'a5': query.user.name, 'a6':query.user.lastname }
+							} ];
+							var options = {company_id:sender.company_id, user_id: sender.userId, role:sender.role};
+							View.modify( 'sys_users', request, options, function( err, documentsNew ) {
+								if ( err ) {
+									//Логирование ошибки
+									objDescriptioneError = {
+										type: 'unknown_error',
+										variant: 3,
+										place: 'View.modify',
+										time: new Date().getTime(),
+										sender:sender,
+										arguments:{
+											viewName:'sys_users',
+											request:request
+										},
+										descriptione: {
+											title: err.message,
+											text:'Ошибка полученная в функции обратного вызова при ' +
+												'вызове функции view.modify при перезаписи ' +
+												'сущесмтвующего в mongo пользователя'
+										}
+									};
+								} else if( documentsNew[0]['a1'] ) {
+									var document = underscore.clone( query.user );
+									document._id = documentsNew[0]['a1'];
+									document.tsUpdate = documentsNew[0]['a2'];
+									delete document._rewrite;
+
+									ModuleUser.create( client, sender, document, function(err, reply){
+										if ( err ){
+											callback( err );
+										} else {
+											callback(null, reply);
+										}
+									} );
+								} else {
+									//ToDo:не возвращен идентификатор
+									callback( 'Controller: view not return _id' );
+								}
+							} );
+						} else {
+							callback( null, null, 'Пользователь с логином ' + query.user.login +
+								' уже существует, перезаписать??');
+						}
 					}
 				} );
 			}
@@ -437,7 +487,7 @@ Controller.find = function find( query, sender, callback ) {
 				//Запрашиваем данные из view
 				var request = { selector:{} };
 				request.selector[viewName] = {};
-				var options = {insert_user_id:false, user_id: sender.userId, role:sender.role};
+				var options = {company_id:sender.company_id, user_id: sender.userId, role:sender.role};
 
 				View.find(viewName, ['a1', 'a2', 'a3'], request, options, function ( err, documents ) {
 					if ( err ) {
@@ -902,7 +952,7 @@ Controller.modify = function modify( query, sender, callback ) {
 			properties: { 'a3': query.user.login, 'a4': query.user.company_id,
 				'a5': query.user.name, 'a6':query.user.lastname }
 		} ];
-		var options = {insert_user_id:false, user_id: sender.userId, role:sender.role};
+		var options = {company_id:sender.company_id, user_id: sender.userId, role:sender.role};
 		View.modify( 'sys_users', request, options, function( err, documents ) {
 			if ( err ) {
 				//Логирование ошибки
@@ -1049,7 +1099,8 @@ function getTemplate(object, socket, callback ) {
 		userId: socket.userId || null,
 		role: socket.role || null,
 		login: socket.login || null,
-		place: object.place || null
+		place: object.place || null,
+		company_id:socket.company_id || null
 	};
 
 	var objDescriptioneError;
@@ -1150,11 +1201,12 @@ function getTemplate(object, socket, callback ) {
 	//Проверяем есть ли уже готовый список разрешенных мдентификаторов для view
 	if( socket.view && socket.view[viewName] ) {
 		//Подготовленный список _vid есть
+		//ToDo:Временное фиксация времени
+		var time = new Date().getTime();
 		//Запрашиваем шаблон view c необходимыми параметрами
 		View.getTemplate( viewName, socket.view[viewName].ids, function( err, ids, config, template ) {
 			if( err ) {
 
-				if ( err ) {
 					//Логирование ошибки
 					objDescriptioneError = {
 						type: 'unknown_error',
@@ -1174,11 +1226,7 @@ function getTemplate(object, socket, callback ) {
 					};
 
 					ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
-				} else {
-					callback( null, documents, count );
-				}
 
-				callback( err );
 			} else {
 
 				if( socket.view[viewName].ids.length !== ids.length ) {
@@ -1223,11 +1271,11 @@ function getTemplate(object, socket, callback ) {
 						if ( err ) {
 							callback( err );
 						} else {
-							callback( null, config, template );
+							callback( null, config, template, time );
 						}
 					} );
 				} else {
-                	callback( null, config, template );
+                	callback( null, config, template, time );
 				}
 			}
 		});
@@ -1238,7 +1286,8 @@ function getTemplate(object, socket, callback ) {
 				callback( err );
 			} else {
 				//Создаем view
-
+				//ToDo:Временное фиксация времени
+				var time = new Date().getTime();
 				View.getTemplate( viewName, listAllowedOf_vid, function( err, ids, config, template ) {
 					if( err ) {
 
@@ -1304,11 +1353,11 @@ function getTemplate(object, socket, callback ) {
 								if ( err ) {
 									callback( err );
 								} else {
-									callback( null, config, template );
+									callback( null, config, template, time );
 								}
 							} );
 						} else {
-                        	callback( null, config, template );
+                        	callback( null, config, template, time );
 						}
 					}
 				});
@@ -1325,7 +1374,8 @@ Controller.queryToView = function queryToView( object, socket, callback ) { //ty
 		userId: socket.userId || null,
 		role: socket.role || null,
 		login: socket.login || null,
-		place: object.place || null
+		place: object.place || null,
+		company_id:socket.company_id || null
 	};
 	var request = object.request || null;
 	var viewName = object.viewName || null;
@@ -1333,6 +1383,27 @@ Controller.queryToView = function queryToView( object, socket, callback ) { //ty
 	var objDescriptioneError;
 	if ( !underscore.isFunction( callback ) ) {
 		throw new Error( 'Controller: callback not a function' );
+	} else if ( !sender.company_id ) {
+		//Логирование ошибки
+		objDescriptioneError = {
+			type: 'invalid_function_arguments',
+			variant: -1,
+			place: 'Controller.queryToView',
+			time: new Date().getTime(),
+			sender:sender,
+			arguments:{
+				type:type,
+				request:request,
+				viewName:viewName
+			},
+			descriptione: {
+				title:'Controller: Parameter company_id not set in socket',
+				text:'Вызвана функция queryToView с неопределенным или равным нулю аргументом ' +
+					'socket'
+			}
+		};
+
+		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 	} else if ( !socket ) {
 		//Логирование ошибки
 		objDescriptioneError = {
@@ -1449,11 +1520,12 @@ Controller.queryToView = function queryToView( object, socket, callback ) { //ty
 				//Вызываем view c необходимыми параметрами
 				//Формируем объект параметров для View
 				var options = {
-					insert_user_id: socket.view[viewName].useId,
+					company_id: sender.company_id,
 					user_id: sender.userId,
 					role: sender.role
 				};
-
+				//ToDo:временно зачекается время
+				var time = new Date().getTime();
 				View.find( viewName, socket.view[viewName].listForRead, request, options,
 					function ( err, documents, count ) {
 					if ( err ) {
@@ -1479,7 +1551,7 @@ Controller.queryToView = function queryToView( object, socket, callback ) { //ty
 
 						ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 					} else {
-						callback( null, documents, count );
+						callback( null, documents, count, time );
 					}
 				} );
 
@@ -1497,7 +1569,7 @@ Controller.queryToView = function queryToView( object, socket, callback ) { //ty
 						request:request
 					},
 					descriptione: {
-						title:'Controller: No permission to read in view or not correct request',
+						title:'Controller: No permission to read in view ' + viewName + ' or not correct request',
 						text:'Запрашиваются несуществующие или неразрешенные идентификаторы на ' +
 							'чтение view в request, или некоректный запрос'
 					}
@@ -1512,7 +1584,7 @@ Controller.queryToView = function queryToView( object, socket, callback ) { //ty
 				//Вызываем view c необходимыми параметрами
 				//Формируем объект параметров для View
 				var options = {
-					insert_user_id: socket.view[viewName].useId,
+					company_id:sender.company_id,
 					user_id: sender.userId,
 					role: sender.role
 				};
@@ -1559,7 +1631,7 @@ Controller.queryToView = function queryToView( object, socket, callback ) { //ty
 						request:request
 					},
 					descriptione: {
-						title:'Controller: No permission to create in view or not correct request',
+						title:'Controller: No permission to create in view ' + viewName + ' or not correct request',
 						text:'Запрашиваются несуществующие или неразрешенные идентификаторы на' +
 							'создание view в request, или некоректный запрос'
 					}
@@ -1574,7 +1646,7 @@ Controller.queryToView = function queryToView( object, socket, callback ) { //ty
 				//Вызываем view c необходимыми параметрами
 				//Формируем объект параметров для View
 				var options = {
-					insert_user_id: socket.view[viewName].useId,
+					company_id:sender.company_id,
 					user_id: sender.userId,
 					role: sender.role
 				};
@@ -1619,7 +1691,7 @@ Controller.queryToView = function queryToView( object, socket, callback ) { //ty
 						request:request
 					},
 					descriptione: {
-						title:'Controller: No permission to modify in view or not correct request',
+						title:'Controller: No permission to modify in view ' + viewName + ' or not correct request',
 						text:'Запрашиваются несуществующие или неразрешенные идентификаторы на' +
 							'модификацию view в request, или некоректный запрос'
 					}
@@ -1633,7 +1705,7 @@ Controller.queryToView = function queryToView( object, socket, callback ) { //ty
 			if( checkDelete( viewName, request, socket.view[viewName].ids ) ) {
 				//Формируем объект параметров для View
 				var options = {
-					insert_user_id: socket.view[viewName].useId,
+					company_id:sender.company_id,
 					user_id: sender.userId,
 					role: sender.role
 				};
@@ -1678,7 +1750,7 @@ Controller.queryToView = function queryToView( object, socket, callback ) { //ty
 						request:request
 					},
 					descriptione: {
-						title:'Controller: No permission to delete in view or not correct request',
+						title:'Controller: No permission to delete in view ' + viewName + ' or not correct request',
 						text:'Запрашиваются неразрешенная операция на удаление view в request, или некоректный запрос'
 					}
 				};
@@ -2041,7 +2113,7 @@ function formingFlexoAndView( sender, viewName, callback ){
 					viewName:viewName
 				},
 				descriptione: {
-					title:'Controller: No permissions access to view',
+					title:'Controller: No permissions access to view ' + viewName,
 					text:'Нет разрешений на view в redis для данного пользователя и роли',
 					globalView:globalViewConfig[viewName]
 				}
