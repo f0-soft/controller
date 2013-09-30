@@ -508,6 +508,51 @@ function generateData(){
 				/*
 				//Тестируем чтение с различными правами
 				var listOfQuery = [];
+				listOfQuery.push(LibOfTestAccess.generateAccessToView('role', sender.role, 'testView1_3And1_2And1_1', 1, 0, []));
+				LibOfTestAccess.saveAccessToView(listOfQuery, sender, function(){
+					console.log('№1 ---------------');
+					testRead(100, 50, 0, 5, 2, function(err, reply){
+						var listOfQuery = [];
+						listOfQuery.push(LibOfTestAccess.generateAccessToView('role', sender.role, 'testView1_3And1_2And1_1', 1, 1, ['testFlexo1_3']));
+						LibOfTestAccess.saveAccessToView(listOfQuery, sender, function(){
+							console.log('№2 ---------------');
+							testRead(100, 50, 0, 5, 2, function(err, reply){
+								var listOfQuery = [];
+								listOfQuery.push(LibOfTestAccess.generateAccessToView('role', sender.role, 'testView1_3And1_2And1_1', 1, 6, ['testFlexo1_3', 'testFlexo1_2', 'testFlexo1_1']));
+								LibOfTestAccess.saveAccessToView(listOfQuery, sender, function(){
+									console.log('№3 ---------------');
+									testRead(100, 50, 0, 5, 2, function(err, reply){
+										var listOfQuery = [];
+										listOfQuery.push(LibOfTestAccess.generateAccessToView('role', sender.role, 'testView1_3And1_2And1_1', 1, 15, ['testFlexo1_3', 'testFlexo1_2', 'testFlexo1_1']));
+										LibOfTestAccess.saveAccessToView(listOfQuery, sender, function(){
+											console.log('№4 ---------------');
+											testRead(100, 50, 0, 5, 2, function(err, reply){
+												var listOfQuery = [];
+												listOfQuery.push(LibOfTestAccess.generateAccessToView('role', sender.role, 'testView1_3And1_2And1_1', 1, 27, ['testFlexo1_3', 'testFlexo1_2', 'testFlexo1_1']));
+												LibOfTestAccess.saveAccessToView(listOfQuery, sender, function(){
+													console.log('№5 ---------------');
+													testRead(100, 50, 0, 5, 2, function(err, reply){
+														var listOfQuery = [];
+														listOfQuery.push(LibOfTestAccess.generateAccessToView('role', sender.role, 'testView1_3And1_2And1_1', 1, 53, ['testFlexo1_3', 'testFlexo1_2', 'testFlexo1_1']));
+														LibOfTestAccess.saveAccessToView(listOfQuery, sender, function(){
+															console.log('№6 ---------------');
+															testRead(100, 50, 0, 5, 2, function(err, reply){
+
+															});
+														});
+													});
+												});
+											});
+										});
+									});
+								});
+							});
+						});
+					});
+				});*/
+
+				//Тестируем чтение с различными правами
+				var listOfQuery = [];
 				listOfQuery.push(LibOfTestAccess.generateAccessToView('role', sender.role, 'testView1_3And1_2And1_1', 0, 6, ['testFlexo1_3', 'testFlexo1_2', 'testFlexo1_1']));
 				LibOfTestAccess.saveAccessToView(listOfQuery, sender, function(){
 					console.log('№7 ---------------');
@@ -542,7 +587,9 @@ function generateData(){
 							});
 						});
 					});
-				});*/
+				});
+
+				//Тестируем чтение с различными правами
 
 			}
 		}
@@ -572,15 +619,15 @@ function testRead(countOfQueries, timeBetweenQuery, variantTest, indexOfTest, iF
 		if ( index < countOfQueries ) {
 			setTimeout(callReadQuery, timeBetweenQuery);
 
-			var dateStart = new Date().getTime();
+			//var dateStart = new Date().getTime();
 			var i = index;
 			index++;
 
-			variantOfReadTest.funcExec(viewNameTest, listOfQueries[i], sender, function( err, documents, count ){
+			variantOfReadTest.funcExec(viewNameTest, listOfQueries[i], sender, function( err, documents, count, time ){
 				if ( err ) {
 					statisticsOfTest[i] = err.message;
 				} else {
-					statisticsOfTest[i] = (new Date().getTime()) - dateStart;
+					statisticsOfTest[i] = time /*- dateStart*/;
 				}
 
 				if ( i === (countOfQueries-1) ){

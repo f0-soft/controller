@@ -39,7 +39,8 @@ LibOfTestFunction.simpleFind = function simpleFind(viewName, request, sender, ca
 		place: sender.place
 	};
 
-	controller.getTemplate( object, socket, function( err, config, template ) {
+	var timeStart = new Date().getTime();
+	controller.getTemplate( object, socket, function( err, config, template, time ) {
 		if ( err ){
 			callback ( err );
 		} else {
@@ -51,7 +52,9 @@ LibOfTestFunction.simpleFind = function simpleFind(viewName, request, sender, ca
 				viewName:viewName
 			};
 
-			controller.queryToView ( objectToQuery, socket, callback);
+			controller.queryToView ( objectToQuery, socket, function( err, documents, count/*, time*/){
+				callback(err, documents, count, time-timeStart);
+			});
 		}
 	});
 };
