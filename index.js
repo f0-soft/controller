@@ -197,11 +197,12 @@ Controller.create = function create( query, sender, callback ) {
 						};
 
 						ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
-					} else if ( documents[0].length === 0) {
+					} else if ( documents.length === 0) {
 						//Такого пользователя нет
 						//Сохраняем данные во view
 						var request = [{'a3':query.user.login, 'a4':query.user.company_id,
 							'a5':query.user.name, 'a6':query.user.lastname}];
+						var options = {company_id:sender.company_id, user_id: sender.userId, role:sender.role};
 						View.insert( 'sys_users', ['a1', 'a2', 'a3', 'a4', 'a5', 'a6'], request, options,
 							function( err, document ) {
 							if ( err ) {
@@ -479,9 +480,9 @@ Controller.find = function find( query, sender, callback ) {
 					callback(null, obj);
 				}
 			} );
-		} else if ( query.user.companiesWithRole ) {
+		} else if ( query.user.companiesForUser ) {
 			//Запрашивает массив с описанием компаний принадлежных к роли
-			var viewName = globalRoleToView[query.user.companiesWithRole];
+			var viewName = 'sys_company';
 
 			if ( viewName ) {
 				//Запрашиваем данные из view
@@ -512,7 +513,7 @@ Controller.find = function find( query, sender, callback ) {
 
 						ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 					} else {
-						callback(null, documents[0]);
+						callback(null, documents);
 					}
 				} );
 			} else {
@@ -973,6 +974,8 @@ Controller.modify = function modify( query, sender, callback ) {
 							'пользователя'
 					}
 				};
+
+				ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 			} else if( documents[0]['a1'] ) {
 				var document = underscore.clone( query.user );
 				document.tsUpdate = documents[0]['a2'];
