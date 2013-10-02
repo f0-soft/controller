@@ -197,11 +197,11 @@ Controller.create = function create( query, sender, callback ) {
 						};
 
 						ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
-					} else if ( documents.length === 0) {
+					} else if ( documents[0].length === 0) {
 						//Такого пользователя нет
 						//Сохраняем данные во view
 						var request = [{'a3':query.user.login, 'a4':query.user.company_id,
-							'a5':query.user.name, 'a6':query.user.lastname}];
+							'a5':query.user.name, 'a6':query.user.lastname, 'a7':query.user.role}];
 						var options = {company_id:sender.company_id, user_id: sender.userId, role:sender.role};
 						View.insert( 'sys_users', ['a1', 'a2', 'a3', 'a4', 'a5', 'a6'], request, options,
 							function( err, document ) {
