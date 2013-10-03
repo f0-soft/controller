@@ -1,5 +1,6 @@
 var ModuleUser = {};
 var ModuleErrorLogging = require('./module_error_logging.js');
+var _ = require('underscore');
 
 /**
  * Создаем нового пользователя и сохраняем в redis
@@ -98,27 +99,86 @@ ModuleUser.checkUnique = function checkUnique(client, sender, login, callback){
 	}
 
 	//Проверяем уникальность создаваемого пользователя
-	client.GET( strLoginToId( login ), function( err, reply ){
+	client.GET( strLoginToId( login ), function( err, _id ){
 		if( err ){
 			callback( err );
-		} else if (reply) {
-			objDescriptioneError = {
-				type: 'non-existent_data',
-				variant: 1,
-				place: 'Controller.ModuleUser.checkUnique',
-				time: new Date().getTime(),
-				sender:sender,
-				arguments:{
-					login:login
-				},
-				descriptione: {
-					title:'Controller: User already exists in redis',
-					text:'При создании пользователя проверка уникальности логина показала, что' +
-						'пользователь с таким логином уже существует'
-				}
-			};
+		} else if (_id) {
+			//ToDo:делаем проверку на артефакт
+			client.SMEMBERS( setListOfLogin(), function ( err, listOfLogins){
+				if ((_.indexOf(listOfLogins, login ) + 1)){
+					objDescriptioneError = {
+						type: 'non-existent_data',
+						variant: 1,
+						place: 'Controller.ModuleUser.checkUnique',
+						time: new Date().getTime(),
+						sender:sender,
+						arguments:{
+							login:login
+						},
+						descriptione: {
+							title:'Controller: User already exists in redis',
+							text:'При создании пользователя проверка уникальности логина показала, что' +
+								'пользователь с таким логином уже существует'
+						}
+					};
 
-			ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+					ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+				} else {
+					//Найден артефакт, зачищаем его
+					//Формируем запросы для получения связанных c ним объектов flexo и view прав
+					var multi = client.multi();
+
+					multi.SMEMBERS( setUserToAllFlexoSchemeAccess( login ) );
+					multi.SMEMBERS( setUserToAllViewAccess( login ) );
+					multi.GET( strUserCache( _id ) );
+
+					multi.EXEC(function(err, replies){
+						if ( err ) {
+							callback( err );
+						} else {
+							//Список названий view у которых есть права связанные с данным юзером
+							var listOfFlesoScheme = replies[0] || [];
+							//Список названий view у которых есть права связанные с данным юзером
+							var listOfView = replies[1] || [];
+							//Объект с данными о пользователе
+
+							if ( replies[2] ) {
+								var cache = JSON.parse(replies[2]);
+								if ( cache['role'] ){
+									//Удаляем привязку роли и пользователя
+									multi.SREM( setRoleToAllUser( cache['role'] ), login );
+								}
+							}
+
+							//Формируем команды на удаление пользователя
+							var multi = client.multi();
+							multi.DEL( strUserCache( _id ) );
+							multi.DEL( strIdToLogin( _id ) );
+							multi.DEL( strLoginToId( login ) );
+							//Удаляем из списка логинов
+							multi.SREM( setListOfLogin(), login );
+							//Удаляем связанные с юзером объекты прав view
+							for( var i = 0; i < listOfView.length; i++ ) {
+								multi.DEL( strViewAccessUser( login, listOfView[i] ) );
+							}
+							multi.DEL( setUserToAllViewAccess( login ) );
+							//Удаляем связанные с юзером объекты прав flexo
+							for( var i = 0; i < listOfFlesoScheme.length; i++ ) {
+								multi.DEL( strFlexoAccessUserScheme( login, listOfFlesoScheme[i] ) );
+							}
+							multi.DEL( setUserToAllFlexoSchemeAccess( login ) );
+
+							multi.EXEC(function( err, replies ) {
+								if ( err ) {
+									callback( err );
+								} else {
+									callback( null, true );
+								}
+							} );
+						}
+					});
+				}
+			} );
 		} else {
 			callback(null, true);
 		}

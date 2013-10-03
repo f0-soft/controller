@@ -15,7 +15,7 @@ var globalViewConfig;
 var flexo;
 var View;
 var globalRoleToView;
-var globalViewConfigForAdminPanel
+var globalViewConfigForAdminPanel;
 
 var Controller = {};
 //Константы
