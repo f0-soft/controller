@@ -8,6 +8,7 @@ var AccessModuleFlexo = require('./modules/access_module_flexo.js');
 
 var ModuleErrorLogging = require('./modules/module_error_logging.js');
 var ModuleUser = require('./modules/module_user.js');
+var ModuleTreeData = require('./modules/module_tree_data');
 
 var client;
 var globalFlexoSchemes;
@@ -565,7 +566,7 @@ Controller.find = function find( query, sender, callback ) {
 				if ( err ) {
 					callback( err );
 				} else {
-					callback( null, replies );
+					callback( null, replies, Object.keys(globalViewConfig) );
 				}
 			} );
 		} else if ( query.user.allFlexosUser ) {
@@ -581,7 +582,7 @@ Controller.find = function find( query, sender, callback ) {
 				if ( err ) {
 					callback( err );
 				} else {
-					callback( null, replies );
+					callback( null, replies, Object.keys(globalViewConfig) );
 				}
 			} );
 		} else if ( query.user.allFlexosRole ) {
@@ -2369,4 +2370,20 @@ Controller.deleteErrorLogging = function deleteErrorLogging( time, option, sende
 
 		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 	}
-}
+};
+
+Controller.treeData = function treeData( typeContent, typeOperation, oTreeData, callback ) {
+	//ToDo:доделать логирование ошибок
+	if ( typeContent === 'view' ) {
+		if ( typeOperation === 'read' ) {
+			var listOfView = Object.keys(globalViewConfig);
+			ModuleTreeData.getGeneralTreeView(client, listOfView, callback);
+		} else if ( typeOperation === 'write') {
+			ModuleTreeData.setGeneralTreeView(client, oTreeData, callback);
+		} else {
+			callback('Unknown type operation');
+		}
+	} else {
+		callback('Unknown type content');
+	}
+};
