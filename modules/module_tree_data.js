@@ -8,15 +8,30 @@ ModuleTreeData.getGeneralTreeView = function getGeneralTreeView(client, listOfVi
 		} else {
 			if ( reply ) {
 				var aTreeData = JSON.parse( reply );
-				callback( null, checkAndCorrectGeneralTreeView(listOfView, aTreeData) );
+				callback( null, checkAndCorrectGeneralTree(listOfView, aTreeData) );
 			} else {
-				callback( null, newGeneralTreeView(listOfView));
+				callback( null, newGeneralTree(listOfView));
 			}
 		}
 	});
 };
 
-function checkAndCorrectGeneralTreeView(listOfView, arrTreeData){
+ModuleTreeData.getGeneralTreeFlexo = function getGeneralTreeFlexo(client, listOfFlexo, callback){
+	client.get(strGeneralTreeFlexo(), function (err, reply){
+		if ( err ) {
+			callback( err );
+		} else {
+			if ( reply ) {
+				var aTreeData = JSON.parse( reply );
+				callback( null, checkAndCorrectGeneralTree(listOfFlexo, aTreeData) );
+			} else {
+				callback( null, newGeneralTree(listOfFlexo));
+			}
+		}
+	});
+};
+
+function checkAndCorrectGeneralTree(listOfItems, arrTreeData){
 	//Клонируем входной объект
 	debugger
 	var aTreeData = _.clone(arrTreeData);
@@ -26,7 +41,7 @@ function checkAndCorrectGeneralTreeView(listOfView, arrTreeData){
 	for( var i=0; i<aTreeData.length; i++ ){
 		//Пропускаем не изменяемые элементы
 		if( aTreeData[i].name !== "группы" && aTreeData[i].drag !== false ) {
-			if( !(_.indexOf(listOfView, aTreeData[i].name) + 1) ) {
+			if( !(_.indexOf(listOfItems, aTreeData[i].name) + 1) ) {
 				aTreeData.splice(i,1);
 				i=i-1;
 			} else {
@@ -36,7 +51,7 @@ function checkAndCorrectGeneralTreeView(listOfView, arrTreeData){
 	}
 
 	//Определяем view которых нет в схеме
-	var notUsedView = _.difference(listOfView, usedView);
+	var notUsedView = _.difference(listOfItems, usedView);
 
 	//Формируем массив используемых идентификаторов
 	var aUsedId = [];
@@ -60,7 +75,7 @@ function checkAndCorrectGeneralTreeView(listOfView, arrTreeData){
 	return aTreeData;
 }
 
-function newGeneralTreeView(listOfView){
+function newGeneralTree(listOfItems){
 	//Формируем новый массив данных для дерева
 	var aTreeData = [];
 
@@ -69,8 +84,8 @@ function newGeneralTreeView(listOfView){
 
 	//Вставляем несгруппированные названия view
 	var count = 2;
-	for(var i=0; i<listOfView.length; i++, count++){
-		aTreeData.push({ id:count, pId:0, name:listOfView[i], dropRoot:false, dropInner:false});
+	for(var i=0; i<listOfItems.length; i++, count++){
+		aTreeData.push({ id:count, pId:0, name:listOfItems[i], dropRoot:false, dropInner:false});
 	}
 
 	return aTreeData;
@@ -87,9 +102,24 @@ ModuleTreeData.setGeneralTreeView = function setGeneralTreeView(client, oData, c
 	});
 };
 
-//Формирование строки ключа Redis (STRING) для хранения кеша данных о пользователе
+ModuleTreeData.setGeneralTreeFlexo = function setGeneralTreeFlexo(client, oData, callback){
+	client.set(strGeneralTreeFlexo(), JSON.stringify(oData), function (err, reply){
+		if ( err ) {
+			callback( err );
+		} else {
+			callback( null, true);
+		}
+	});
+};
+
+//Формирование строки ключа Redis (STRING) для хранения данных дерева view
 function strGeneralTreeView( ) {
 	return 'generalTree:view:';
+}
+
+//Формирование строки ключа Redis (STRING) для хранения данных дерева flexo
+function strGeneralTreeFlexo( ) {
+	return 'generalTree:flexo:';
 }
 
 module.exports = ModuleTreeData;

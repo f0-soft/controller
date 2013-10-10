@@ -198,7 +198,7 @@ Controller.create = function create( query, sender, callback ) {
 						};
 
 						ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
-					} else if ( documents[0].length === 0) {
+					} else if ( documents.result[0].length === 0 ) {
 						//Такого пользователя нет
 						//Сохраняем данные во view
 						var request = [{'a3':query.user.login, 'a4':query.user.company_id,
@@ -252,7 +252,7 @@ Controller.create = function create( query, sender, callback ) {
 						if (query.user._rewrite){
 
 							var request = [ {
-								selector: {  'a1': documents[0][0]['a1'], 'a2':documents[0][0]['a2'] },
+								selector: {  'a1': documents.result[0][0]['a1'], 'a2':documents.result[0][0]['a2'] },
 								properties: { 'a4': query.user.company_id,
 									'a5': query.user.name, 'a6':query.user.lastname }
 							} ];
@@ -514,7 +514,7 @@ Controller.find = function find( query, sender, callback ) {
 
 						ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 					} else {
-						callback(null, documents);
+						callback(null, documents.result);
 					}
 				} );
 			} else {
@@ -574,7 +574,7 @@ Controller.find = function find( query, sender, callback ) {
 				if ( err ) {
 					callback( err );
 				} else {
-					callback( null, replies );
+					callback( null, replies, Object.keys(globalFlexoSchemes) );
 				}
 			} );
 		} else if ( query.user.allViewsRole ) {
@@ -590,7 +590,7 @@ Controller.find = function find( query, sender, callback ) {
 				if ( err ) {
 					callback( err );
 				} else {
-					callback( null, replies );
+					callback( null, replies, Object.keys(globalFlexoSchemes)  );
 				}
 			} );
 		} else {
@@ -1531,7 +1531,7 @@ Controller.queryToView = function queryToView( object, socket, callback ) { //ty
 				//ToDo:временно зачекается время
 				var time = new Date().getTime();
 				View.find( viewName, socket.view[viewName].listForRead, request, options,
-					function ( err, documents, count ) {
+					function ( err, documents ) {
 					if ( err ) {
 						//Логирование ошибки
 						objDescriptioneError = {
@@ -1555,7 +1555,7 @@ Controller.queryToView = function queryToView( object, socket, callback ) { //ty
 
 						ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 					} else {
-						callback( null, documents, count, time );
+						callback( null, documents, null, time );
 					}
 				} );
 
@@ -2380,6 +2380,15 @@ Controller.treeData = function treeData( typeContent, typeOperation, oTreeData, 
 			ModuleTreeData.getGeneralTreeView(client, listOfView, callback);
 		} else if ( typeOperation === 'write') {
 			ModuleTreeData.setGeneralTreeView(client, oTreeData, callback);
+		} else {
+			callback('Unknown type operation');
+		}
+	} else if ( typeContent === 'flexo' ) {
+		if ( typeOperation === 'read' ) {
+			var listOfFlexo = Object.keys(globalFlexoSchemes);
+			ModuleTreeData.getGeneralTreeFlexo(client, listOfFlexo, callback);
+		} else if ( typeOperation === 'write') {
+			ModuleTreeData.setGeneralTreeFlexo(client, oTreeData, callback);
 		} else {
 			callback('Unknown type operation');
 		}
