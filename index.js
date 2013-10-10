@@ -15,7 +15,6 @@ var globalFlexoSchemes;
 var globalViewConfig;
 var flexo;
 var View;
-var globalRoleToView;
 var globalViewConfigForAdminPanel;
 
 var Controller = {};
@@ -71,14 +70,6 @@ Controller.init = function init( config, callback ) {
 	} else {
 		callback( new Error( 'Controller: Parameter flexoSchemes is not specified in the config ' +
 			'object' ) );
-		return;
-	}
-
-	if ( config.configRoleToCompanyView ) {
-		globalRoleToView = config.configRoleToCompanyView;
-	} else {
-		callback( new Error( 'Controller: Parameter configRoleToCompanyColl is not specified in ' +
-			'the config object' ) );
 		return;
 	}
 
