@@ -182,7 +182,7 @@ Controller.create = function create( query, sender, callback ) {
 								listAllowedOf_vid:['a1', 'a2', 'a3', 'a4', 'a5', 'a6']
 							},
 							descriptione: {
-								title: err.message,
+								title: err.message || err,
 								text:'Ошибка полученная в функции обратного вызова при вызове ' +
 									'функции view.find при запросе _id пользователя по логину'
 							}
@@ -211,7 +211,7 @@ Controller.create = function create( query, sender, callback ) {
 										listAllowedOf_vid:['a1', 'a2', 'a3', 'a4', 'a5', 'a6']
 									},
 									descriptione: {
-										title: err.message,
+										title: err.message || err,
 										text:'Ошибка полученная в функции обратного вызова при ' +
 											'вызове функции view.insert при сохранение логина ' +
 											'пользователя'
@@ -262,7 +262,7 @@ Controller.create = function create( query, sender, callback ) {
 											request:request
 										},
 										descriptione: {
-											title: err.message,
+											title: err.message || err,
 											text:'Ошибка полученная в функции обратного вызова при ' +
 												'вызове функции view.modify при перезаписи ' +
 												'сущесмтвующего в mongo пользователя'
@@ -497,7 +497,7 @@ Controller.find = function find( query, sender, callback ) {
 								listAllowedOf_vid:['a1', 'a2', 'a3']
 							},
 							descriptione: {
-								title: err.message,
+								title: err.message || err,
 								text:'Ошибка полученная в функции обратного вызова при вызове ' +
 									'функции view.find при запросе списка компаний'
 							}
@@ -960,7 +960,7 @@ Controller.modify = function modify( query, sender, callback ) {
 						request:request
 					},
 					descriptione: {
-						title: err.message,
+						title: err.message || err,
 						text:'Ошибка полученная в функции обратного вызова при ' +
 							'вызове функции view.modify при сохранение логина и _id компании ' +
 							'пользователя'
@@ -1214,7 +1214,7 @@ function getTemplate(object, socket, callback ) {
 							list_vidsFromSocket:socket.view[viewName].ids
 						},
 						descriptione: {
-							title: err.message,
+							title: err.message || err,
 							text:'Ошибка полученная в функции обратного вызова при вызове ' +
 								'функции view.getTemplate'
 						}
@@ -1298,7 +1298,7 @@ function getTemplate(object, socket, callback ) {
 								listAllowedOf_vid:listAllowedOf_vid
 							},
 							descriptione: {
-								title: err.message,
+								title: err.message || err,
 								text:'Ошибка полученная в функции обратного вызова при вызове ' +
 									'функции view.getTemplate'
 							}
@@ -1538,7 +1538,7 @@ Controller.queryToView = function queryToView( object, socket, callback ) { //ty
 								optionsView:options
 							},
 							descriptione: {
-								title: err.message,
+								title: err.message || err,
 								text:'Ошибка полученная в функции обратного вызова при вызове ' +
 									'функции view.find'
 							}
@@ -1601,7 +1601,7 @@ Controller.queryToView = function queryToView( object, socket, callback ) { //ty
 								optionsView:options
 							},
 							descriptione: {
-								title: err.message,
+								title: err.message || err,
 								text:'Ошибка полученная в функции обратного вызова при вызове ' +
 									'функции view.insert'
 							}
@@ -1661,7 +1661,7 @@ Controller.queryToView = function queryToView( object, socket, callback ) { //ty
 								optionsView:options
 							},
 							descriptione: {
-								title: err.message,
+								title: err.message || err,
 								text:'Ошибка полученная в функции обратного вызова при вызове ' +
 									'функции view.modify'
 							}
@@ -1720,7 +1720,7 @@ Controller.queryToView = function queryToView( object, socket, callback ) { //ty
 								optionsView:options
 							},
 							descriptione: {
-								title: err.message,
+								title: err.message || err,
 								text:'Ошибка полученная в функции обратного вызова при вызове ' +
 									'функции view.delete'
 							}
