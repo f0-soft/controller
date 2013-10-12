@@ -193,9 +193,10 @@ Controller.create = function create( query, sender, callback ) {
 						//Такого пользователя нет
 						//Сохраняем данные во view
 						var request = [{'a3':query.user.login, 'a4':query.user.company_id,
-							'a5':query.user.name, 'a6':query.user.lastname, 'a7':query.user.role}];
+							'a5':query.user.name, 'a6':query.user.lastname, 'a7':query.user.role,
+							'a8':query.user.lastname + ' ' + query.user.name}];
 						var options = {company_id:sender.company_id, user_id: sender.userId, role:sender.role};
-						View.insert( 'sys_users', ['a1', 'a2', 'a3', 'a4', 'a5', 'a6'], request, options,
+						View.insert( 'sys_users', ['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8'], request, options,
 							function( err, document ) {
 							if ( err ) {
 								//Логирование ошибки
@@ -208,7 +209,7 @@ Controller.create = function create( query, sender, callback ) {
 									arguments:{
 										viewName:'sys_users',
 										request:request,
-										listAllowedOf_vid:['a1', 'a2', 'a3', 'a4', 'a5', 'a6']
+										listAllowedOf_vid:['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8']
 									},
 									descriptione: {
 										title: err.message || err,
@@ -222,6 +223,7 @@ Controller.create = function create( query, sender, callback ) {
 								var resultDocument = underscore.clone( query.user );
 								resultDocument._id = document[0]['a1'];
 								resultDocument.tsUpdate = document[0]['a2'];
+								resultDocument.fullname = query.user.lastname + ' ' +  query.user.name;
 
 								//Сохраняем документ в redis
 								ModuleUser.create( client, sender, resultDocument, function( err ) {
@@ -245,7 +247,8 @@ Controller.create = function create( query, sender, callback ) {
 							var request = [ {
 								selector: {  'a1': documents.result[0][0]['a1'], 'a2':documents.result[0][0]['a2'] },
 								properties: { 'a4': query.user.company_id,
-									'a5': query.user.name, 'a6':query.user.lastname }
+									'a5': query.user.name, 'a6':query.user.lastname, 'a7':query.user.role,
+									'a8':query.user.lastname + ' ' + query.user.name}
 							} ];
 							var options = {company_id:sender.company_id, user_id: sender.userId, role:sender.role};
 							View.modify( 'sys_users', request, options, function( err, documentsNew ) {
@@ -272,6 +275,7 @@ Controller.create = function create( query, sender, callback ) {
 									var document = underscore.clone( query.user );
 									document._id = documentsNew[0]['a1'];
 									document.tsUpdate = documentsNew[0]['a2'];
+									document.fullname = query.user.lastname + ' ' +  query.user.name;
 									delete document._rewrite;
 
 									ModuleUser.create( client, sender, document, function(err, reply){
@@ -943,7 +947,8 @@ Controller.modify = function modify( query, sender, callback ) {
 		var request = [ {
 			selector: {  'a1': _id, 'a2': query.user.tsUpdate },
 			properties: { 'a3': query.user.login, 'a4': query.user.company_id,
-				'a5': query.user.name, 'a6':query.user.lastname }
+				'a5': query.user.name, 'a6':query.user.lastname, 'a7':query.user.role,
+				'a8':query.user.lastname + ' ' + query.user.name}
 		} ];
 		var options = {company_id:sender.company_id, user_id: sender.userId, role:sender.role};
 		View.modify( 'sys_users', request, options, function( err, documents ) {
@@ -971,6 +976,7 @@ Controller.modify = function modify( query, sender, callback ) {
 			} else if( documents[0]['a1'] ) {
 				var document = underscore.clone( query.user );
 				document.tsUpdate = documents[0]['a2'];
+				document.fullname = query.user.lastname + ' ' + query.user.name;
 
 				ModuleUser.modify( client, sender, _id, document, function(err, reply){
 					if ( err ){
