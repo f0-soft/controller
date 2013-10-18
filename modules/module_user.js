@@ -557,6 +557,86 @@ ModuleUser.modify = function modify(client, sender, _id, objNewData, callback){
 	}
 };
 
+ModuleUser.modifyWithId = function modify(client, sender, lastId, _id, objNewData, callback){
+	//ToDo:логирование ошибок
+
+	//Получаем кеш из redis по _id
+	client.GET( strUserCache( lastId ), function( err, reply ){
+		if( err ) {
+			callback( err );
+		} else if ( reply ) {
+			var cache = JSON.parse(reply);
+			//Получаю список изменяемых полей
+			var listFields = Object.keys( objNewData );
+			//Вносим изменения в кеш
+			var multi = client.multi();
+			for( var i = 0; i < listFields.length; i++ ) {
+				//Проверяем изменение логина пользователя
+				if(listFields[i] === 'login') {
+					//ToDo:оптимизировать за счет проверки сравнением
+					var lastLogin = cache['login'];
+					var newLogin = objNewData['login'];
+
+					multi.DEL(strLoginToId(lastLogin));
+					multi.DEL(strIdToLogin(lastId));
+					multi.SET(strLoginToId(newLogin), _id);
+					multi.SET(strIdToLogin(_id), newLogin);
+					//ToDo:доделать изменение логина во всех справочниках
+				}
+
+				if(listFields[i] === 'role'){
+					//ToDo:оптимизировать за счет проверки сравнением
+					var lastRole = cache['role'];
+					var newRole = objNewData['role'];
+
+					multi.SREM( setRoleToAllUser( lastRole ), cache['login'] );
+					multi.SADD( setRoleToAllUser( newRole ), objNewData['login'] );
+				}
+
+					cache[listFields[i]] = objNewData[listFields[i]];
+			}
+
+			//Зачищаем кешь со старым _id
+			multi.DEL( strUserCache( lastId ) );
+
+			//Сохраняем измененные кеш с данными о пользователе
+			multi.SET( strUserCache( _id ), JSON.stringify( cache ));
+			multi.EXEC( function( err ){
+				if ( err ){
+					callback( err );
+				} else {
+					callback( null, cache._id );
+				}
+			} );
+
+		} else {
+
+			objDescriptioneError = {
+				type: 'non-existent_data',
+				variant: 1,
+				place: 'Controller.ModuleUser.modify',
+				time: new Date().getTime(),
+				sender:sender,
+				arguments:{
+					_idUser:_id,
+					odjUser:objNewData
+				},
+				descriptione: {
+					title:'Controller:Modification of data is not existing user',
+					text:'Попытка модификировать не существующего в redis пользователя ' +
+						'с указанным идентификатором'
+				}
+			};
+
+			ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+		}
+	} );
+
+
+};
+
+
+
 /**
  * Удаление пользователя
  *

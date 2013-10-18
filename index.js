@@ -164,7 +164,7 @@ Controller.create = function create( query, sender, callback ) {
 				callback ( err );
 			} else {
 				//ToDo:Согласовать название view
-				var request = {selector: { 'sys_users': {'a3':query.user.login} } };
+				var request = {selector: { 'sys_users': {'a3': String.fromCharCode(3) + query.user.login} } };
 				var options = {company_id:sender.company_id, user_id: sender.userId, role:sender.role};
 				View.find( 'sys_users', ['a1', 'a2', 'a3', 'a4', 'a5', 'a6'], request,
 					options, function ( err, documents ) {
@@ -2393,3 +2393,173 @@ Controller.treeData = function treeData( typeContent, typeOperation, oTreeData, 
 		callback('Unknown type content');
 	}
 };
+
+Controller.checkUsers = function checkUsers(sender, callback){
+	//ToDo:доделать логирование ошибок
+	//Получаем список пользорвателей из redis
+	ModuleUser.findListOfUsers(client, function( err, listOfUsersFromRedis ){
+		if(err){
+			callback( err );
+		} else {
+			//Получаем всех пользователей из mongo
+			var request = {selector: { 'sys_users': {} } };
+			var options = {company_id:sender.company_id, user_id: sender.userId, role:sender.role};
+			View.find( 'sys_users', ['a1', 'a2', 'a3', 'a4', 'a5', 'a6'], request,
+				options, function ( err, documentsMongoUsers ) {
+					if (err){
+						callback(err);
+					} else {
+						//Список пользователей в mongo
+						var listOfUsersFromMongo = [];
+
+						for( var i=0; i<documentsMongoUsers.result[0].length; i++){
+							listOfUsersFromMongo.push(documentsMongoUsers.result[0][i]['a3']);
+						}
+
+						//Формирую список пользователей, которые есть в mongo и в redis
+						var listOfUsersIntersection = underscore.intersection( listOfUsersFromRedis, listOfUsersFromMongo );
+
+						//Формируем список пользователей, которые есть в redis, но нет в mongo
+						var listUsersOnlyRedis = underscore.difference( listOfUsersFromRedis, listOfUsersFromMongo );
+
+						//Удаляем пользователей из redis
+
+						async.parallel({
+							cheakUsersInRedis:function(cb){
+
+								async.map(
+									listUsersOnlyRedis,
+									function(login, cbMap){
+
+										//Читаем данные из redis
+										ModuleUser.find(client, sender, null, login, function(err, doc){
+											if( err ) {
+												cbMap(err);
+											} else {
+												if ( doc && doc.role !== 'admin' ){
+													//Удаляем пользователя из Redis
+													ModuleUser.delete(client, sender, null, login, cbMap);
+												} else {
+													cbMap(null, false);
+												}
+											}
+										});
+
+									},
+									cb
+								)
+
+							},
+							cheakUsersInRedisAndMongo:function(cb){
+
+								async.map(
+									listOfUsersIntersection,
+									function(login, cbMap){
+
+										//Читаем данные из Redis
+										ModuleUser.find(client, sender, null, login, function(err, docFromRedis){
+											if( err ) {
+												cbMap(err);
+											} else {
+
+												//Читаем данные из mongo
+												var request = {selector: { 'sys_users': {'a3':String.fromCharCode(3) + login} } };
+												var options = {company_id:sender.company_id, user_id: sender.userId, role:sender.role};
+												View.find( 'sys_users', ['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8'], request,
+													options, function ( err, docFromMongo ) {
+
+													if (err){
+														cbMap(err);
+													} else {
+											            //Анализируем результат из mongo и redis
+														if( docFromRedis.role !== docFromMongo.result[0][0]['a7'] ){
+															//Обновлемя данные в mongo
+															var request = [ {
+																selector: {  'a1': docFromMongo.result[0][0]['a1'], 'a2':docFromMongo.result[0][0]['a2'] },
+																properties: { 'a7': docFromRedis.role }
+															} ];
+															var options = {company_id:sender.company_id, user_id: sender.userId, role:sender.role};
+															View.modify( 'sys_users', request, options, function( err, docFromMongoUpdated ) {
+																if ( err ) {
+																	cbMap(err)
+																} else {
+																	//Обновляем данные в redis
+																	var document = underscore.clone( docFromRedis );
+																	document._id = docFromMongoUpdated[0]['a1'];
+																	document.tsUpdate = docFromMongoUpdated[0]['a2'];
+																	document.name = docFromMongoUpdated[0]['a5'];
+																	document.lastname = docFromMongoUpdated[0]['a6'];
+																	document.company_id = docFromMongoUpdated[0]['a4'];
+																	document.fullname = docFromRedis.lastname + ' ' +  docFromRedis.name;
+
+																	ModuleUser.modifyWithId( client, sender, docFromRedis._id, document._id, document, function(err, reply){
+																		if ( err ){
+																			cbMap( err );
+																		} else {
+																			cbMap(null, true);
+																		}
+																	} );
+																}
+															});
+
+														} else {
+
+															if ( docFromRedis._id === docFromMongo.result[0][0]['a1'] &&
+																docFromRedis.tsUpdate === docFromMongo.result[0][0]['a2'] &&
+																docFromRedis.name === docFromMongo.result[0][0]['a5'] &&
+																docFromRedis.lastname === docFromMongo.result[0][0]['a6'] &&
+																docFromRedis.company_id === docFromMongo.result[0][0]['a4']){
+																cbMap(null, false);
+															} else {
+																//Обновляем данные в redis
+																var document = underscore.clone( docFromRedis );
+																document._id = docFromMongo.result[0][0]['a1'];
+																document.tsUpdate = docFromMongo.result[0][0]['a2'];
+																document.name = docFromMongo.result[0][0]['a5'];
+																document.lastname = docFromMongo.result[0][0]['a6'];
+																document.company_id = docFromMongo.result[0][0]['a4'];
+																document.fullname = docFromRedis.lastname + ' ' +  docFromRedis.name;
+
+																ModuleUser.modifyWithId( client, sender, docFromRedis._id, document._id, document, function(err, reply){
+																	if ( err ){
+																		cbMap( err );
+																	} else {
+																		cbMap(null, true);
+																	}
+																} );
+															}
+														}
+
+													}
+
+												});
+
+											}
+										});
+
+									},
+									cb
+								)
+
+
+							}},
+							function(err, results) {
+								if( err ){
+									callback( err );
+								} else {
+									var listOfDeleted = underscore.without(results.cheakUsersInRedis, false);
+									var listOfRecovery = underscore.without(results.cheakUsersInRedisAndMongo, false);
+									callback(null, {delete:listOfDeleted, update:listOfRecovery});
+								}
+
+							}
+						);
+
+					}
+				}
+			);
+
+		}
+	})
+
+}
