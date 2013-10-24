@@ -164,7 +164,7 @@ Controller.create = function create( query, sender, callback ) {
 				callback ( err );
 			} else {
 				//ToDo:Согласовать название view
-				var request = {selector: { 'sys_users': {'a3': String.fromCharCode(3) + query.user.login} } };
+				var request = {selector: { 'sys_users': {'a3': query.user.login} } };
 				var options = {company_id:sender.company_id, user_id: sender.userId, role:sender.role};
 				View.find( 'sys_users', ['a1', 'a2', 'a3', 'a4', 'a5', 'a6'], request,
 					options, function ( err, documents ) {
@@ -2463,7 +2463,7 @@ Controller.checkUsers = function checkUsers(sender, callback){
 											} else {
 
 												//Читаем данные из mongo
-												var request = {selector: { 'sys_users': {'a3':String.fromCharCode(3) + login} } };
+												var request = {selector: { 'sys_users': {'a3': login} } };
 												var options = {company_id:sender.company_id, user_id: sender.userId, role:sender.role};
 												View.find( 'sys_users', ['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8'], request,
 													options, function ( err, docFromMongo ) {
