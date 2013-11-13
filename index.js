@@ -194,8 +194,16 @@ Controller.create = function create( query, sender, callback ) {
 						//Сохраняем данные во view
 						var request = [{'a3':query.user.login, 'a4':query.user.company_id,
 							'a5':query.user.name, 'a6':query.user.lastname, 'a7':query.user.role,
-							'a8':query.user.lastname + ' ' + query.user.name,
-							'a9':query.user.email, 'a10':query.user.phone}];
+							'a8':query.user.lastname + ' ' + query.user.name}];
+
+						if(query.user.email){
+							request[0]['a9'] = query.user.email;
+						}
+
+						if(query.user.phone){
+							request[0]['a10'] = query.user.phone;
+						}
+
 						var options = {company_id:sender.company_id, user_id: sender.userId, role:sender.role};
 						View.insert( 'sys_users', ['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8', 'a9', 'a10'], request, options,
 							function( err, document ) {
@@ -249,9 +257,16 @@ Controller.create = function create( query, sender, callback ) {
 								selector: {  'a1': documents.result[0][0]['a1'], 'a2':documents.result[0][0]['a2'] },
 								properties: { 'a4': query.user.company_id,
 									'a5': query.user.name, 'a6':query.user.lastname, 'a7':query.user.role,
-									'a8':query.user.lastname + ' ' + query.user.name,
-									'a9':query.user.email, 'a10':query.user.phone }
+									'a8':query.user.lastname + ' ' + query.user.name }
 							} ];
+
+							if(query.user.email){
+								request[0].properties['a9'] = query.user.email;
+							}
+
+							if(query.user.phone){
+								request[0].properties['a10'] = query.user.phone;
+							}
 							var options = {company_id:sender.company_id, user_id: sender.userId, role:sender.role};
 							View.modify( 'sys_users', request, options, function( err, documentsNew ) {
 								if ( err ) {
@@ -950,9 +965,17 @@ Controller.modify = function modify( query, sender, callback ) {
 			selector: {  'a1': _id, 'a2': query.user.tsUpdate },
 			properties: { 'a3': query.user.login, 'a4': query.user.company_id,
 				'a5': query.user.name, 'a6':query.user.lastname, 'a7':query.user.role,
-				'a8':query.user.lastname + ' ' + query.user.name,
-				'a9':query.user.email, 'a10':query.user.phone}
+				'a8':query.user.lastname + ' ' + query.user.name}
 		} ];
+
+		if(query.user.email){
+			request[0].properties['a9'] = query.user.email;
+		}
+
+		if(query.user.phone){
+			request[0].properties['a10'] = query.user.phone;
+		}
+
 		var options = {company_id:sender.company_id, user_id: sender.userId, role:sender.role};
 		View.modify( 'sys_users', request, options, function( err, documents ) {
 			if ( err ) {
