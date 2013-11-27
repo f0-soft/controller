@@ -2515,7 +2515,11 @@ Controller.checkUsers = function checkUsers(sender, callback){
 																	document.tsUpdate = docFromMongoUpdated[0]['a2'];
 																	document.name = docFromMongoUpdated[0]['a5'];
 																	document.lastname = docFromMongoUpdated[0]['a6'];
-																	document.company_id = docFromMongoUpdated[0]['a4'];
+																	if(_.isArray(docFromMongoUpdated[0]['a4'])){
+																		document.company_id = docFromMongoUpdated[0]['a4'][0];
+																	} else {
+																		document.company_id = docFromMongoUpdated[0]['a4'];
+																	}
 																	document.fullname = docFromRedis.lastname + ' ' +  docFromRedis.name;
 
 																	ModuleUser.modifyWithId( client, sender, docFromRedis._id, document._id, document, function(err, reply){
@@ -2534,7 +2538,7 @@ Controller.checkUsers = function checkUsers(sender, callback){
 																docFromRedis.tsUpdate === docFromMongo.result[0][0]['a2'] &&
 																docFromRedis.name === docFromMongo.result[0][0]['a5'] &&
 																docFromRedis.lastname === docFromMongo.result[0][0]['a6'] &&
-																docFromRedis.company_id === docFromMongo.result[0][0]['a4']){
+																docFromRedis.company_id === docFromMongo.result[0][0]['a4'][0]){
 																cbMap(null, false);
 															} else {
 																//Обновляем данные в redis
@@ -2543,7 +2547,7 @@ Controller.checkUsers = function checkUsers(sender, callback){
 																document.tsUpdate = docFromMongo.result[0][0]['a2'];
 																document.name = docFromMongo.result[0][0]['a5'];
 																document.lastname = docFromMongo.result[0][0]['a6'];
-																document.company_id = docFromMongo.result[0][0]['a4'];
+																document.company_id = docFromMongo.result[0][0]['a4'][0];
 																document.fullname = docFromRedis.lastname + ' ' +  docFromRedis.name;
 
 																ModuleUser.modifyWithId( client, sender, docFromRedis._id, document._id, document, function(err, reply){
