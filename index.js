@@ -2420,6 +2420,37 @@ Controller.treeData = function treeData( typeContent, typeOperation, oTreeData, 
 	}
 };
 
+
+Controller.saveUploadFileStatus = function(user, idFile, type, status, callback){
+	//ToDo:доделать логирование ошибок
+	//Формируем ключ редиса
+	var redisKey = 'uploadFileStatus:' + user + ':' + idFile + ':' + type;
+
+	client.set(redisKey, status, function(err, reply) {
+		if (err) {
+			callback(err);
+		} else {
+			client.expire(redisKey, 60*60*10);
+			callback(null, true);
+		}
+	});
+};
+
+Controller.readUploadFileStatus = function(user, idFile, type, callback){
+	//ToDo:доделать логирование ошибок
+
+	//Формируем ключ редиса
+	var redisKey = 'uploadFileStatus:' + user + ':' + idFile + ':' + type;
+
+	client.get(redisKey, function(err, status) {
+		if (err) {
+			callback(err);
+		} else {
+			callback(null, status);
+		}
+	});
+};
+
 Controller.checkUsers = function checkUsers(sender, callback){
 	//ToDo:доделать логирование ошибок
 	//Получаем список пользорвателей из redis
