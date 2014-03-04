@@ -1,6 +1,130 @@
 var ModuleUser = {};
 var ModuleErrorLogging = require('./module_error_logging.js');
 var _ = require('underscore');
+var async = require('async');
+
+ModuleUser.createUser = function createUser( client, sender, query, View, callback ){
+
+	//Проверяем уникальность создаваемого пользователя
+	ModuleUser.checkUnique( client, sender, query.user.login, function ( err ) {
+		if ( err ) {
+			callback ( err );
+		} else {
+			//ToDo:Согласовать название view
+			var request = {selector: { 'sys_users': {'a3': query.user.login} } };
+			var options = {company_id:sender.company_id, user_id: sender.userId, role:sender.role};
+			View.find( 'sys_users', ['a1', 'a2', 'a3', 'a4', 'a5', 'a6'], request,
+				options, function ( err, documents ) {
+					if ( err ) {
+						//Логирование ошибки
+						var objDescriptioneError = ModuleErrorLogging.error3( sender, sender, err );
+						ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+					} else if ( documents.result[0].length === 0 ) {
+						//Такого пользователя нет
+						createUserInMongoAndRedis(client, query, sender, View, callback );
+					} else {
+						//есть такой пользователь в mongo
+						//callback('Controller: login already exists in database');
+						if (query.user._rewrite){
+							//Перезаписываем пользователя
+							rewriteUser( client, documents, sender, query, View, callback );
+						} else {
+							callback( null, null, 'Пользователь с логином ' + query.user.login +
+								' уже существует, перезаписать??');
+						}
+					}
+				} );
+		}
+	});
+};
+
+//Перезаписываем пользователя
+function rewriteUser( client, documents, sender, query, View, callback ){
+	var request = [ {
+		selector: {  'a1': documents.result[0][0]['a1'], 'a2':documents.result[0][0]['a2'] },
+		properties: { 'a4': query.user.company_id,
+			'a5': query.user.name, 'a6':query.user.lastname, 'a7':query.user.role,
+			'a8':query.user.lastname + ' ' + query.user.name }
+	} ];
+
+	if(query.user.email){
+		request[0].properties['a9'] = query.user.email;
+	}
+
+	if(query.user.phone){
+		request[0].properties['a10'] = query.user.phone;
+	}
+	var options = {company_id:sender.company_id, user_id: sender.userId, role:sender.role};
+	View.modify( 'sys_users', request, options, function( err, documentsNew ) {
+		if ( err ) {
+			//Логирование ошибки
+			var objDescriptioneError = ModuleErrorLogging.error5( sender, request, err );
+			ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+		} else if( documentsNew[0]['a1'] ) {
+			var document = _.clone( query.user );
+			document._id = documentsNew[0]['a1'];
+			document.tsUpdate = documentsNew[0]['a2'];
+			document.fullname = query.user.lastname + ' ' +  query.user.name;
+			delete document._rewrite;
+
+			ModuleUser.create( client, sender, document, function(err, reply){
+				if ( err ){
+					callback( err );
+				} else {
+					callback(null, reply);
+				}
+			} );
+		} else {
+			//ToDo:не возвращен идентификатор
+			callback( 'Controller: view not return _id' );
+		}
+	} );
+}
+
+//Сохраняем данные о пользователе в mongo и в redis
+function createUserInMongoAndRedis( client, query, sender, View, callback ){
+	//Сохраняем данные во view
+	var request = [{'a3':query.user.login, 'a4':query.user.company_id,
+		'a5':query.user.name, 'a6':query.user.lastname, 'a7':query.user.role,
+		'a8':query.user.lastname + ' ' + query.user.name}];
+
+	if(query.user.email){
+		request[0]['a9'] = query.user.email;
+	}
+
+	if(query.user.phone){
+		request[0]['a10'] = query.user.phone;
+	}
+
+	var options = {company_id:sender.company_id, user_id: sender.userId, role:sender.role};
+	View.insert( 'sys_users', ['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8', 'a9', 'a10'], request, options,
+		function( err, document ) {
+			if ( err ) {
+				//Логирование ошибки
+				var objDescriptioneError = ModuleErrorLogging.error4( sender, request, err );
+				ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback)
+			} else if ( document[0]['a1'] ) {
+				//Сохраняем документ в Redis
+				var resultDocument = _.clone( query.user );
+				resultDocument._id = document[0]['a1'];
+				resultDocument.tsUpdate = document[0]['a2'];
+				resultDocument.fullname = query.user.lastname + ' ' +  query.user.name;
+
+				//Сохраняем документ в redis
+				ModuleUser.create( client, sender, resultDocument, function( err ) {
+					if(err){
+						callback( err );
+					} else {
+						callback( err, true );
+					}
+				} );
+
+			} else {
+				//ToDo:Не получен идентификатор
+				callback( 'Controller: view not return _id' );
+			}
+		});
+}
 
 /**
  * Создаем нового пользователя и сохраняем в redis
@@ -15,22 +139,7 @@ ModuleUser.create = function create( client, sender, odjUser, callback ) {
 
 	if(typeof odjUser['_id'] !== "string"){
 
-		objDescriptioneError = {
-			type: 'invalid_function_arguments',
-			variant: 1,
-			place: 'Controller.ModuleUser.create',
-			time: new Date().getTime(),
-			sender:sender,
-			arguments:{
-				odjUser:odjUser
-			},
-			descriptione: {
-				title:'Controller: In the query.user field _id is missing',
-				text:'При создании пользователя, в объекте query.user не  ' +
-					'указан идентификатор пользователя'
-			}
-		};
-
+		objDescriptioneError = ModuleErrorLogging.error6( sender, odjUser );
 		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 		return;
 	}
@@ -76,24 +185,57 @@ ModuleUser.createRole = function createRole(client, role, callback) {
 	} );
 };
 
+ModuleUser.modifyUser = function modifyUser( query, sender, View, callback ){
+	var _id = query.user._id || null;
+
+	//Сохраняем данные во view
+	//ToDo:согласовать названия для view и flexo
+	var request = [ {
+		selector: {  'a1': _id, 'a2': query.user.tsUpdate },
+		properties: { 'a3': query.user.login, 'a4': query.user.company_id,
+			'a5': query.user.name, 'a6':query.user.lastname, 'a7':query.user.role,
+			'a8':query.user.lastname + ' ' + query.user.name}
+	} ];
+
+	if(query.user.email){
+		request[0].properties['a9'] = query.user.email;
+	}
+
+	if(query.user.phone){
+		request[0].properties['a10'] = query.user.phone;
+	}
+
+	var options = {company_id:sender.company_id, user_id: sender.userId, role:sender.role};
+	View.modify( 'sys_users', request, options, function( err, documents ) {
+		if ( err ) {
+			//Логирование ошибки
+			var objDescriptioneError = ModuleErrorLogging.error33( sender, request, err );
+			ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
+		} else if( documents[0]['a1'] ) {
+			var document = _.clone( query.user );
+			document.tsUpdate = documents[0]['a2'];
+			document.fullname = query.user.lastname + ' ' + query.user.name;
+
+			ModuleUser.modify( client, sender, _id, document, function(err, reply){
+				if ( err ){
+					callback( err );
+				} else {
+					callback(null, reply);
+				}
+			} );
+		} else {
+			//ToDo:не возвращен идентификатор
+			callback( 'Controller: view not return _id' );
+		}
+	} );
+};
+
 ModuleUser.checkUnique = function checkUnique(client, sender, login, callback){
 	var objDescriptioneError;
 
 	if(typeof login !== "string"){
 
-		objDescriptioneError = {
-			type: 'invalid_function_arguments',
-			variant: 1,
-			place: 'Controller.ModuleUser.checkUnique',
-			time: new Date().getTime(),
-			sender:sender,
-			descriptione: {
-				title:'Controller:  In the query.user field login is missing',
-				text:'При создании пользователя, в объекте query.user не  ' +
-					'указан логин пользователя'
-			}
-		};
-
+		objDescriptioneError = ModuleErrorLogging.error7( sender );
 		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 		return;
 	}
@@ -106,22 +248,7 @@ ModuleUser.checkUnique = function checkUnique(client, sender, login, callback){
 			//ToDo:делаем проверку на артефакт
 			client.SMEMBERS( setListOfLogin(), function ( err, listOfLogins){
 				if ((_.indexOf(listOfLogins, login ) + 1)){
-					objDescriptioneError = {
-						type: 'non-existent_data',
-						variant: 1,
-						place: 'Controller.ModuleUser.checkUnique',
-						time: new Date().getTime(),
-						sender:sender,
-						arguments:{
-							login:login
-						},
-						descriptione: {
-							title:'Controller: User already exists in redis',
-							text:'При создании пользователя проверка уникальности логина показала, что' +
-								'пользователь с таким логином уже существует'
-						}
-					};
-
+					objDescriptioneError = ModuleErrorLogging.error8( sender, login );
 					ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 				} else {
 					//Найден артефакт, зачищаем его
@@ -163,8 +290,8 @@ ModuleUser.checkUnique = function checkUnique(client, sender, login, callback){
 							}
 							multi.DEL( setUserToAllViewAccess( login ) );
 							//Удаляем связанные с юзером объекты прав flexo
-							for( var i = 0; i < listOfFlesoScheme.length; i++ ) {
-								multi.DEL( strFlexoAccessUserScheme( login, listOfFlesoScheme[i] ) );
+							for( var j = 0; j < listOfFlesoScheme.length; j++ ) {
+								multi.DEL( strFlexoAccessUserScheme( login, listOfFlesoScheme[j] ) );
 							}
 							multi.DEL( setUserToAllFlexoSchemeAccess( login ) );
 
@@ -203,22 +330,7 @@ ModuleUser.find = function find(client, sender, _id, login, callback){
 			} else if (reply) {
 				callback( null, JSON.parse( reply ) );
 			} else {
-				objDescriptioneError = {
-					type: 'non-existent_data',
-					variant: 1,
-					place: 'Controller.ModuleUser.find',
-					time: new Date().getTime(),
-					sender:sender,
-					arguments:{
-						_idUser:_id
-					},
-					descriptione: {
-						title:'Controller: No cache in redis',
-						text:'Не существует данных о пользователе в redis, поиск осуществляется по' +
-							'идентификатору пользователя'
-					}
-				};
-
+				objDescriptioneError = ModuleErrorLogging.error9( sender, _id );
 				ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 			}
 		} );
@@ -235,61 +347,18 @@ ModuleUser.find = function find(client, sender, _id, login, callback){
 					} else if (reply) {
 						callback( null, JSON.parse( reply ) );
 					} else {
-						objDescriptioneError = {
-							type: 'non-existent_data',
-							variant: 2,
-							place: 'Controller.ModuleUser.find',
-							time: new Date().getTime(),
-							sender:sender,
-							arguments:{
-								login:login
-							},
-							descriptione: {
-								title:'Controller: No cache in redis',
-								text:'Не существует данных о пользователе в redis, поиск ' +
-									'осуществляется по логину пользователя',
-								_idUser:_id
-							}
-						};
-
+						objDescriptioneError = ModuleErrorLogging.error10( sender, _id, login );
 						ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 					}
 				} );
 
 			} else {
-				objDescriptioneError = {
-					type: 'non-existent_data',
-					variant: 3,
-					place: 'Controller.ModuleUser.find',
-					time: new Date().getTime(),
-					sender:sender,
-					arguments:{
-						login:login
-					},
-					descriptione: {
-						title:'Controller: Requested the login does not exist',
-						text:'Не существует в redis пользователя с указанным логином ' +
-							'(не удается найти _id пользователя по его логину)'
-					}
-				};
-
+				objDescriptioneError = ModuleErrorLogging.error11( sender, login );
 				ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 			}
 		});
 	} else {
-		objDescriptioneError = {
-			type: 'invalid_function_arguments',
-			variant: 1,
-			place: 'Controller.ModuleUser.find',
-			time: new Date().getTime(),
-			sender:sender,
-			descriptione: {
-				title:'Controller: Not set login or _id in query.user',
-				text:'При поиске данных о пользователе в объекте query.user не указан параметр' +
-					'login или _id пользователя'
-			}
-		};
-
+		objDescriptioneError = ModuleErrorLogging.error12( sender );
 		ModuleErrorLogging.saveAndReturnError(client, objDescriptioneError, callback);
 	}
 };
